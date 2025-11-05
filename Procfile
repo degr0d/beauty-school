@@ -1,2 +1,1 @@
-web: python run_api.py
-
+web: python run_all.py
