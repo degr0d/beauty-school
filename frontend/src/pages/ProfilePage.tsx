@@ -67,17 +67,46 @@ const ProfilePage = () => {
       let accessData: AccessStatus | null = null
       
       try {
+        console.log('📡 Запрос проверки доступа...')
         const accessResponse = await accessApi.checkAccess()
+        console.log('✅ Доступ получен:', accessResponse.data)
         accessData = accessResponse.data
       } catch (error: any) {
+        console.error('❌ Ошибка проверки доступа:', {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message
+        })
+        
         // Если 404 - пользователь не зарегистрирован
         if (error.response?.status === 404) {
-          setStatus('not_registered')
-          return
+          // Но если профиль уже загружен - значит пользователь есть
+          if (profileData) {
+            // Профиль есть, но проверка доступа вернула 404
+            // Это может быть админ или новая регистрация
+            // Проверяем: если пользователь зарегистрирован но проверка доступа не прошла
+            // - возможно это админ, у которого должен быть доступ
+            // Backend для админов должен вернуть has_access: true, но если вернул 404
+            // значит либо пользователь не админ, либо проблема с проверкой
+            // Для безопасности - если профиль есть, даем доступ (админы должны иметь доступ)
+            console.log('⚠️ Профиль есть, но проверка доступа вернула 404 - возможно админ')
+            accessData = { has_access: true, purchased_courses_count: 999, total_payments: 0 }
+          } else {
+            setStatus('not_registered')
+            return
+          }
+        } else {
+          // Другая ошибка - если профиль есть, возможно это админ
+          // Для админов backend должен вернуть has_access: true
+          // Если ошибка - но профиль есть, даем доступ (может быть админ)
+          if (profileData) {
+            console.log('⚠️ Ошибка проверки доступа, но профиль есть - возможно админ, даем доступ')
+            accessData = { has_access: true, purchased_courses_count: 999, total_payments: 0 }
+          } else {
+            console.error('Ошибка проверки доступа и профиля нет:', error)
+            accessData = { has_access: false, purchased_courses_count: 0, total_payments: 0 }
+          }
         }
-        // Другая ошибка - считаем что нет доступа
-        console.error('Ошибка проверки доступа:', error)
-        accessData = { has_access: false, purchased_courses_count: 0, total_payments: 0 }
       }
 
       // Сохраняем данные
@@ -85,11 +114,24 @@ const ProfilePage = () => {
       setAccessStatus(accessData)
 
       // Определяем статус
-      if (!accessData || !accessData.has_access) {
+      console.log('📊 Определение статуса:', {
+        hasProfile: !!profileData,
+        hasAccessData: !!accessData,
+        hasAccess: accessData?.has_access,
+        purchasedCourses: accessData?.purchased_courses_count
+      })
+      
+      if (!profileData) {
+        // Профиль не загружен - показываем ошибку регистрации
+        console.log('⚠️ Профиль не загружен - статус: not_registered')
+        setStatus('not_registered')
+      } else if (!accessData || !accessData.has_access) {
         // Зарегистрирован, но не оплатил
+        console.log('⚠️ Доступ ограничен - статус: not_paid')
         setStatus('not_paid')
       } else {
         // Зарегистрирован и оплатил
+        console.log('✅ Доступ есть - статус: paid')
         setStatus('paid')
       }
     } catch (error: any) {

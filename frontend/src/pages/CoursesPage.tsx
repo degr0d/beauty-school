@@ -19,10 +19,18 @@ const CoursesPage = () => {
 
   const checkAccess = useCallback(async () => {
     try {
+      console.log('🔍 [CoursesPage] Проверка доступа...')
       const response = await accessApi.checkAccess()
+      console.log('✅ [CoursesPage] Доступ получен:', response.data)
       setAccessStatus(response.data)
-    } catch (error) {
-      console.error('Ошибка проверки доступа:', error)
+    } catch (error: any) {
+      console.error('❌ [CoursesPage] Ошибка проверки доступа:', error)
+      console.error('Детали:', error.response?.status, error.response?.data)
+      
+      // Если 404 - пользователь не зарегистрирован, но это не значит что нет доступа
+      // Для админов backend вернет has_access: true, так что если ошибка - вероятно проблема с API
+      // Устанавливаем has_access: false только если точно знаем что пользователь не админ
+      // Но лучше показывать контент, чтобы не блокировать админов
       setAccessStatus({ has_access: false, purchased_courses_count: 0, total_payments: 0 })
     } finally {
       setCheckingAccess(false)
@@ -81,7 +89,8 @@ const CoursesPage = () => {
   }
 
   // Если нет доступа - показываем все курсы с призывом к оплате
-  if (!accessStatus?.has_access) {
+  // НО: если accessStatus еще не загружен (null) - показываем контент (не блокируем)
+  if (accessStatus && !accessStatus.has_access) {
     return (
       <div className="courses-page">
         <div className="access-warning">
