@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from backend.database import get_session, User
 from backend.webapp.schemas import ProfileResponse, ProfileUpdateRequest
 from backend.webapp.middleware import get_telegram_user
+from backend.config import settings
 
 router = APIRouter()
 
@@ -20,9 +21,13 @@ async def get_profile(
 ):
     """
     Получить профиль текущего пользователя
+    
+    Для админов: автоматически создает профиль, если его нет в БД
     """
     telegram_id = user["id"]
-    print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id}")
+    is_admin = telegram_id in settings.admin_ids_list
+    
+    print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id}, is_admin={is_admin}")
     
     result = await session.execute(
         select(User).where(User.telegram_id == telegram_id)
@@ -30,12 +35,39 @@ async def get_profile(
     db_user = result.scalar_one_or_none()
     
     if not db_user:
-        print(f"❌ [Profile] Пользователь не найден: telegram_id={telegram_id}")
-        # Проверяем какие пользователи есть в БД (для диагностики)
-        all_users = await session.execute(select(User.telegram_id))
-        existing_ids = [u[0] for u in all_users.fetchall()]
-        print(f"   Зарегистрированные telegram_id: {existing_ids}")
-        raise HTTPException(status_code=404, detail="User not found")
+        # Если пользователя нет в БД
+        if is_admin:
+            # Для админов - автоматически создаем профиль
+            print(f"👑 [Profile] Админ не найден в БД, создаем профиль автоматически")
+            
+            # Получаем данные из Telegram
+            username = user.get("username")
+            first_name = user.get("first_name", "")
+            last_name = user.get("last_name", "")
+            full_name = f"{first_name} {last_name}".strip() or "Администратор"
+            
+            # Создаем пользователя
+            db_user = User(
+                telegram_id=telegram_id,
+                username=username,
+                full_name=full_name,
+                phone="",  # Админ может указать позже
+                consent_personal_data=True,
+                is_active=True
+            )
+            session.add(db_user)
+            await session.commit()
+            await session.refresh(db_user)
+            
+            print(f"✅ [Profile] Профиль админа создан: {db_user.full_name} (telegram_id={db_user.telegram_id})")
+        else:
+            # Для обычных пользователей - требуем регистрацию
+            print(f"❌ [Profile] Пользователь не найден: telegram_id={telegram_id}")
+            # Проверяем какие пользователи есть в БД (для диагностики)
+            all_users = await session.execute(select(User.telegram_id))
+            existing_ids = [u[0] for u in all_users.fetchall()]
+            print(f"   Зарегистрированные telegram_id: {existing_ids}")
+            raise HTTPException(status_code=404, detail="User not found")
     
     print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id})")
     

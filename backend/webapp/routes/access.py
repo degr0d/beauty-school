@@ -30,9 +30,13 @@ async def check_access(
     }
     """
     telegram_id = user["id"]
+    is_admin = telegram_id in settings.admin_ids_list
+    
+    print(f"🔍 [Access] Проверка доступа для telegram_id={telegram_id}, is_admin={is_admin}")
     
     # АДМИНЫ ВСЕГДА ИМЕЮТ ДОСТУП
-    if telegram_id in settings.admin_ids_list:
+    if is_admin:
+        print(f"👑 [Access] Админ - предоставляем полный доступ")
         return {
             "has_access": True,
             "purchased_courses_count": 999,  # Специальное значение для админов
@@ -46,7 +50,10 @@ async def check_access(
     db_user = result.scalar_one_or_none()
     
     if not db_user:
+        print(f"❌ [Access] Пользователь не найден: telegram_id={telegram_id}")
         raise HTTPException(status_code=404, detail="User not found")
+    
+    print(f"✅ [Access] Пользователь найден: {db_user.full_name}")
     
     # Проверяем количество оплаченных курсов
     result = await session.execute(
