@@ -1,0 +1,59 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "🚀 Backend (Bot + API)",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_all.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/venv/bin/python",
+            "env": {
+                "PYTHONUNBUFFERED": "1"
+            }
+        },
+        {
+            "name": "🟢 Frontend (Vite)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "npm run dev",
+            "cwd": "${workspaceFolder}/frontend"
+        },
+        {
+            "name": "Bot Only",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_bot_full.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/venv/bin/python"
+        },
+        {
+            "name": "API Only",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/run_api.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "python": "${workspaceFolder}/venv/bin/python"
+        },
+    ],
+    "compounds": [
+        {
+            "name": "🚀 START ALL (F5)",
+            "configurations": [
+                "🚀 Backend (Bot + API)",
+                "🟢 Frontend (Vite)"
+            ],
+            "stopAll": true,
+            "presentation": {
+                "hidden": false,
+                "group": "beauty-school",
+                "order": 1
+            },
+            "preLaunchTask": "🚀 Prepare Launch"
+        },
+    ]
+}

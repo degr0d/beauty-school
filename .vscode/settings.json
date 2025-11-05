@@ -1,0 +1,57 @@
+{
+    // Настройки Python (Mac путь)
+    "python.defaultInterpreterPath": "${workspaceFolder}/venv/bin/python",
+    
+    // Автоматический выбор конфигурации запуска
+    "debug.onTaskErrors": "debugAnyway",
+    "debug.allowBreakpointsEverywhere": true,
+    "launch": {
+        "configurations": [],
+        "compounds": []
+    },
+    
+    // Терминал
+    "terminal.integrated.cwd": "${workspaceFolder}",
+    
+    // Исключения из поиска
+    "search.exclude": {
+        "**/node_modules": true,
+        "**/venv": true,
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".git": true
+    },
+    
+    // Исключения из файлового дерева
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        "**/.pytest_cache": true
+    },
+    
+    // Автосохранение
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000,
+    
+    // Форматирование
+    "editor.formatOnSave": false,
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    
+    // Python линтинг
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": false,
+    
+    // Горячие клавиши подсказки
+    "workbench.tips.enabled": true,
+    
+    // Цветовая схема для файлов
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#1e1e1e",
+        "titleBar.activeBackground": "#2d2d30",
+        "statusBar.background": "#007acc",
+        "statusBar.debuggingBackground": "#cc6633"
+    }
+}
+

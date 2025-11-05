@@ -1,0 +1,11 @@
+[
+    {
+        "key": "f5",
+        "command": "workbench.action.debug.selectandstart"
+    },
+    {
+        "key": "ctrl+shift+s",
+        "command": "workbench.action.tasks.runTask",
+        "args": "⛔ Stop All"
+    }
+]

@@ -1,0 +1,152 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Backend (Bot + API)",
+            "type": "shell",
+            "command": "${workspaceFolder}/venv/bin/python",
+            "args": ["run_all.py"],
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "runOptions": {
+                "instanceLimit": 1
+            },
+            "isBackground": true
+        },
+        {
+            "label": "Frontend (Vite)",
+            "type": "shell",
+            "command": "npm",
+            "args": ["run", "dev"],
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "runOptions": {
+                "instanceLimit": 1
+            },
+            "isBackground": true
+        },
+        {
+            "label": "🔄 Restart Frontend",
+            "type": "shell",
+            "command": "pkill -f 'node.*vite' || true; pkill -f 'npm.*dev' || true; pkill -f 'vite' || true; lsof -ti:5173 | xargs kill -9 2>/dev/null || true; sleep 2; cd ${workspaceFolder}/frontend && npm run dev > /dev/null 2>&1 &",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            }
+        },
+        {
+            "label": "🚀 Start All (Backend + Frontend)",
+            "dependsOn": [
+                "Backend (Bot + API)",
+                "Frontend (Vite)"
+            ],
+            "dependsOrder": "parallel",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "⛔ Stop All",
+            "type": "shell",
+            "command": "pkill -f 'python.*run_all.py' || true; pkill -f 'python.*run_bot_full.py' || true; pkill -f 'python.*run_api.py' || true; pkill -f 'uvicorn.*app' || true; pkill -f 'node.*vite' || true; pkill -f 'npm.*dev' || true; pkill -f 'vite' || true; lsof -ti:5173 | xargs kill -9 2>/dev/null || true; echo '✅ Все процессы остановлены (включая Frontend на порту 5173)'",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": true
+            },
+            "osx": {
+                "command": "pkill -f 'python.*run_all.py' || true; pkill -f 'python.*run_bot_full.py' || true; pkill -f 'python.*run_api.py' || true; pkill -f 'uvicorn.*app' || true; pkill -f 'node.*vite' || true; pkill -f 'npm.*dev' || true; pkill -f 'vite' || true; lsof -ti:5173 | xargs kill -9 2>/dev/null || true; echo '✅ Все процессы остановлены (включая Frontend на порту 5173)'"
+            },
+            "windows": {
+                "command": "taskkill /F /IM python.exe /T 2>nul & taskkill /F /IM node.exe /T 2>nul & echo Все процессы остановлены"
+            }
+        },
+        {
+            "label": "🐳 Check Docker",
+            "type": "shell",
+            "command": "if ! docker info > /dev/null 2>&1; then echo '❌ Docker не запущен! Запустите Docker Desktop.'; exit 1; fi; if ! docker-compose ps | grep -q 'Up'; then echo '🚀 Запуск Docker контейнеров...'; docker-compose up -d; sleep 5; fi; echo '✅ Docker готов!'",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared",
+                "clear": false
+            },
+            "osx": {
+                "command": "if ! docker info > /dev/null 2>&1; then echo '❌ Docker не запущен! Запустите Docker Desktop.'; exit 1; fi; if ! docker-compose ps | grep -q 'Up'; then echo '🚀 Запуск Docker контейнеров...'; docker-compose up -d; sleep 5; fi; echo '✅ Docker готов!'"
+            },
+            "windows": {
+                "command": "docker info >nul 2>&1 || (echo Docker не запущен! Запустите Docker Desktop. && exit 1) && (docker-compose ps | findstr /C:\"Up\" >nul || (echo Запуск Docker контейнеров... && docker-compose up -d && timeout /t 5 /nobreak >nul)) && echo Docker готов!"
+            }
+        },
+        {
+            "label": "🚀 Prepare Launch",
+            "dependsOn": ["⛔ Stop All", "🐳 Check Docker"],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "🔄 Restart All (Stop + Start)",
+            "type": "shell",
+            "command": "./restart_all.sh",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "clear": true
+            },
+            "group": {
+                "kind": "build"
+            }
+        },
+        {
+            "label": "🧹 Clean Cache",
+            "type": "shell",
+            "command": "python -Bc \"import pathlib; [p.unlink() for p in pathlib.Path('.').rglob('*.py[co]')]\"",
+            "problemMatcher": []
+        },
+        {
+            "label": "📦 Install Backend Dependencies",
+            "type": "shell",
+            "command": "pip install -r requirements.txt",
+            "problemMatcher": []
+        },
+        {
+            "label": "📦 Install Frontend Dependencies",
+            "type": "shell",
+            "command": "npm install",
+            "options": {
+                "cwd": "${workspaceFolder}/frontend"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "⏳ Wait for Frontend",
+            "type": "shell",
+            "command": "echo '⏳ Ожидание запуска Frontend...' && for i in {1..45}; do sleep 1; if lsof -ti:5173 > /dev/null 2>&1; then echo '✅ Frontend запущен!'; exit 0; fi; done; echo '⚠️ Frontend не запустился за 45 секунд'; exit 1",
+            "problemMatcher": [],
+            "presentation": {
+                "reveal": "silent",
+                "panel": "shared",
+                "clear": false
+            }
+        },
+    ]
+}

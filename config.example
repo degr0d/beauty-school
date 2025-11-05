@@ -1,0 +1,105 @@
+# ====================================
+# КОПИРОВАТЬ В .env И ЗАПОЛНИТЬ СВОИМИ ДАННЫМИ
+# ====================================
+
+# ====================================
+# TELEGRAM BOT TOKENS
+# ====================================
+
+# Основной бот (получить у @BotFather)
+BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+
+# Админ-бот (отдельный бот для админки)
+ADMIN_BOT_TOKEN=987654321:ZYXwvuTSRqpONMlkJIhGFedCBA
+
+# ID администраторов (через запятую)
+ADMIN_IDS=123456789,987654321
+
+# ====================================
+# DATABASE (PostgreSQL)
+# ====================================
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=beauty_db
+DB_USER=beauty_user
+DB_PASSWORD=your_strong_password_here
+
+# Полная строка подключения (автоматически собирается из параметров выше)
+DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+
+# Для Alembic (sync драйвер)
+DATABASE_URL_SYNC=postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+
+# ====================================
+# REDIS (опционально для кеша)
+# ====================================
+
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# ====================================
+# WEB APP (FastAPI)
+# ====================================
+
+# URL фронтенда (для CORS)
+FRONTEND_URL=https://yourdomain.com
+
+# URL для Mini App (будет отображаться в кнопке бота)
+# В разработке: http://localhost:5173
+# В продакшене: https://yourdomain.com
+WEBAPP_URL=http://localhost:5173
+
+# URL бэкенда (для деплоя)
+BACKEND_URL=https://yourdomain.com/api
+
+# Секретный ключ для JWT (если используем)
+SECRET_KEY=your_very_secret_key_change_me_in_production
+
+# Окружение (development / production)
+ENVIRONMENT=development
+
+# Порт для FastAPI
+API_PORT=8000
+
+# ====================================
+# FILE STORAGE (для видео и PDF)
+# ====================================
+
+# Вариант 1: S3-совместимое хранилище (AWS, Cloudflare R2, Yandex)
+# S3_ENDPOINT=https://s3.amazonaws.com
+# S3_BUCKET=beauty-school-files
+# S3_ACCESS_KEY=your_access_key
+# S3_SECRET_KEY=your_secret_key
+# S3_REGION=us-east-1
+
+# Вариант 2: Локальное хранилище (для разработки)
+LOCAL_STORAGE_PATH=./uploads
+
+# ====================================
+# PAYMENTS (ЮKassa)
+# ====================================
+# Получить в личном кабинете: https://yookassa.ru/my
+
+YUKASSA_SHOP_ID=your_shop_id
+YUKASSA_SECRET_KEY=your_secret_key
+YUKASSA_RETURN_URL=https://yourdomain.com/payment/success
+
+# ====================================
+# LOGGING
+# ====================================
+
+LOG_LEVEL=INFO  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# ====================================
+# MISC
+# ====================================
+
+# Таймзона
+TIMEZONE=Europe/Moscow
+
+# Язык по умолчанию
+DEFAULT_LANGUAGE=ru
+

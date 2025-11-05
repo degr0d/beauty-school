@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Beauty School</title>
+    
+    <!-- Telegram Web App Script -->
+    <!-- Добавляем обработку ошибок загрузки SDK -->
+    <script>
+      // Проверяем загрузку Telegram SDK
+      window.addEventListener('error', function(e) {
+        console.error('❌ Ошибка загрузки:', e.filename, e.message);
+        if (e.filename && e.filename.includes('telegram-web-app.js')) {
+          console.error('⚠️ Не удалось загрузить Telegram WebApp SDK');
+        }
+      }, true);
+    </script>
+    <script src="https://telegram.org/js/telegram-web-app.js" 
+            onerror="console.error('❌ Ошибка загрузки Telegram WebApp SDK')"
+            onload="console.log('✅ Telegram WebApp SDK загружен')"></script>
+  </head>
+  <body style="margin: 0; padding: 0; background-color: #ffffff; min-height: 100vh;">
+    <div id="root" style="min-height: 100vh; background-color: #ffffff;">
+      <div style="padding: 20px; text-align: center; color: #666;">
+        <p>Загрузка приложения...</p>
+      </div>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

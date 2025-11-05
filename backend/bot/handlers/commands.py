@@ -1,0 +1,205 @@
+"""
+Обработчики дополнительных команд бота
+/courses, /profile, /help
+"""
+
+from aiogram import Router, F
+from aiogram.filters import Command
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from sqlalchemy import select
+
+from backend.database import async_session, User, Course
+
+router = Router()
+
+
+@router.message(Command("help"))
+async def cmd_help(message: Message):
+    """
+    Команда /help - справка по командам
+    """
+    help_text = (
+        "<b>📚 Доступные команды:</b>\n\n"
+        "/start - Главное меню\n"
+        "/courses - Список всех курсов\n"
+        "/profile - Твой профиль\n"
+        "/help - Эта справка\n\n"
+        "<i>Если есть вопросы - пиши в поддержку!</i>"
+    )
+    
+    await message.answer(help_text, parse_mode="HTML")
+
+
+@router.message(Command("profile"))
+async def cmd_profile(message: Message):
+    """
+    Команда /profile - показать профиль пользователя
+    """
+    telegram_id = message.from_user.id
+    
+    # Получаем пользователя из БД
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        user = result.scalar_one_or_none()
+    
+    if not user:
+        await message.answer(
+            "❌ Ты ещё не зарегистрирован!\n\n"
+            "Нажми /start чтобы начать 🚀"
+        )
+        return
+    
+    # Формируем информацию о профиле
+    profile_text = (
+        f"<b>👤 Твой профиль</b>\n\n"
+        f"ФИО: {user.full_name}\n"
+        f"Телефон: {user.phone}\n"
+        f"Username: @{user.username or 'не указан'}\n"
+        f"Баллы: {user.points} 🏆\n"
+        f"Дата регистрации: {user.created_at.strftime('%d.%m.%Y')}\n"
+    )
+    
+    if user.city:
+        profile_text += f"Город: {user.city}\n"
+    
+    await message.answer(profile_text, parse_mode="HTML")
+
+
+@router.message(Command("courses"))
+async def cmd_courses(message: Message):
+    """
+    Команда /courses - список всех курсов
+    """
+    telegram_id = message.from_user.id
+    
+    # Проверяем, зарегистрирован ли пользователь
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            await message.answer(
+                "❌ Ты ещё не зарегистрирован!\n\n"
+                "Нажми /start чтобы начать 🚀"
+            )
+            return
+        
+        # Получаем все курсы
+        result = await session.execute(select(Course).order_by(Course.category, Course.title))
+        courses = result.scalars().all()
+    
+    if not courses:
+        await message.answer(
+            "📚 <b>Курсы пока не добавлены</b>\n\n"
+            "Скоро здесь появятся крутые курсы!",
+            parse_mode="HTML"
+        )
+        return
+    
+    # Группируем курсы по категориям
+    courses_by_category = {}
+    for course in courses:
+        if course.category not in courses_by_category:
+            courses_by_category[course.category] = []
+        courses_by_category[course.category].append(course)
+    
+    # Формируем текст сообщения
+    message_text = "<b>📚 Доступные курсы:</b>\n\n"
+    
+    # Эмодзи для категорий
+    category_emojis = {
+        "Маникюр и педикюр": "💅",
+        "Ресницы и брови": "👁",
+        "Подология": "🦶",
+        "Своё дело": "💼",
+    }
+    
+    for category, category_courses in courses_by_category.items():
+        emoji = category_emojis.get(category, "📖")
+        message_text += f"\n{emoji} <b>{category}</b>\n"
+        
+        for course in category_courses:
+            top_badge = " ⭐" if course.is_top else ""
+            price_text = f"{course.price} ₽" if course.price > 0 else "Бесплатно"
+            
+            message_text += (
+                f"  • <b>{course.title}</b>{top_badge}\n"
+                f"    {course.description}\n"
+                f"    Цена: {price_text}\n"
+            )
+            
+            if course.duration_hours:
+                message_text += f"    Длительность: {course.duration_hours} ч.\n"
+            
+            message_text += "\n"
+    
+    message_text += (
+        "\n<i>Чтобы записаться на курс, открой приложение через /start</i>"
+    )
+    
+    await message.answer(message_text, parse_mode="HTML")
+
+
+@router.message(Command("stats"))
+async def cmd_stats(message: Message):
+    """
+    Команда /stats - статистика обучения (бонусная)
+    """
+    telegram_id = message.from_user.id
+    
+    async with async_session() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            await message.answer(
+                "❌ Ты ещё не зарегистрирован!\n\n"
+                "Нажми /start чтобы начать 🚀"
+            )
+            return
+    
+    from sqlalchemy import func
+    from backend.database.models import UserCourse, UserProgress, UserAchievement
+    
+    # Подсчитываем статистику
+    result = await session.execute(
+        select(func.count(UserCourse.id)).where(UserCourse.user_id == user.id)
+    )
+    total_courses = result.scalar() or 0
+    
+    result = await session.execute(
+        select(func.count(UserCourse.id))
+        .where(UserCourse.user_id == user.id, UserCourse.is_completed == True)
+    )
+    completed_courses = result.scalar() or 0
+    
+    result = await session.execute(
+        select(func.count(UserProgress.id))
+        .where(UserProgress.user_id == user.id, UserProgress.completed == True)
+    )
+    completed_lessons = result.scalar() or 0
+    
+    result = await session.execute(
+        select(func.count(UserAchievement.id)).where(UserAchievement.user_id == user.id)
+    )
+    achievements_count = result.scalar() or 0
+    
+    stats_text = (
+        f"<b>📊 Твоя статистика</b>\n\n"
+        f"🏆 Баллов заработано: {user.points}\n"
+        f"📚 Курсов записано: {total_courses}\n"
+        f"   ├─ Завершено: {completed_courses}\n"
+        f"   └─ В процессе: {total_courses - completed_courses}\n"
+        f"✅ Уроков завершено: {completed_lessons}\n"
+        f"🏅 Достижений получено: {achievements_count}\n\n"
+        f"<i>Продолжай обучение чтобы улучшить показатели!</i>"
+    )
+    
+    await message.answer(stats_text, parse_mode="HTML")
+
