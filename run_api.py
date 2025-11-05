@@ -3,8 +3,23 @@
 Для разработки и тестирования API
 """
 
+import asyncio
 import uvicorn
 from backend.webapp.app import create_app
+from backend.database.database import init_db
+
+async def setup_database():
+    """
+    Инициализирует БД (создает таблицы если их нет)
+    В продакшене миграции должны выполняться через alembic
+    """
+    try:
+        print("🔧 Инициализация базы данных...")
+        await init_db()
+        print("✅ База данных готова")
+    except Exception as e:
+        print(f"⚠️ Ошибка инициализации БД: {e}")
+        print("💡 Если это первое развертывание - выполните: alembic upgrade head")
 
 if __name__ == "__main__":
     """
@@ -13,6 +28,9 @@ if __name__ == "__main__":
     ReDoc: http://localhost:8000/api/redoc
     Health: http://localhost:8000/health
     """
+    
+    # Инициализируем БД перед запуском (fallback если миграции не выполнены)
+    asyncio.run(setup_database())
     
     app = create_app()
     
