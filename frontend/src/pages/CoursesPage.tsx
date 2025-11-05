@@ -36,14 +36,20 @@ const CoursesPage = () => {
       // Если нет - показываем все курсы для выбора
       if (accessStatus?.has_access) {
         const response = await coursesApi.getMy()
-        setCourses(response.data)
+        // Гарантируем что это массив
+        const courses = Array.isArray(response.data) ? response.data : []
+        setCourses(courses)
       } else {
         const params = selectedCategory ? { category: selectedCategory } : {}
         const response = await coursesApi.getAll(params)
-        setCourses(response.data)
+        // Гарантируем что это массив
+        const courses = Array.isArray(response.data) ? response.data : []
+        setCourses(courses)
       }
     } catch (error) {
       console.error('Ошибка загрузки курсов:', error)
+      // Устанавливаем пустой массив при ошибке
+      setCourses([])
     } finally {
       setLoading(false)
     }

@@ -47,8 +47,11 @@ const MainPage = () => {
     try {
       console.log('📚 Загрузка топ курсов...')
       const response = await coursesApi.getAll({ is_top: true })
-      console.log('✅ Топ курсов загружены:', response.data.length)
-      setTopCourses(response.data)
+      console.log('✅ Топ курсов загружены:', response.data)
+      // Гарантируем что это массив
+      const courses = Array.isArray(response.data) ? response.data : []
+      console.log('✅ Топ курсов (массив):', courses.length)
+      setTopCourses(courses)
     } catch (error: any) {
       console.error('❌ Ошибка загрузки топ курсов:', error)
       console.error('Детали ошибки:', error.response?.data || error.message)

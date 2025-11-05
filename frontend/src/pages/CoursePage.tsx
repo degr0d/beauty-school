@@ -27,7 +27,8 @@ const CoursePage = () => {
   const checkPurchaseStatus = async (courseId: number) => {
     try {
       const response = await coursesApi.getMy()
-      const myCourses = response.data
+      // Гарантируем что это массив
+      const myCourses = Array.isArray(response.data) ? response.data : []
       const purchased = myCourses.some((c: any) => c.id === courseId)
       setIsPurchased(purchased)
     } catch (error) {

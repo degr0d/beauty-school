@@ -28,20 +28,35 @@ class Settings(BaseSettings):
     # ========================================
     # Database
     # ========================================
+    # Railway автоматически предоставляет DATABASE_URL
+    DATABASE_URL: str = ""  # Если установлен - используется напрямую
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_NAME: str = "beauty_db"
     DB_USER: str = "beauty_user"
-    DB_PASSWORD: str
+    DB_PASSWORD: str = ""
     
     @property
     def database_url(self) -> str:
         """Строка подключения к PostgreSQL (async)"""
+        # Если Railway предоставил DATABASE_URL - используем его
+        if self.DATABASE_URL:
+            # Конвертируем postgresql:// в postgresql+asyncpg://
+            if self.DATABASE_URL.startswith("postgresql://"):
+                return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return self.DATABASE_URL
+        
+        # Иначе используем отдельные параметры
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @property
     def database_url_sync(self) -> str:
         """Строка подключения к PostgreSQL (sync, для Alembic)"""
+        # Если Railway предоставил DATABASE_URL - используем его как есть (уже postgresql://)
+        if self.DATABASE_URL:
+            return self.DATABASE_URL
+        
+        # Иначе используем отдельные параметры
         return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     # ========================================
@@ -63,6 +78,7 @@ class Settings(BaseSettings):
     # FastAPI
     # ========================================
     API_PORT: int = 8000
+    PORT: int = 8000  # Railway использует PORT переменную
     FRONTEND_URL: str = "http://localhost:5173"  # Vite dev сервер
     WEBAPP_URL: str = "http://localhost:5173"  # URL для Mini App (в продакшене будет https://yourdomain.com)
     BACKEND_URL: str = "http://localhost:8000"

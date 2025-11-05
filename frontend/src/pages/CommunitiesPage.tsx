@@ -16,9 +16,13 @@ const CommunitiesPage = () => {
   const loadCommunities = async () => {
     try {
       const response = await communitiesApi.getAll()
-      setCommunities(response.data)
+      // Гарантируем что это массив
+      const communities = Array.isArray(response.data) ? response.data : []
+      setCommunities(communities)
     } catch (error) {
       console.error('Ошибка загрузки сообществ:', error)
+      // Устанавливаем пустой массив при ошибке
+      setCommunities([])
     } finally {
       setLoading(false)
     }
