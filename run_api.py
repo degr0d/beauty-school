@@ -15,6 +15,27 @@ async def setup_database():
     """
     try:
         print("🔧 Инициализация базы данных...")
+        
+        # Пытаемся выполнить миграции перед инициализацией
+        try:
+            import subprocess
+            import sys
+            print("🔄 Выполнение миграций Alembic...")
+            result = subprocess.run(
+                [sys.executable, "-m", "alembic", "upgrade", "head"],
+                capture_output=True,
+                text=True,
+                timeout=60
+            )
+            if result.returncode == 0:
+                print("✅ Миграции применены успешно")
+            else:
+                print(f"⚠️ Миграции не выполнены: {result.stderr}")
+                print("💡 Продолжаем с инициализацией БД...")
+        except Exception as migration_error:
+            print(f"⚠️ Ошибка при выполнении миграций: {migration_error}")
+            print("💡 Продолжаем с инициализацией БД...")
+        
         await init_db()
         print("✅ База данных готова")
     except Exception as e:
