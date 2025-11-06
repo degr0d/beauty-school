@@ -27,8 +27,17 @@ async def get_profile(
     telegram_id = user["id"]
     is_admin = telegram_id in settings.admin_ids_list
     
-    print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id}, is_admin={is_admin}")
+    print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}), is_admin={is_admin}")
+    print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
     
+    # Проверяем, какие пользователи есть в БД (для диагностики)
+    all_users_result = await session.execute(select(User.telegram_id, User.full_name, User.phone))
+    all_users = all_users_result.fetchall()
+    print(f"   Всего пользователей в БД: {len(all_users)}")
+    if all_users:
+        print(f"   Зарегистрированные telegram_id: {[u[0] for u in all_users[:10]]}")  # Первые 10
+    
+    # Ищем пользователя
     result = await session.execute(
         select(User).where(User.telegram_id == telegram_id)
     )
@@ -37,6 +46,7 @@ async def get_profile(
     if not db_user:
         # Если пользователя нет в БД - создаем профиль автоматически для любого пользователя
         print(f"👤 [Profile] Пользователь не найден в БД, создаем профиль автоматически")
+        print(f"   telegram_id={telegram_id} не найден среди зарегистрированных")
         
         # Получаем данные из Telegram
         username = user.get("username")
@@ -57,9 +67,9 @@ async def get_profile(
         await session.commit()
         await session.refresh(db_user)
         
-        print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, is_admin={is_admin})")
-    
-    print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id})")
+        print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
+    else:
+        print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, phone={db_user.phone})")
     
     return ProfileResponse(
         id=db_user.id,
