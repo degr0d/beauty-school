@@ -68,8 +68,34 @@ async def get_profile(
         await session.refresh(db_user)
         
         print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
+        
+        # Безопасно получаем email (на случай если миграция не применена)
+        try:
+            email = db_user.email
+        except AttributeError:
+            email = None
+            print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
+        
+        return ProfileResponse(
+            id=db_user.id,
+            telegram_id=db_user.telegram_id,
+            username=db_user.username,
+            full_name=db_user.full_name,
+            phone=db_user.phone,
+            email=email,
+            city=db_user.city,
+            points=db_user.points,
+            created_at=db_user.created_at
+        )
     else:
         print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, phone={db_user.phone})")
+    
+    # Безопасно получаем email (на случай если миграция не применена)
+    try:
+        email = db_user.email
+    except AttributeError:
+        email = None
+        print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
     
     return ProfileResponse(
         id=db_user.id,
@@ -77,7 +103,7 @@ async def get_profile(
         username=db_user.username,
         full_name=db_user.full_name,
         phone=db_user.phone,
-        email=db_user.email,
+        email=email,
         city=db_user.city,
         points=db_user.points,
         created_at=db_user.created_at
@@ -116,13 +142,19 @@ async def update_profile(
     await session.commit()
     await session.refresh(db_user)
     
+    # Безопасно получаем email (на случай если миграция не применена)
+    try:
+        email = db_user.email
+    except AttributeError:
+        email = None
+    
     return ProfileResponse(
         id=db_user.id,
         telegram_id=db_user.telegram_id,
         username=db_user.username,
         full_name=db_user.full_name,
         phone=db_user.phone,
-        email=db_user.email,
+        email=email,
         city=db_user.city,
         points=db_user.points,
         created_at=db_user.created_at
