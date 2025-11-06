@@ -26,7 +26,7 @@ async def get_profile(
     """
     try:
         telegram_id = user["id"]
-    is_admin = telegram_id in settings.admin_ids_list
+        is_admin = telegram_id in settings.admin_ids_list
     
     print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}), is_admin={is_admin}")
     print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
@@ -109,6 +109,11 @@ async def get_profile(
         points=db_user.points,
         created_at=db_user.created_at
     )
+    except Exception as e:
+        print(f"❌ [Profile] ОШИБКА при получении профиля: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
 
 @router.put("/", response_model=ProfileResponse)
