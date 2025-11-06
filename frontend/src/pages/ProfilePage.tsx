@@ -11,6 +11,14 @@ const ProfilePage = () => {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [, setAccessStatus] = useState<AccessStatus | null>(null)
   const [status, setStatus] = useState<ProfileStatus>('loading')
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    phone: '',
+    email: '',
+    city: ''
+  })
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadProfileAndAccess()
@@ -112,6 +120,16 @@ const ProfilePage = () => {
       // Сохраняем данные
       setProfile(profileData)
       setAccessStatus(accessData)
+      
+      // Инициализируем форму редактирования
+      if (profileData) {
+        setEditForm({
+          full_name: profileData.full_name || '',
+          phone: profileData.phone || '',
+          email: profileData.email || '',
+          city: profileData.city || ''
+        })
+      }
 
       // Определяем статус
       console.log('📊 Определение статуса:', {
@@ -196,9 +214,56 @@ const ProfilePage = () => {
         return <div className="loading">Загрузка...</div>
       }
 
+  const handleSave = async () => {
+    if (!profile) return
+    
+    setSaving(true)
+    try {
+      const updated = await profileApi.update(editForm)
+      setProfile(updated.data)
+      setIsEditing(false)
+      console.log('✅ Профиль обновлен:', updated.data)
+    } catch (error: any) {
+      console.error('❌ Ошибка обновления профиля:', error)
+      alert('Ошибка при сохранении профиля. Попробуйте еще раз.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleCancel = () => {
+    if (profile) {
+      setEditForm({
+        full_name: profile.full_name || '',
+        phone: profile.phone || '',
+        email: profile.email || '',
+        city: profile.city || ''
+      })
+    }
+    setIsEditing(false)
+  }
+
       return (
         <div className="profile-page">
-          <h1>👤 Мой профиль</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h1>👤 Мой профиль</h1>
+            {!isEditing && (
+              <button 
+                onClick={() => setIsEditing(true)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#007bff',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                ✏️ Редактировать
+              </button>
+            )}
+          </div>
 
           {/* Основная информация */}
           <div className="profile-card">
@@ -206,12 +271,118 @@ const ProfilePage = () => {
               {profile.full_name.charAt(0).toUpperCase()}
             </div>
             
-            <div className="profile-info">
-              <h2>{profile.full_name}</h2>
-              {profile.username && <p className="username">@{profile.username}</p>}
-              <p className="phone">{profile.phone}</p>
-              {profile.city && <p className="city">📍 {profile.city}</p>}
-            </div>
+            {isEditing ? (
+              <div className="profile-info" style={{ flex: 1 }}>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Имя:</label>
+                  <input
+                    type="text"
+                    value={editForm.full_name}
+                    onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Телефон:</label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Email:</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="example@mail.com"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Город:</label>
+                  <input
+                    type="text"
+                    value={editForm.city}
+                    onChange={(e) => setEditForm({ ...editForm, city: e.target.value })}
+                    placeholder="Москва"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid #ddd',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      flex: 1
+                    }}
+                  >
+                    {saving ? '💾 Сохранение...' : '💾 Сохранить'}
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    disabled={saving}
+                    style={{
+                      padding: '10px 20px',
+                      backgroundColor: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: saving ? 'not-allowed' : 'pointer',
+                      fontSize: '14px',
+                      flex: 1
+                    }}
+                  >
+                    ❌ Отмена
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="profile-info">
+                <h2>{profile.full_name}</h2>
+                {profile.username && <p className="username">@{profile.username}</p>}
+                <p className="phone">📞 {profile.phone}</p>
+                {profile.email && <p className="email">📧 {profile.email}</p>}
+                {profile.city && <p className="city">📍 {profile.city}</p>}
+              </div>
+            )}
           </div>
 
           {/* Баллы */}

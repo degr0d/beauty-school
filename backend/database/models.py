@@ -24,6 +24,7 @@ class User(Base):
     username = Column(String(255), nullable=True)
     full_name = Column(String(255), nullable=False)
     phone = Column(String(20), nullable=False)
+    email = Column(String(255), nullable=True)  # Email пользователя
     city = Column(String(100), nullable=True)
     consent_personal_data = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)

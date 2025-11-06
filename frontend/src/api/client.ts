@@ -120,6 +120,7 @@ export interface Profile {
   username?: string
   full_name: string
   phone: string
+  email?: string
   city?: string
   points: number
   created_at: string
@@ -131,7 +132,7 @@ export const profileApi = {
     api.get<Profile>('/profile'),
 
   // Обновить профиль
-  update: (data: { full_name?: string; phone?: string; city?: string }) =>
+  update: (data: { full_name?: string; phone?: string; email?: string; city?: string }) =>
     api.put<Profile>('/profile', data),
 }
 

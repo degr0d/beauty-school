@@ -91,6 +91,7 @@ class ProfileResponse(BaseModel):
     username: Optional[str] = None
     full_name: str
     phone: str
+    email: Optional[str] = None
     city: Optional[str] = None
     points: int
     created_at: datetime
@@ -105,6 +106,7 @@ class ProfileUpdateRequest(BaseModel):
     """
     full_name: Optional[str] = None
     phone: Optional[str] = None
+    email: Optional[str] = None
     city: Optional[str] = None
 
 

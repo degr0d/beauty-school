@@ -77,6 +77,7 @@ async def get_profile(
         username=db_user.username,
         full_name=db_user.full_name,
         phone=db_user.phone,
+        email=db_user.email,
         city=db_user.city,
         points=db_user.points,
         created_at=db_user.created_at
@@ -107,7 +108,9 @@ async def update_profile(
         db_user.full_name = profile_data.full_name
     if profile_data.phone:
         db_user.phone = profile_data.phone
-    if profile_data.city:
+    if profile_data.email is not None:  # Разрешаем пустую строку для очистки email
+        db_user.email = profile_data.email
+    if profile_data.city is not None:  # Разрешаем пустую строку для очистки city
         db_user.city = profile_data.city
     
     await session.commit()
@@ -119,6 +122,7 @@ async def update_profile(
         username=db_user.username,
         full_name=db_user.full_name,
         phone=db_user.phone,
+        email=db_user.email,
         city=db_user.city,
         points=db_user.points,
         created_at=db_user.created_at
