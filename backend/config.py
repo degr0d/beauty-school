@@ -16,13 +16,15 @@ class Settings(BaseSettings):
     # ========================================
     # Telegram Bot
     # ========================================
-    BOT_TOKEN: str
-    ADMIN_BOT_TOKEN: str
-    ADMIN_IDS: str  # Список через запятую, например: "123456789,987654321"
+    BOT_TOKEN: str = ""  # Опционально для API сервиса
+    ADMIN_BOT_TOKEN: str = ""  # Опционально для API сервиса
+    ADMIN_IDS: str = ""  # Список через запятую, например: "123456789,987654321"
     
     @property
     def admin_ids_list(self) -> List[int]:
         """Преобразует строку ADMIN_IDS в список int"""
+        if not self.ADMIN_IDS:
+            return []
         return [int(id.strip()) for id in self.ADMIN_IDS.split(',') if id.strip()]
     
     # ========================================
