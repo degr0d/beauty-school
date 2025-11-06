@@ -48,12 +48,15 @@ const ProfilePage = () => {
           status: error.response?.status,
           statusText: error.response?.statusText,
           data: error.response?.data,
-          message: error.message
+          message: error.message,
+          url: error.config?.url,
+          headers: error.config?.headers
         })
         
         // Если 404 - пользователь не зарегистрирован
         if (error.response?.status === 404) {
           console.log('⚠️ Пользователь не найден (404)')
+          console.log('💡 Backend должен создавать профиль автоматически. Проверьте логи Railway.')
           setStatus('not_registered')
           return
         }
