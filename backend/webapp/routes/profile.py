@@ -24,7 +24,8 @@ async def get_profile(
     
     Автоматически создает профиль для любого пользователя, если его нет в БД
     """
-    telegram_id = user["id"]
+    try:
+        telegram_id = user["id"]
     is_admin = telegram_id in settings.admin_ids_list
     
     print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}), is_admin={is_admin}")
