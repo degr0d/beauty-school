@@ -191,9 +191,65 @@ async def update_profile(
 
 
 # ========================================
+# Тестовый эндпоинт для диагностики (только для разработки)
+# ========================================
+@router.get("/test-format")
+async def test_profile_format(
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Тестовый эндпоинт для проверки формата ответа ProfileResponse
+    Без авторизации, только для диагностики
+    """
+    from backend.database import User
+    
+    # Получаем первого пользователя для теста
+    result = await session.execute(select(User).limit(1))
+    test_user = result.scalar_one_or_none()
+    
+    if not test_user:
+        return {
+            "error": "Нет пользователей в БД для теста",
+            "message": "Создайте пользователя через /start в боте"
+        }
+    
+    # Безопасно получаем email
+    try:
+        email = test_user.email
+    except AttributeError:
+        email = None
+    
+    # Создаем ответ используя наш метод
+    response = ProfileResponse.from_user(test_user, email=email)
+    
+    # Возвращаем информацию о формате
+    return {
+        "test_user_id": test_user.id,
+        "profile_response": {
+            "id": response.id,
+            "telegram_id": response.telegram_id,
+            "full_name": response.full_name,
+            "phone": response.phone,
+            "email": response.email,
+            "city": response.city,
+            "points": response.points,
+            "created_at": response.created_at,
+            "created_at_type": type(response.created_at).__name__
+        },
+        "raw_created_at": {
+            "value": str(test_user.created_at),
+            "type": type(test_user.created_at).__name__,
+            "has_isoformat": hasattr(test_user.created_at, 'isoformat')
+        },
+        "message": "✅ Формат правильный! created_at это строка."
+    }
+
+
+# ========================================
 # Пример запроса:
 # ========================================
 # GET /api/profile
 # PUT /api/profile
 # Body: {"full_name": "Иванова Мария", "city": "Москва"}
+# GET /api/profile/test-format - Тестовый эндпоинт для диагностики
 
