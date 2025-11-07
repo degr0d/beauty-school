@@ -38,7 +38,7 @@ const ProfilePage = () => {
   })
   const [saving, setSaving] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
-  const [showDebug, setShowDebug] = useState(false)
+  const [showDebug, setShowDebug] = useState(true) // ВСЕГДА показываем логи для диагностики
   const [myCourses, setMyCourses] = useState<CourseWithProgress[]>([])
   const [loadingCourses, setLoadingCourses] = useState(false)
   
@@ -540,24 +540,30 @@ const ProfilePage = () => {
 
   // status === 'paid' - показываем профиль
   if (status === 'paid') {
-    console.log('🔍 [paid] Рендер страницы paid, profile:', profile)
-    // Не вызываем addLog во время рендера - это может вызвать ошибку React
-    // addLog(`🔍 Рендер страницы paid, profile: ${profile ? profile.full_name : 'null'}`)
+    // МАКСИМАЛЬНОЕ ЛОГИРОВАНИЕ ПЕРЕД РЕНДЕРОМ
+    const renderLog = `🔍 [RENDER] status=paid, profile=${profile ? 'exists' : 'null'}`
+    console.log(renderLog)
+    
+    // Логируем ВСЕ данные профиля с типами
+    if (profile) {
+      const profileDebug = {
+        id: { value: profile.id, type: typeof profile.id },
+        telegram_id: { value: profile.telegram_id, type: typeof profile.telegram_id },
+        username: { value: profile.username, type: typeof profile.username, isNull: profile.username === null, isUndefined: profile.username === undefined },
+        full_name: { value: profile.full_name, type: typeof profile.full_name, length: profile.full_name?.length },
+        phone: { value: profile.phone, type: typeof profile.phone, length: profile.phone?.length },
+        email: { value: profile.email, type: typeof profile.email, isNull: profile.email === null, isUndefined: profile.email === undefined },
+        city: { value: profile.city, type: typeof profile.city, isNull: profile.city === null, isUndefined: profile.city === undefined },
+        points: { value: profile.points, type: typeof profile.points, isNaN: isNaN(Number(profile.points)) },
+        created_at: { value: profile.created_at, type: typeof profile.created_at, isDate: profile.created_at instanceof Date, isString: typeof profile.created_at === 'string' }
+      }
+      console.log('📊 [RENDER] Детали профиля для рендера:', JSON.stringify(profileDebug, null, 2))
+    }
+    
     if (!profile) {
       console.warn('⚠️ [paid] Профиль отсутствует, показываю загрузку')
-      // addLog('⚠️ Профиль отсутствует, показываю загрузку')
       return <div className="loading">Загрузка профиля...</div>
     }
-
-    console.log('✅ [paid] Рендер полного профиля:', {
-      id: profile.id,
-      full_name: profile.full_name,
-      phone: profile.phone,
-      email: profile.email,
-      city: profile.city,
-      points: profile.points
-    })
-    // addLog(`✅ Рендер полного профиля: ${profile.full_name}, телефон: ${profile.phone || 'нет'}`)
 
     return (
         <div className="profile-page">
@@ -590,9 +596,21 @@ const ProfilePage = () => {
           {/* Основная информация */}
           <div className="profile-card">
                   <div className="profile-avatar">
-                    {profile.full_name && typeof profile.full_name === 'string' && profile.full_name.length > 0 
-                      ? profile.full_name.charAt(0).toUpperCase() 
-                      : '?'}
+                    {(() => {
+                      try {
+                        const name = profile.full_name
+                        console.log('🎨 [RENDER] Аватар - full_name:', { name, type: typeof name, isString: typeof name === 'string', length: name?.length })
+                        if (name && typeof name === 'string' && name.length > 0) {
+                          const firstChar = name.charAt(0).toUpperCase()
+                          console.log('🎨 [RENDER] Аватар - первый символ:', firstChar)
+                          return firstChar
+                        }
+                        return '?'
+                      } catch (e) {
+                        console.error('❌ [RENDER] Ошибка в аватаре:', e)
+                        return '?'
+                      }
+                    })()}
                   </div>
             
             {isEditing ? (
@@ -700,11 +718,65 @@ const ProfilePage = () => {
               </div>
             ) : (
               <div className="profile-info">
-                <h2>{String(profile.full_name || 'Пользователь')}</h2>
-                {profile.username && <p className="username">@{String(profile.username)}</p>}
-                <p className="phone">📞 {String(profile.phone || 'Не указан')}</p>
-                {profile.email && <p className="email">📧 {String(profile.email)}</p>}
-                {profile.city && <p className="city">📍 {String(profile.city)}</p>}
+                {(() => {
+                  try {
+                    const name = String(profile.full_name || 'Пользователь')
+                    console.log('🎨 [RENDER] Имя профиля:', { name, original: profile.full_name, type: typeof profile.full_name })
+                    return <h2>{name}</h2>
+                  } catch (e) {
+                    console.error('❌ [RENDER] Ошибка в имени:', e)
+                    return <h2>Пользователь</h2>
+                  }
+                })()}
+                {(() => {
+                  try {
+                    if (profile.username) {
+                      const username = String(profile.username)
+                      console.log('🎨 [RENDER] Username:', { username, original: profile.username, type: typeof profile.username })
+                      return <p className="username">@{username}</p>
+                    }
+                    return null
+                  } catch (e) {
+                    console.error('❌ [RENDER] Ошибка в username:', e)
+                    return null
+                  }
+                })()}
+                {(() => {
+                  try {
+                    const phone = String(profile.phone || 'Не указан')
+                    console.log('🎨 [RENDER] Телефон:', { phone, original: profile.phone, type: typeof profile.phone })
+                    return <p className="phone">📞 {phone}</p>
+                  } catch (e) {
+                    console.error('❌ [RENDER] Ошибка в телефоне:', e)
+                    return <p className="phone">📞 Не указан</p>
+                  }
+                })()}
+                {(() => {
+                  try {
+                    if (profile.email) {
+                      const email = String(profile.email)
+                      console.log('🎨 [RENDER] Email:', { email, original: profile.email, type: typeof profile.email })
+                      return <p className="email">📧 {email}</p>
+                    }
+                    return null
+                  } catch (e) {
+                    console.error('❌ [RENDER] Ошибка в email:', e)
+                    return null
+                  }
+                })()}
+                {(() => {
+                  try {
+                    if (profile.city) {
+                      const city = String(profile.city)
+                      console.log('🎨 [RENDER] Город:', { city, original: profile.city, type: typeof profile.city })
+                      return <p className="city">📍 {city}</p>
+                    }
+                    return null
+                  } catch (e) {
+                    console.error('❌ [RENDER] Ошибка в городе:', e)
+                    return null
+                  }
+                })()}
               </div>
             )}
           </div>
@@ -714,7 +786,17 @@ const ProfilePage = () => {
             <div className="stat-card">
               <span className="stat-icon">⭐</span>
               <div>
-                <p className="stat-value">{profile.points ?? 0}</p>
+                {(() => {
+                  try {
+                    const points = profile.points ?? 0
+                    const pointsNum = typeof points === 'number' ? points : Number(points) || 0
+                    console.log('🎨 [RENDER] Баллы:', { points, pointsNum, type: typeof points, isNaN: isNaN(pointsNum) })
+                    return <p className="stat-value">{pointsNum}</p>
+                  } catch (e) {
+                    console.error('❌ [RENDER] Ошибка в баллах:', e)
+                    return <p className="stat-value">0</p>
+                  }
+                })()}
                 <p className="stat-label">Баллов</p>
               </div>
             </div>
