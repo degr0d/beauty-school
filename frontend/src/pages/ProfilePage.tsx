@@ -499,11 +499,17 @@ const ProfilePage = () => {
           {profile ? (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
               <h3 style={{ marginTop: 0 }}>Ваш профиль:</h3>
-              <p><strong>Имя:</strong> {profile.full_name || 'Не указано'}</p>
-              {profile.phone && <p><strong>Телефон:</strong> {profile.phone}</p>}
-              {profile.email && <p><strong>Email:</strong> {profile.email}</p>}
-              {profile.city && <p><strong>Город:</strong> {profile.city}</p>}
-              <p><strong>Баллы:</strong> {profile.points ?? 0}</p>
+              <p><strong>Имя:</strong> {String(profile.full_name || 'Не указано')}</p>
+              {profile.phone && typeof profile.phone === 'string' && profile.phone.trim() !== '' && (
+                <p><strong>Телефон:</strong> {String(profile.phone)}</p>
+              )}
+              {profile.email && typeof profile.email === 'string' && profile.email.trim() !== '' && (
+                <p><strong>Email:</strong> {String(profile.email)}</p>
+              )}
+              {profile.city && typeof profile.city === 'string' && profile.city.trim() !== '' && (
+                <p><strong>Город:</strong> {String(profile.city)}</p>
+              )}
+              <p><strong>Баллы:</strong> {typeof profile.points === 'number' ? profile.points : 0}</p>
             </div>
           ) : (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
