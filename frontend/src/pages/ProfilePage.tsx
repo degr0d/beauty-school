@@ -348,17 +348,25 @@ const ProfilePage = () => {
       addLog('📚 Загрузка курсов пользователя...')
       const response = await coursesApi.getMy()
       const courses = Array.isArray(response.data) ? response.data : []
-      // Безопасно обрабатываем курсы - гарантируем правильную структуру progress
-      const safeCourses = courses.map(course => ({
-        ...course,
-        progress: {
-          total_lessons: course.progress?.total_lessons ?? 0,
-          completed_lessons: course.progress?.completed_lessons ?? 0,
-          progress_percent: typeof course.progress?.progress_percent === 'number' ? course.progress.progress_percent : 0,
-          purchased_at: course.progress?.purchased_at ?? null,
-          is_completed: course.progress?.is_completed ?? false
+      // Безопасно обрабатываем курсы - НЕ используем spread оператор, создаем новый объект с явными полями
+      const safeCourses = courses.map(course => {
+        // Нормализуем все поля курса - гарантируем что это примитивы
+        const normalizedCourse: CourseWithProgress = {
+          id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
+          title: typeof course?.title === 'string' ? course.title : 'Без названия',
+          description: typeof course?.description === 'string' ? course.description : '',
+          category: typeof course?.category === 'string' ? course.category : '',
+          cover_image_url: typeof course?.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined,
+          progress: {
+            total_lessons: typeof course?.progress?.total_lessons === 'number' && !isNaN(course.progress.total_lessons) ? course.progress.total_lessons : 0,
+            completed_lessons: typeof course?.progress?.completed_lessons === 'number' && !isNaN(course.progress.completed_lessons) ? course.progress.completed_lessons : 0,
+            progress_percent: typeof course?.progress?.progress_percent === 'number' && !isNaN(course.progress.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
+            purchased_at: course?.progress?.purchased_at && typeof course.progress.purchased_at === 'string' && course.progress.purchased_at.trim() !== '' ? course.progress.purchased_at : null,
+            is_completed: course?.progress?.is_completed === true
+          }
         }
-      }))
+        return normalizedCourse
+      })
       setMyCourses(safeCourses)
       addLog(`✅ Загружено курсов: ${safeCourses.length}`)
     } catch (error: any) {
