@@ -109,11 +109,7 @@ class TelegramAuthMiddleware(BaseHTTPMiddleware):
             import json
             user_data = json.loads(data.get("user", "{}"))
             
-            # Явно конвертируем telegram_id в int (из JSON может прийти как число или строка)
-            if "id" in user_data:
-                user_data["id"] = int(user_data["id"])
-            
-            print(f"✅ [Middleware] initData валиден: telegram_id={user_data.get('id')} (type: {type(user_data.get('id'))})")
+            print(f"✅ [Middleware] initData валиден: telegram_id={user_data.get('id')}")
             return user_data
         
         except Exception as e:
@@ -128,7 +124,7 @@ class TelegramAuthMiddleware(BaseHTTPMiddleware):
 # ========================================
 from fastapi import Depends
 
-def get_telegram_user(request: Request) -> dict:
+async def get_telegram_user(request: Request) -> dict:
     """
     Dependency для FastAPI эндпоинтов
     Возвращает данные пользователя из Telegram
@@ -148,7 +144,7 @@ def get_telegram_user(request: Request) -> dict:
     init_data = request.headers.get("X-Telegram-Init-Data")
     if init_data:
         print(f"🔍 [get_telegram_user] initData найден в заголовке, валидирую...")
-        # Валидируем initData напрямую
+        # Валидируем initData напрямую (синхронная функция, но вызывается в async контексте)
         user = validate_init_data_direct(init_data)
         if user:
             print(f"✅ [get_telegram_user] Пользователь авторизован: telegram_id={user.get('id')}")
@@ -216,11 +212,7 @@ def validate_init_data_direct(init_data: str) -> Optional[dict]:
         import json
         user_data = json.loads(data.get("user", "{}"))
         
-        # Явно конвертируем telegram_id в int (из JSON может прийти как число или строка)
-        if "id" in user_data:
-            user_data["id"] = int(user_data["id"])
-        
-        print(f"✅ [validate_init_data_direct] initData валиден: telegram_id={user_data.get('id')} (type: {type(user_data.get('id'))})")
+        print(f"✅ [validate_init_data_direct] initData валиден: telegram_id={user_data.get('id')}")
         return user_data
     
     except Exception as e:
