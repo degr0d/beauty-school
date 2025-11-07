@@ -33,9 +33,18 @@ async def check_access(
     telegram_id = int(user.get("id", 0))
     if telegram_id == 0:
         raise HTTPException(status_code=401, detail="Telegram user ID not found in initData")
-    is_admin = telegram_id in settings.admin_ids_list
     
-    print(f"🔍 [Access] Проверка доступа для telegram_id={telegram_id}, is_admin={is_admin}")
+    # Детальное логирование для диагностики
+    print(f"🔍 [Access] Проверка доступа для telegram_id={telegram_id} (type: {type(telegram_id)})")
+    print(f"🔍 [Access] ADMIN_IDS из настроек: {settings.ADMIN_IDS}")
+    print(f"🔍 [Access] admin_ids_list: {settings.admin_ids_list} (type: {type(settings.admin_ids_list)})")
+    
+    # Проверяем каждый ID отдельно для диагностики
+    for admin_id in settings.admin_ids_list:
+        print(f"🔍 [Access] Сравнение: {telegram_id} == {admin_id} (type: {type(admin_id)})? {telegram_id == admin_id}")
+    
+    is_admin = telegram_id in settings.admin_ids_list
+    print(f"🔍 [Access] Итоговый результат: is_admin={is_admin}")
     
     # АДМИНЫ ВСЕГДА ИМЕЮТ ДОСТУП
     if is_admin:

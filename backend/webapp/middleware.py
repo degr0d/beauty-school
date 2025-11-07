@@ -147,10 +147,15 @@ def get_telegram_user(request: Request) -> dict:
     if settings.ENVIRONMENT == "development":
         # Пробуем получить telegram_id из заголовка (для локального тестирования)
         dev_telegram_id = request.headers.get("X-Telegram-User-ID")
+        print(f"🔧 [DEV MODE] Проверка заголовков: X-Telegram-User-ID={dev_telegram_id}")
+        print(f"🔧 [DEV MODE] ADMIN_IDS из настроек: {settings.ADMIN_IDS}")
+        print(f"🔧 [DEV MODE] admin_ids_list: {settings.admin_ids_list}")
+        
         if dev_telegram_id:
             try:
                 telegram_id = int(dev_telegram_id)
-                print(f"🔧 [DEV MODE] Используем telegram_id из заголовка: {telegram_id}")
+                is_admin = telegram_id in settings.admin_ids_list
+                print(f"🔧 [DEV MODE] Используем telegram_id из заголовка: {telegram_id}, is_admin={is_admin}")
                 return {
                     "id": telegram_id,
                     "first_name": "Dev",
@@ -165,12 +170,15 @@ def get_telegram_user(request: Request) -> dict:
         if admin_ids:
             default_id = admin_ids[0]
             print(f"🔧 [DEV MODE] Используем админский ID по умолчанию: {default_id}")
+            print(f"🔧 [DEV MODE] Этот ID будет использован для проверки админских прав")
             return {
                 "id": default_id,
                 "first_name": "Admin",
                 "last_name": "Dev",
                 "username": "admin_dev"
             }
+        else:
+            print(f"⚠️ [DEV MODE] ADMIN_IDS не установлен! Проверьте .env файл")
     
     # В режиме разработки (когда middleware отключен):
     # Пробуем получить initData из заголовка и проверить его
