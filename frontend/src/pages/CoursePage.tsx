@@ -54,7 +54,30 @@ const CoursePage = () => {
   const loadCourse = async (courseId: number) => {
     try {
       const response = await coursesApi.getById(courseId)
-      setCourse(response.data)
+      const rawCourse = response.data
+      
+      // Нормализуем курс - гарантируем что все поля это примитивы
+      if (rawCourse) {
+        const normalizedCourse: CourseDetail = {
+          id: typeof rawCourse.id === 'number' && !isNaN(rawCourse.id) ? rawCourse.id : 0,
+          title: typeof rawCourse.title === 'string' ? rawCourse.title : 'Без названия',
+          description: typeof rawCourse.description === 'string' ? rawCourse.description : '',
+          category: typeof rawCourse.category === 'string' ? rawCourse.category : '',
+          cover_image_url: typeof rawCourse.cover_image_url === 'string' && rawCourse.cover_image_url.trim() !== '' ? rawCourse.cover_image_url : undefined,
+          is_top: rawCourse.is_top === true,
+          price: typeof rawCourse.price === 'number' && !isNaN(rawCourse.price) ? rawCourse.price : 0,
+          duration_hours: typeof rawCourse.duration_hours === 'number' && !isNaN(rawCourse.duration_hours) && rawCourse.duration_hours > 0 ? rawCourse.duration_hours : undefined,
+          full_description: typeof rawCourse.full_description === 'string' ? rawCourse.full_description : undefined,
+          lessons: Array.isArray(rawCourse.lessons) ? rawCourse.lessons.map((lesson: any) => ({
+            id: typeof lesson?.id === 'number' && !isNaN(lesson.id) ? lesson.id : 0,
+            title: typeof lesson?.title === 'string' ? lesson.title : 'Без названия',
+            order: typeof lesson?.order === 'number' && !isNaN(lesson.order) ? lesson.order : 0,
+            video_duration: typeof lesson?.video_duration === 'number' && !isNaN(lesson.video_duration) && lesson.video_duration > 0 ? lesson.video_duration : undefined,
+            is_free: lesson?.is_free === true
+          })) : []
+        }
+        setCourse(normalizedCourse)
+      }
     } catch (error) {
       console.error('Ошибка загрузки курса:', error)
     } finally {
@@ -65,7 +88,25 @@ const CoursePage = () => {
   const loadProgress = async (courseId: number) => {
     try {
       const response = await progressApi.getByCourse(courseId)
-      setProgress(response.data)
+      const rawProgress = response.data
+      
+      // Нормализуем прогресс - гарантируем что все поля это примитивы
+      if (rawProgress) {
+        const normalizedProgress: CourseProgress = {
+          course_id: typeof rawProgress.course_id === 'number' && !isNaN(rawProgress.course_id) ? rawProgress.course_id : 0,
+          course_title: typeof rawProgress.course_title === 'string' ? rawProgress.course_title : '',
+          total_lessons: typeof rawProgress.total_lessons === 'number' && !isNaN(rawProgress.total_lessons) ? rawProgress.total_lessons : 0,
+          completed_lessons: typeof rawProgress.completed_lessons === 'number' && !isNaN(rawProgress.completed_lessons) ? rawProgress.completed_lessons : 0,
+          progress_percent: typeof rawProgress.progress_percent === 'number' && !isNaN(rawProgress.progress_percent) ? Math.min(Math.max(rawProgress.progress_percent, 0), 100) : 0,
+          lessons: Array.isArray(rawProgress.lessons) ? rawProgress.lessons.map((lesson: any) => ({
+            id: typeof lesson?.id === 'number' && !isNaN(lesson.id) ? lesson.id : 0,
+            title: typeof lesson?.title === 'string' ? lesson.title : '',
+            order: typeof lesson?.order === 'number' && !isNaN(lesson.order) ? lesson.order : 0,
+            completed: lesson?.completed === true
+          })) : []
+        }
+        setProgress(normalizedProgress)
+      }
     } catch (error) {
       console.error('Ошибка загрузки прогресса:', error)
     }
@@ -152,10 +193,19 @@ const CoursePage = () => {
               <div className="lessons-list">
                 {course.lessons.map((lesson) => {
                   const lessonProgress = progress?.lessons.find(l => l.id === lesson.id)
+                  // Нормализуем урок - НЕ используем spread оператор
+                  const normalizedLesson = {
+                    id: typeof lesson.id === 'number' && !isNaN(lesson.id) ? lesson.id : 0,
+                    title: typeof lesson.title === 'string' ? lesson.title : 'Без названия',
+                    order: typeof lesson.order === 'number' && !isNaN(lesson.order) ? lesson.order : 0,
+                    video_duration: typeof lesson.video_duration === 'number' && !isNaN(lesson.video_duration) && lesson.video_duration > 0 ? lesson.video_duration : undefined,
+                    is_free: lesson.is_free === true,
+                    completed: lessonProgress?.completed === true
+                  }
                   return (
                     <LessonItem
-                      key={lesson.id}
-                      lesson={{ ...lesson, completed: lessonProgress?.completed }}
+                      key={normalizedLesson.id}
+                      lesson={normalizedLesson}
                       courseId={course.id}
                     />
                   )

@@ -44,18 +44,34 @@ const LessonPage = () => {
   const loadLesson = async (lessonId: number) => {
     try {
       const response = await lessonsApi.getById(lessonId)
-      setLesson(response.data)
+      const rawLesson = response.data
       
-      // Проверяем доступ к курсу (если урок платный)
-      if (!response.data.is_free && response.data.course_id) {
-        try {
-          const accessResponse = await accessApi.checkCourseAccess(response.data.course_id)
-          if (!accessResponse.data.has_access) {
+      // Нормализуем урок - гарантируем что все поля это примитивы
+      if (rawLesson) {
+        const normalizedLesson: LessonDetail = {
+          id: typeof rawLesson.id === 'number' && !isNaN(rawLesson.id) ? rawLesson.id : 0,
+          title: typeof rawLesson.title === 'string' ? rawLesson.title : 'Без названия',
+          order: typeof rawLesson.order === 'number' && !isNaN(rawLesson.order) ? rawLesson.order : 0,
+          video_duration: typeof rawLesson.video_duration === 'number' && !isNaN(rawLesson.video_duration) && rawLesson.video_duration > 0 ? rawLesson.video_duration : undefined,
+          is_free: rawLesson.is_free === true,
+          course_id: typeof rawLesson.course_id === 'number' && !isNaN(rawLesson.course_id) ? rawLesson.course_id : 0,
+          description: typeof rawLesson.description === 'string' ? rawLesson.description : undefined,
+          video_url: typeof rawLesson.video_url === 'string' && rawLesson.video_url.trim() !== '' ? rawLesson.video_url : undefined,
+          pdf_url: typeof rawLesson.pdf_url === 'string' && rawLesson.pdf_url.trim() !== '' ? rawLesson.pdf_url : undefined
+        }
+        setLesson(normalizedLesson)
+        
+        // Проверяем доступ к курсу (если урок платный)
+        if (!normalizedLesson.is_free && normalizedLesson.course_id) {
+          try {
+            const accessResponse = await accessApi.checkCourseAccess(normalizedLesson.course_id)
+            if (!accessResponse.data.has_access) {
+              setAccessDenied(true)
+            }
+          } catch (error) {
+            console.error('Ошибка проверки доступа:', error)
             setAccessDenied(true)
           }
-        } catch (error) {
-          console.error('Ошибка проверки доступа:', error)
-          setAccessDenied(true)
         }
       }
     } catch (error: any) {
