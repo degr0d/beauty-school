@@ -101,19 +101,10 @@ async def get_profile(
             }
             print(f"📤 [Profile] Возвращаю данные нового профиля: {profile_data}")
             
-            response = ProfileResponse(
-                id=db_user.id,
-                telegram_id=db_user.telegram_id,
-                username=db_user.username,
-                full_name=db_user.full_name,
-                phone=db_user.phone,
-                email=email,
-                city=db_user.city,
-                points=db_user.points,
-                created_at=db_user.created_at
-            )
+            # Используем метод from_user для правильной сериализации
+            response = ProfileResponse.from_user(db_user, email=email)
             
-            print(f"📤 [Profile] ProfileResponse создан для нового пользователя: full_name={response.full_name}, phone={response.phone}")
+            print(f"📤 [Profile] ProfileResponse создан для нового пользователя: full_name={response.full_name}, phone={response.phone}, created_at={response.created_at} (type: {type(response.created_at)})")
             return response
         else:
             print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, phone={db_user.phone})")
@@ -139,19 +130,10 @@ async def get_profile(
         }
         print(f"📤 [Profile] Возвращаю данные профиля: {profile_data}")
         
-        response = ProfileResponse(
-            id=db_user.id,
-            telegram_id=db_user.telegram_id,
-            username=db_user.username,
-            full_name=db_user.full_name,
-            phone=db_user.phone,
-            email=email,
-            city=db_user.city,
-            points=db_user.points,
-            created_at=db_user.created_at
-        )
+        # Используем метод from_user для правильной сериализации
+        response = ProfileResponse.from_user(db_user, email=email)
         
-        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, email={response.email}, city={response.city}")
+        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, email={response.email}, city={response.city}, created_at={response.created_at} (type: {type(response.created_at)})")
         return response
     except Exception as e:
         print(f"❌ [Profile] ОШИБКА при получении профиля: {e}")
@@ -204,17 +186,8 @@ async def update_profile(
     except AttributeError:
         email = None
     
-    return ProfileResponse(
-        id=db_user.id,
-        telegram_id=db_user.telegram_id,
-        username=db_user.username,
-        full_name=db_user.full_name,
-        phone=db_user.phone,
-        email=email,
-        city=db_user.city,
-        points=db_user.points,
-        created_at=db_user.created_at
-    )
+    # Используем метод from_user для правильной сериализации
+    return ProfileResponse.from_user(db_user, email=email)
 
 
 # ========================================

@@ -94,10 +94,30 @@ class ProfileResponse(BaseModel):
     email: Optional[str] = None
     city: Optional[str] = None
     points: int
-    created_at: datetime
+    created_at: str  # Изменено на str для гарантированной сериализации
     
     class Config:
         from_attributes = True
+        
+    @classmethod
+    def from_user(cls, user, email: Optional[str] = None):
+        """
+        Создает ProfileResponse из User модели с правильной сериализацией datetime
+        """
+        # Гарантируем что created_at это строка
+        created_at_str = user.created_at.isoformat() if hasattr(user.created_at, 'isoformat') else str(user.created_at)
+        
+        return cls(
+            id=user.id,
+            telegram_id=user.telegram_id,
+            username=user.username,
+            full_name=user.full_name,
+            phone=user.phone,
+            email=email,
+            city=user.city,
+            points=user.points,
+            created_at=created_at_str
+        )
 
 
 class ProfileUpdateRequest(BaseModel):

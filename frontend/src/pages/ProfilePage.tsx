@@ -49,18 +49,45 @@ const ProfilePage = () => {
       const rawProfile = profileResponse.data
       
       if (rawProfile) {
-        // Нормализуем профиль - только ФИО и телефон
+        // КРИТИЧНО: Нормализуем все значения, гарантируя что это примитивы
+        // Проверяем created_at - может быть объектом datetime
+        let created_at_str: string
+        if (typeof rawProfile.created_at === 'string') {
+          created_at_str = rawProfile.created_at
+        } else if (rawProfile.created_at && typeof rawProfile.created_at === 'object') {
+          // Если это объект (datetime), преобразуем в строку
+          try {
+            created_at_str = new Date(rawProfile.created_at).toISOString()
+          } catch (e) {
+            console.warn('⚠️ [Profile] Ошибка преобразования created_at:', e)
+            created_at_str = new Date().toISOString()
+          }
+        } else {
+          created_at_str = new Date().toISOString()
+        }
+        
+        // Нормализуем профиль - гарантируем что все поля это примитивы
         const normalizedProfile: Profile = {
           id: typeof rawProfile.id === 'number' && !isNaN(rawProfile.id) ? rawProfile.id : 0,
           telegram_id: typeof rawProfile.telegram_id === 'number' && !isNaN(rawProfile.telegram_id) ? rawProfile.telegram_id : 0,
           username: rawProfile.username && typeof rawProfile.username === 'string' && rawProfile.username.trim() !== '' ? rawProfile.username : undefined,
           full_name: typeof rawProfile.full_name === 'string' && rawProfile.full_name.trim() !== '' ? rawProfile.full_name : 'Пользователь',
           phone: typeof rawProfile.phone === 'string' && rawProfile.phone.trim() !== '' ? rawProfile.phone : 'не указан',
-          email: undefined,
-          city: undefined,
+          email: rawProfile.email && typeof rawProfile.email === 'string' && rawProfile.email.trim() !== '' ? rawProfile.email : undefined,
+          city: rawProfile.city && typeof rawProfile.city === 'string' && rawProfile.city.trim() !== '' ? rawProfile.city : undefined,
           points: typeof rawProfile.points === 'number' && !isNaN(rawProfile.points) ? rawProfile.points : 0,
-          created_at: typeof rawProfile.created_at === 'string' ? rawProfile.created_at : new Date().toISOString()
+          created_at: created_at_str
         }
+        
+        // Дополнительная проверка: убеждаемся что нет объектов
+        console.log('✅ [Profile] Нормализованный профиль:', {
+          id: normalizedProfile.id,
+          full_name: normalizedProfile.full_name,
+          phone: normalizedProfile.phone,
+          created_at_type: typeof normalizedProfile.created_at,
+          created_at: normalizedProfile.created_at
+        })
+        
         setProfile(normalizedProfile)
       }
 
@@ -106,8 +133,24 @@ const ProfilePage = () => {
       const response = await coursesApi.getMy()
       const courses = Array.isArray(response.data) ? response.data : []
       
-      // Нормализуем курсы
+      // КРИТИЧНО: Нормализуем курсы, гарантируя что все значения это примитивы
       const safeCourses = courses.map(course => {
+        // Безопасно обрабатываем purchased_at - может быть объектом datetime
+        let purchased_at_str: string | null = null
+        if (course?.progress?.purchased_at) {
+          if (typeof course.progress.purchased_at === 'string') {
+            purchased_at_str = course.progress.purchased_at.trim() !== '' ? course.progress.purchased_at : null
+          } else if (typeof course.progress.purchased_at === 'object') {
+            // Если это объект (datetime), преобразуем в строку
+            try {
+              purchased_at_str = new Date(course.progress.purchased_at).toISOString()
+            } catch (e) {
+              console.warn('⚠️ [Profile] Ошибка преобразования purchased_at:', e)
+              purchased_at_str = null
+            }
+          }
+        }
+        
         const normalizedCourse: CourseWithProgress = {
           id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
           title: typeof course?.title === 'string' ? course.title : 'Без названия',
@@ -118,7 +161,7 @@ const ProfilePage = () => {
             total_lessons: typeof course?.progress?.total_lessons === 'number' && !isNaN(course.progress.total_lessons) ? course.progress.total_lessons : 0,
             completed_lessons: typeof course?.progress?.completed_lessons === 'number' && !isNaN(course.progress.completed_lessons) ? course.progress.completed_lessons : 0,
             progress_percent: typeof course?.progress?.progress_percent === 'number' && !isNaN(course.progress.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
-            purchased_at: course?.progress?.purchased_at && typeof course.progress.purchased_at === 'string' && course.progress.purchased_at.trim() !== '' ? course.progress.purchased_at : null,
+            purchased_at: purchased_at_str,
             is_completed: course?.progress?.is_completed === true
           }
         }
