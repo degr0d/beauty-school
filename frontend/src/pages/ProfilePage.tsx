@@ -326,6 +326,10 @@ const ProfilePage = () => {
   }
 
   if (status === 'not_registered') {
+    // Проверяем, открыт ли Mini App через Telegram
+    const webApp = window.Telegram?.WebApp
+    const isOpenedViaTelegram = !!webApp
+    
     return (
       <div className="profile-page">
         <div className="error">
@@ -348,11 +352,30 @@ const ProfilePage = () => {
               {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'} {debugLogs.length > 0 && `(${debugLogs.length})`}
             </button>
           </div>
+          
+          {!isOpenedViaTelegram && (
+            <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f8d7da', borderRadius: '8px', border: '2px solid #dc3545' }}>
+              <h3 style={{ margin: '0 0 10px 0', color: '#721c24' }}>⚠️ Mini App открыт не через Telegram!</h3>
+              <p style={{ margin: '0', color: '#721c24' }}>
+                Для работы приложения необходимо открыть его через Telegram бота.
+              </p>
+              <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px' }}>
+                <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📱 Как открыть правильно:</p>
+                <ol style={{ margin: '0', paddingLeft: '20px', color: '#721c24' }}>
+                  <li style={{ marginBottom: '8px' }}>Откройте Telegram на вашем устройстве</li>
+                  <li style={{ marginBottom: '8px' }}>Найдите бота @beautyt3st_bot (или ваш бот)</li>
+                  <li style={{ marginBottom: '8px' }}>Нажмите кнопку "Открыть приложение" или отправьте <code>/start</code></li>
+                  <li>Mini App откроется внутри Telegram с правильной авторизацией</li>
+                </ol>
+              </div>
+            </div>
+          )}
+          
           <p>Для доступа к платформе необходимо пройти регистрацию через Telegram-бота.</p>
           <div className="register-hint" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
             <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📋 Инструкция:</p>
             <ol style={{ margin: '0', paddingLeft: '20px' }}>
-              <li style={{ marginBottom: '8px' }}>Откройте бота @beauty в Telegram</li>
+              <li style={{ marginBottom: '8px' }}>Откройте бота @beautyt3st_bot в Telegram</li>
               <li style={{ marginBottom: '8px' }}>Отправьте команду <code>/start</code></li>
               <li style={{ marginBottom: '8px' }}>Пройдите регистрацию (укажите имя, телефон)</li>
               <li>После регистрации вернитесь в Mini App</li>
