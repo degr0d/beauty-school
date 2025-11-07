@@ -313,7 +313,7 @@ const ProfilePage = () => {
                         <span> ({progress.progress_percent}%)</span>
                       )}
                     </p>
-                    {progress.purchased_at && (
+                    {progress.purchased_at !== null && typeof progress.purchased_at === 'string' && progress.purchased_at.trim() !== '' && (
                       <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>
                         Куплен: {(() => {
                           try {
