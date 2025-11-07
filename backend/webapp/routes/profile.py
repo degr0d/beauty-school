@@ -27,26 +27,6 @@ async def get_profile(
     """
     print("🚀 [Profile] ФУНКЦИЯ get_profile ВЫЗВАНА!")
     try:
-        # Проверяем подключение к БД
-        try:
-            from sqlalchemy import text
-            result = await session.execute(text("SELECT 1"))
-            print("✅ [Profile] Подключение к БД работает")
-        except Exception as db_error:
-            print(f"❌ [Profile] Ошибка подключения к БД: {db_error}")
-            raise HTTPException(status_code=500, detail=f"Database connection error: {str(db_error)}")
-        
-        # Проверяем, существует ли таблица users
-        try:
-            from sqlalchemy import text
-            result = await session.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')"))
-            table_exists = result.scalar()
-            print(f"📊 [Profile] Таблица 'users' существует: {table_exists}")
-            if not table_exists:
-                print("⚠️ [Profile] Таблица 'users' не найдена! Нужно выполнить миграции или init_db()")
-        except Exception as table_error:
-            print(f"⚠️ [Profile] Не удалось проверить таблицу: {table_error}")
-        
         telegram_id = user["id"]
         is_admin = telegram_id in settings.admin_ids_list
         
@@ -63,6 +43,7 @@ async def get_profile(
         except Exception as users_error:
             print(f"❌ [Profile] Ошибка при запросе пользователей: {users_error}")
             print(f"   Возможно, таблица 'users' не создана или структура не совпадает")
+            # Продолжаем - попробуем создать пользователя
         
         # Ищем пользователя
         result = await session.execute(
