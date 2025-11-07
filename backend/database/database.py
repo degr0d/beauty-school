@@ -15,36 +15,20 @@ from backend.config import settings
 # Ленивая инициализация движка БД
 # ========================================
 # Проблема: engine создавался при импорте модуля, до создания event loop FastAPI
-# Решение: создаем engine лениво, только когда он нужен, и проверяем event loop
+# Решение: создаем engine лениво, только когда он нужен
+# В FastAPI engine создается в startup_event, в боте - при первом использовании
 _engine: Optional[AsyncEngine] = None
 _async_session: Optional[async_sessionmaker] = None
-_engine_event_loop = None
 
 
 def get_engine() -> AsyncEngine:
     """
     Получить или создать engine БД
-    Создается лениво, только когда нужен, в текущем event loop
+    Создается лениво, только когда нужен
+    В FastAPI должен вызываться в startup_event для правильного event loop
     """
-    global _engine, _engine_event_loop
-    import asyncio
-    
-    # Получаем текущий event loop (или создаем новый, если его нет)
-    try:
-        current_loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # Нет запущенного event loop - создаем новый
-        current_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(current_loop)
-    
-    # Если engine уже создан, но в другом event loop - пересоздаем
-    if _engine is None or _engine_event_loop != current_loop:
-        # Закрываем старый engine, если он был создан в другом loop
-        if _engine is not None and _engine_event_loop != current_loop:
-            # Не можем await здесь, так как это sync функция
-            # Просто пересоздаем engine
-            pass
-        
+    global _engine
+    if _engine is None:
         _engine = create_async_engine(
             settings.database_url,
             echo=settings.ENVIRONMENT == "development",  # Логирование SQL-запросов в dev-режиме
@@ -59,8 +43,6 @@ def get_engine() -> AsyncEngine:
                 }
             }
         )
-        _engine_event_loop = current_loop
-    
     return _engine
 
 
