@@ -36,8 +36,6 @@ const ProfilePage = () => {
   }
 
   const loadProfileAndAccess = async () => {
-
-  const loadProfileAndAccess = async () => {
     try {
       // Проверяем наличие Telegram WebApp и initData
       const webApp = window.Telegram?.WebApp
