@@ -1,0 +1,84 @@
+{
+  "agents": {
+    "auto-distribute": true,
+    "max-agents": 4,
+    "strategy": "smart"
+  },
+  "setup-worktree": [
+    "echo '🚀 Настройка нового worktree для Beauty School...'",
+    "echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'",
+    "echo ''",
+    "echo '📦 Проверка окружения...'",
+    "python3 --version || (echo '❌ Python не найден! Установите Python 3.9+' && exit 1)",
+    "node --version || (echo '❌ Node.js не найден! Установите Node.js' && exit 1)",
+    "npm --version || (echo '❌ npm не найден!' && exit 1)",
+    "echo ''",
+    "echo '📦 Обновление pip...'",
+    "python3 -m pip install --upgrade pip setuptools wheel --quiet",
+    "echo ''",
+    "echo '📦 Установка Python зависимостей...'",
+    "python3 -m pip install -r requirements.txt --quiet || python3 -m pip install -r requirements.txt",
+    "echo ''",
+    "echo '📦 Установка Frontend зависимостей...'",
+    "cd frontend && npm install --silent || npm install && cd ..",
+    "echo ''",
+    "echo '🔍 Проверка Docker...'",
+    "docker --version > /dev/null 2>&1 && echo '✅ Docker найден' || echo '⚠️  Docker не найден - убедитесь что Docker Desktop запущен'",
+    "echo ''",
+    "echo '📋 Проверка .env файла...'",
+    "[ ! -f .env ] && [ -f config.example ] && (cp config.example .env && echo '✅ .env создан из config.example' && echo '⚠️  ВАЖНО: Заполните .env файл перед запуском!') || ([ -f .env ] && echo '✅ .env файл найден' || echo '⚠️  .env файл не найден!')",
+    "echo ''",
+    "echo '🔍 Проверка структуры проекта...'",
+    "[ -d backend ] && echo '✅ backend/ найден' || echo '⚠️  backend/ не найден'",
+    "[ -d frontend ] && echo '✅ frontend/ найден' || echo '⚠️  frontend/ не найден'",
+    "[ -f requirements.txt ] && echo '✅ requirements.txt найден' || echo '⚠️  requirements.txt не найден'",
+    "echo ''",
+    "echo '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━'",
+    "echo '🎉 Настройка worktree завершена!'",
+    "echo ''",
+    "echo '💡 Следующие шаги:'",
+    "echo '   1. Убедитесь что Docker Desktop запущен'",
+    "echo '   2. Проверьте .env файл и заполните необходимые переменные'",
+    "echo '   3. Запустите проект: python3 run_all.py'",
+    "echo '   4. Или используйте F5 в VS Code для запуска'",
+    "echo ''"
+  ],
+  "post-checkout": [
+    "echo '🔄 Worktree переключен, проверяю зависимости...'",
+    "cd frontend && (npm list --depth=0 > /dev/null 2>&1 || (echo '📦 Устанавливаю frontend зависимости...' && npm install --silent)) && cd ..",
+    "echo '✅ Проверка завершена'"
+  ],
+  "cleanup": [
+    "echo '🧹 Очистка временных файлов...'",
+    "find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null || true",
+    "find . -type f -name '*.pyc' -delete 2>/dev/null || true",
+    "find . -type d -name '.pytest_cache' -exec rm -rf {} + 2>/dev/null || true",
+    "find . -type d -name '.mypy_cache' -exec rm -rf {} + 2>/dev/null || true",
+    "find . -type d -name '.ruff_cache' -exec rm -rf {} + 2>/dev/null || true",
+    "find . -type f -name '*.log' -delete 2>/dev/null || true",
+    "find . -type d -name 'node_modules/.cache' -exec rm -rf {} + 2>/dev/null || true",
+    "echo '✅ Очистка завершена'"
+  ],
+  "sync": [
+    "echo '🔄 Синхронизация зависимостей...'",
+    "python3 -m pip install -r requirements.txt --upgrade --quiet",
+    "cd frontend && npm update --silent && cd ..",
+    "echo '✅ Синхронизация завершена'"
+  ],
+  "pre-commit": [
+    "echo '🔍 Проверка перед коммитом...'",
+    "python3 -m black --check . 2>/dev/null || echo '⚠️  Код не отформатирован (black)'",
+    "cd frontend && npm run lint 2>/dev/null || echo '⚠️  Frontend lint ошибки' && cd ..",
+    "echo '✅ Проверка завершена'"
+  ],
+  "health-check": [
+    "echo '🏥 Проверка здоровья проекта...'",
+    "python3 --version && echo '✅ Python OK'",
+    "node --version && echo '✅ Node.js OK'",
+    "docker --version > /dev/null 2>&1 && echo '✅ Docker OK' || echo '⚠️  Docker не найден'",
+    "[ -f .env ] && echo '✅ .env найден' || echo '⚠️  .env не найден'",
+    "[ -d backend ] && echo '✅ backend/ OK' || echo '❌ backend/ не найден'",
+    "[ -d frontend ] && echo '✅ frontend/ OK' || echo '❌ frontend/ не найден'",
+    "echo '✅ Проверка завершена'"
+  ]
+}
