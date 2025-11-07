@@ -164,7 +164,7 @@ const CoursePage = () => {
         )}
 
         {/* Прогресс */}
-        {progress && isPurchased && (
+        {progress !== null && isPurchased && (
           <div className="course-progress">
             <h3>Твой прогресс</h3>
             <ProgressBar percent={progress.progress_percent} />
