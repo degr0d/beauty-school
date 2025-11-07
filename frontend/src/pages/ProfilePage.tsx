@@ -54,10 +54,18 @@ const ProfilePage = () => {
         let created_at_str: string
         if (typeof rawProfile.created_at === 'string') {
           created_at_str = rawProfile.created_at
-        } else if (rawProfile.created_at && typeof rawProfile.created_at === 'object') {
+        } else if (rawProfile.created_at && typeof rawProfile.created_at === 'object' && rawProfile.created_at !== null) {
           // Если это объект (datetime), преобразуем в строку
           try {
-            created_at_str = new Date(rawProfile.created_at).toISOString()
+            // Безопасное преобразование объекта в Date
+            const dateValue = rawProfile.created_at as any
+            if (dateValue instanceof Date) {
+              created_at_str = dateValue.toISOString()
+            } else if (typeof dateValue === 'object' && 'toISOString' in dateValue && typeof dateValue.toISOString === 'function') {
+              created_at_str = dateValue.toISOString()
+            } else {
+              created_at_str = new Date(dateValue as any).toISOString()
+            }
           } catch (e) {
             console.warn('⚠️ [Profile] Ошибка преобразования created_at:', e)
             created_at_str = new Date().toISOString()
@@ -284,9 +292,12 @@ const ProfilePage = () => {
                 return null
               }
               
-              const courseId = typeof course.id === 'number' && !isNaN(course.id) ? course.id : 0
-              const courseTitle = typeof course.title === 'string' ? course.title : 'Без названия'
-              const courseDescription = typeof course.description === 'string' ? course.description : ''
+              // TypeScript не понимает что course это CourseWithProgress, используем type assertion
+              const courseWithProgress = course as CourseWithProgress
+              
+              const courseId = typeof courseWithProgress.id === 'number' && !isNaN(courseWithProgress.id) ? courseWithProgress.id : 0
+              const courseTitle = typeof courseWithProgress.title === 'string' ? courseWithProgress.title : 'Без названия'
+              const courseDescription = typeof courseWithProgress.description === 'string' ? courseWithProgress.description : ''
               
               let progress: {
                 total_lessons: number
@@ -296,13 +307,13 @@ const ProfilePage = () => {
                 is_completed: boolean
               }
               
-              if (course.progress && typeof course.progress === 'object' && !Array.isArray(course.progress)) {
+              if (courseWithProgress.progress && typeof courseWithProgress.progress === 'object' && !Array.isArray(courseWithProgress.progress)) {
                 progress = {
-                  total_lessons: typeof course.progress.total_lessons === 'number' && !isNaN(course.progress.total_lessons) ? course.progress.total_lessons : 0,
-                  completed_lessons: typeof course.progress.completed_lessons === 'number' && !isNaN(course.progress.completed_lessons) ? course.progress.completed_lessons : 0,
-                  progress_percent: typeof course.progress.progress_percent === 'number' && !isNaN(course.progress.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
-                  purchased_at: course.progress.purchased_at && typeof course.progress.purchased_at === 'string' && course.progress.purchased_at.trim() !== '' ? String(course.progress.purchased_at) : null,
-                  is_completed: course.progress.is_completed === true
+                  total_lessons: typeof courseWithProgress.progress.total_lessons === 'number' && !isNaN(courseWithProgress.progress.total_lessons) ? courseWithProgress.progress.total_lessons : 0,
+                  completed_lessons: typeof courseWithProgress.progress.completed_lessons === 'number' && !isNaN(courseWithProgress.progress.completed_lessons) ? courseWithProgress.progress.completed_lessons : 0,
+                  progress_percent: typeof courseWithProgress.progress.progress_percent === 'number' && !isNaN(courseWithProgress.progress.progress_percent) ? Math.min(Math.max(courseWithProgress.progress.progress_percent, 0), 100) : 0,
+                  purchased_at: courseWithProgress.progress.purchased_at && typeof courseWithProgress.progress.purchased_at === 'string' && courseWithProgress.progress.purchased_at.trim() !== '' ? String(courseWithProgress.progress.purchased_at) : null,
+                  is_completed: courseWithProgress.progress.is_completed === true
                 }
               } else {
                 progress = {
