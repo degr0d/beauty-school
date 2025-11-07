@@ -26,8 +26,16 @@ const MainPage = () => {
     try {
       console.log('🔍 Проверка доступа...')
       const response = await accessApi.checkAccess()
-      console.log('✅ Доступ получен:', response.data)
-      setAccessStatus(response.data)
+      const rawAccess = response.data
+      // Нормализуем accessStatus - гарантируем что все поля это примитивы
+      if (rawAccess) {
+        const normalizedAccess: AccessStatus = {
+          has_access: rawAccess.has_access === true,
+          purchased_courses_count: typeof rawAccess.purchased_courses_count === 'number' && !isNaN(rawAccess.purchased_courses_count) ? rawAccess.purchased_courses_count : 0,
+          total_payments: typeof rawAccess.total_payments === 'number' && !isNaN(rawAccess.total_payments) ? rawAccess.total_payments : 0
+        }
+        setAccessStatus(normalizedAccess)
+      }
       setAccessError(false)
     } catch (error: any) {
       console.error('❌ Ошибка проверки доступа:', error)

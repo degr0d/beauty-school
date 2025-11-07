@@ -46,12 +46,8 @@ function App() {
           root.style.backgroundColor = isDark ? '#ffffff' : bgColor
         }
         
-        console.log('✅ Telegram WebApp инициализирован:', {
-          version: webApp.version,
-          platform: webApp.platform,
-          colorScheme: webApp.colorScheme,
-          user: webApp.initDataUnsafe?.user,
-        })
+        // Убрано логирование объекта user - может вызывать проблемы
+        console.log('✅ Telegram WebApp инициализирован')
       } catch (error) {
         console.error('❌ Ошибка инициализации Telegram WebApp:', error)
       }
