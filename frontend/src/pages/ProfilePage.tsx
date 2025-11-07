@@ -143,10 +143,6 @@ const ProfilePage = () => {
         }
       }
 
-      // Сохраняем данные
-      setProfile(profileData)
-      setAccessStatus(accessData)
-      
       // Инициализируем форму редактирования
       if (profileData) {
         setEditForm({
@@ -155,14 +151,31 @@ const ProfilePage = () => {
           email: profileData.email || '',
           city: profileData.city || ''
         })
+        console.log('📝 Форма редактирования инициализирована:', {
+          full_name: profileData.full_name,
+          phone: profileData.phone,
+          email: profileData.email,
+          city: profileData.city
+        })
       }
 
+      // Сохраняем данные ПЕРЕД определением статуса
+      setProfile(profileData)
+      setAccessStatus(accessData)
+      
       // Определяем статус
       console.log('📊 Определение статуса:', {
         hasProfile: !!profileData,
+        profileData: profileData,
         hasAccessData: !!accessData,
         hasAccess: accessData?.has_access,
-        purchasedCourses: accessData?.purchased_courses_count
+        purchasedCourses: accessData?.purchased_courses_count,
+        profileState: profileData ? {
+          id: profileData.id,
+          full_name: profileData.full_name,
+          phone: profileData.phone,
+          email: profileData.email
+        } : null
       })
       
       if (!profileData) {
@@ -170,12 +183,12 @@ const ProfilePage = () => {
         console.log('⚠️ Профиль не загружен - статус: not_registered')
         setStatus('not_registered')
       } else if (!accessData || !accessData.has_access) {
-        // Зарегистрирован, но не оплатил
-        console.log('⚠️ Доступ ограничен - статус: not_paid')
+        // Зарегистрирован, но не оплатил - показываем профиль с ограничением
+        console.log('⚠️ Доступ ограничен - статус: not_paid, но профиль есть:', profileData)
         setStatus('not_paid')
       } else {
         // Зарегистрирован и оплатил
-        console.log('✅ Доступ есть - статус: paid')
+        console.log('✅ Доступ есть - статус: paid, профиль:', profileData)
         setStatus('paid')
       }
     } catch (error: any) {
@@ -213,6 +226,7 @@ const ProfilePage = () => {
   }
 
   if (status === 'not_paid') {
+    console.log('🔍 [not_paid] Рендер страницы not_paid, profile:', profile)
     return (
       <div className="profile-page">
         <div className="error">
@@ -221,13 +235,18 @@ const ProfilePage = () => {
           <p className="register-hint">
             💡 Выберите курс на главной странице и оплатите его для получения доступа
           </p>
-          {profile && (
+          {profile ? (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
               <h3 style={{ marginTop: 0 }}>Ваш профиль:</h3>
-              <p><strong>Имя:</strong> {profile.full_name}</p>
+              <p><strong>Имя:</strong> {profile.full_name || 'Не указано'}</p>
               {profile.phone && <p><strong>Телефон:</strong> {profile.phone}</p>}
+              {profile.email && <p><strong>Email:</strong> {profile.email}</p>}
               {profile.city && <p><strong>Город:</strong> {profile.city}</p>}
-              <p><strong>Баллы:</strong> {profile.points}</p>
+              <p><strong>Баллы:</strong> {profile.points || 0}</p>
+            </div>
+          ) : (
+            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
+              <p>⚠️ Профиль загружается...</p>
             </div>
           )}
         </div>
@@ -267,9 +286,20 @@ const ProfilePage = () => {
 
   // status === 'paid' - показываем профиль
   if (status === 'paid') {
+    console.log('🔍 [paid] Рендер страницы paid, profile:', profile)
     if (!profile) {
-      return <div className="loading">Загрузка...</div>
+      console.warn('⚠️ [paid] Профиль отсутствует, показываю загрузку')
+      return <div className="loading">Загрузка профиля...</div>
     }
+
+    console.log('✅ [paid] Рендер полного профиля:', {
+      id: profile.id,
+      full_name: profile.full_name,
+      phone: profile.phone,
+      email: profile.email,
+      city: profile.city,
+      points: profile.points
+    })
 
     return (
         <div className="profile-page">
