@@ -139,12 +139,19 @@ def get_telegram_user(request: Request) -> dict:
         telegram_id = user["id"]
         ...
     """
+    # Логирование для диагностики
+    print(f"🔍 [get_telegram_user] Начало функции, ENVIRONMENT={settings.ENVIRONMENT}")
+    print(f"🔍 [get_telegram_user] request.state имеет telegram_user: {hasattr(request.state, 'telegram_user')}")
+    
     # Если middleware установил telegram_user - используем его
     if hasattr(request.state, "telegram_user"):
+        print(f"✅ [get_telegram_user] Используем telegram_user из request.state")
         return request.state.telegram_user
     
     # РЕЖИМ РАЗРАБОТКИ: Если ENVIRONMENT=development, разрешаем обход авторизации
+    print(f"🔍 [get_telegram_user] Проверка режима разработки: ENVIRONMENT={settings.ENVIRONMENT}, type={type(settings.ENVIRONMENT)}")
     if settings.ENVIRONMENT == "development":
+        print(f"✅ [get_telegram_user] Режим разработки активирован!")
         # Пробуем получить telegram_id из заголовка (для локального тестирования)
         dev_telegram_id = request.headers.get("X-Telegram-User-ID")
         print(f"🔧 [DEV MODE] Проверка заголовков: X-Telegram-User-ID={dev_telegram_id}")
@@ -177,10 +184,10 @@ def get_telegram_user(request: Request) -> dict:
                 "last_name": "Dev",
                 "username": "admin_dev"
             }
-        else:
-            print(f"⚠️ [DEV MODE] ADMIN_IDS не установлен! Проверьте .env файл")
+    else:
+        print(f"⚠️ [DEV MODE] ADMIN_IDS не установлен! Проверьте .env файл")
     
-    # В режиме разработки (когда middleware отключен):
+    # Если мы дошли сюда в режиме разработки, значит заголовок X-Telegram-User-ID не был передан
     # Пробуем получить initData из заголовка и проверить его
     init_data = request.headers.get("X-Telegram-Init-Data")
     if init_data:
@@ -196,6 +203,15 @@ def get_telegram_user(request: Request) -> dict:
         print(f"⚠️ [get_telegram_user] initData не найден в заголовке X-Telegram-Init-Data")
     
     # Если ничего не получилось - возвращаем ошибку
+    # Но в режиме разработки даем больше информации
+    if settings.ENVIRONMENT == "development":
+        print(f"❌ [DEV MODE] Не удалось авторизовать пользователя")
+        print(f"   Проверьте что frontend отправляет заголовок X-Telegram-User-ID")
+        print(f"   Или что ADMIN_IDS установлен в .env")
+        raise HTTPException(
+            status_code=401, 
+            detail=f"Unauthorized. DEV MODE: Check X-Telegram-User-ID header or ADMIN_IDS in .env. Current ENVIRONMENT={settings.ENVIRONMENT}, ADMIN_IDS={settings.ADMIN_IDS}"
+        )
     raise HTTPException(status_code=401, detail="Unauthorized. Please register via Telegram bot.")
 
 
