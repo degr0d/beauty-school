@@ -11,7 +11,7 @@ from dotenv import load_dotenv
 
 from backend.config import settings
 from backend.bot.bot import setup_bot_handlers
-from backend.database.database import init_db
+from backend.database.database import create_engine_and_session, init_db
 
 # Загружаем .env
 load_dotenv()
@@ -48,6 +48,8 @@ async def main():
     # Инициализация базы данных
     logger.info("Инициализация базы данных...")
     try:
+        # КРИТИЧНО: создаем engine и session для бота
+        create_engine_and_session()
         await init_db()
         logger.info("✅ База данных готова")
     except Exception as e:

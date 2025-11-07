@@ -3,7 +3,7 @@ API эндпоинты для проверки доступа пользоват
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_session, User, UserCourse, Payment
@@ -49,18 +49,11 @@ async def check_access(
             "total_payments": 0
         }
     
-    # Получаем пользователя
+    # Получаем пользователя по telegram_id (BIGINT в БД)
     result = await session.execute(
         select(User).where(User.telegram_id == telegram_id)
     )
     db_user = result.scalar_one_or_none()
-    
-    # Если не нашли - пробуем найти как строку
-    if not db_user:
-        result_str = await session.execute(
-            select(User).where(User.telegram_id == str(telegram_id))
-        )
-        db_user = result_str.scalar_one_or_none()
     
     if not db_user:
         print(f"❌ [Access] Пользователь не найден: telegram_id={telegram_id}")
@@ -124,14 +117,9 @@ async def check_course_access(
             "purchased_at": None  # Админы не покупают, у них всегда доступ
         }
     
-    # Получаем пользователя - используем OR условие для поиска как int и как строка одновременно
+    # Получаем пользователя по telegram_id (BIGINT в БД)
     result = await session.execute(
-        select(User).where(
-            or_(
-                User.telegram_id == telegram_id,
-                User.telegram_id == str(telegram_id)
-            )
-        )
+        select(User).where(User.telegram_id == telegram_id)
     )
     db_user = result.scalar_one_or_none()
     
