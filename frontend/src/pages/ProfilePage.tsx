@@ -3,11 +3,29 @@
  */
 
 import { useEffect, useState } from 'react'
-import { profileApi, accessApi, type Profile, type AccessStatus } from '../api/client'
+import { useNavigate } from 'react-router-dom'
+import { profileApi, accessApi, coursesApi, type Profile, type AccessStatus } from '../api/client'
+import ProgressBar from '../components/ProgressBar'
 
 type ProfileStatus = 'loading' | 'not_registered' | 'not_paid' | 'paid'
 
+type CourseWithProgress = {
+  id: number
+  title: string
+  description: string
+  category: string
+  cover_image_url?: string
+  progress: {
+    total_lessons: number
+    completed_lessons: number
+    progress_percent: number
+    purchased_at: string | null
+    is_completed: boolean
+  }
+}
+
 const ProfilePage = () => {
+  const navigate = useNavigate()
   const [profile, setProfile] = useState<Profile | null>(null)
   const [, setAccessStatus] = useState<AccessStatus | null>(null)
   const [status, setStatus] = useState<ProfileStatus>('loading')
@@ -21,6 +39,8 @@ const ProfilePage = () => {
   const [saving, setSaving] = useState(false)
   const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [showDebug, setShowDebug] = useState(false)
+  const [myCourses, setMyCourses] = useState<CourseWithProgress[]>([])
+  const [loadingCourses, setLoadingCourses] = useState(false)
   
   // Функция для добавления логов (должна быть определена до использования)
   const addLog = (message: string) => {
@@ -57,7 +77,27 @@ const ProfilePage = () => {
         const profileResponse = await profileApi.get()
         addLog(`✅ Профиль получен: ${JSON.stringify(profileResponse.data)}`)
         console.log('✅ Профиль получен:', profileResponse.data)
+        console.log('🔍 Детали профиля:', {
+          full_name: profileResponse.data?.full_name,
+          phone: profileResponse.data?.phone,
+          email: profileResponse.data?.email,
+          city: profileResponse.data?.city,
+          username: profileResponse.data?.username,
+          points: profileResponse.data?.points
+        })
         profileData = profileResponse.data
+        
+        // Проверяем, что данные не пустые
+        if (profileData) {
+          if (!profileData.full_name || profileData.full_name.trim() === '') {
+            addLog('⚠️ ВНИМАНИЕ: full_name пустой!')
+            console.warn('⚠️ full_name пустой:', profileData)
+          }
+          if (!profileData.phone || profileData.phone.trim() === '') {
+            addLog('⚠️ ВНИМАНИЕ: phone пустой!')
+            console.warn('⚠️ phone пустой:', profileData)
+          }
+        }
       } catch (error: any) {
         console.error('❌ Ошибка загрузки профиля:', {
           status: error.response?.status,
@@ -235,6 +275,30 @@ const ProfilePage = () => {
     addLog('🚀 ProfilePage загружен, начинаю загрузку профиля...')
     loadProfileAndAccess()
   }, [])
+
+  // Загружаем курсы когда профиль загружен и есть доступ
+  useEffect(() => {
+    if (status === 'paid' && profile) {
+      loadMyCourses()
+    }
+  }, [status, profile])
+
+  const loadMyCourses = async () => {
+    try {
+      setLoadingCourses(true)
+      addLog('📚 Загрузка курсов пользователя...')
+      const response = await coursesApi.getMy()
+      const courses = Array.isArray(response.data) ? response.data : []
+      setMyCourses(courses)
+      addLog(`✅ Загружено курсов: ${courses.length}`)
+    } catch (error: any) {
+      console.error('Ошибка загрузки курсов:', error)
+      addLog(`❌ Ошибка загрузки курсов: ${error.message}`)
+      setMyCourses([])
+    } finally {
+      setLoadingCourses(false)
+    }
+  }
 
   if (status === 'loading') {
     return (
@@ -591,7 +655,99 @@ const ProfilePage = () => {
       {/* История курсов */}
       <div className="profile-courses">
         <h3>📚 Мои курсы</h3>
-        <p className="coming-soon">Раздел в разработке</p>
+        {loadingCourses ? (
+          <div className="loading">Загрузка курсов...</div>
+        ) : myCourses.length > 0 ? (
+          <div className="courses-list">
+            {myCourses.map((course) => (
+              <div 
+                key={course.id} 
+                className="course-item"
+                onClick={() => navigate(`/courses/${course.id}`)}
+                style={{
+                  padding: '15px',
+                  marginBottom: '15px',
+                  backgroundColor: '#f9f9f9',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  border: '1px solid #e0e0e0',
+                  transition: 'all 0.2s'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0'
+                  e.currentTarget.style.borderColor = '#007bff'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9f9f9'
+                  e.currentTarget.style.borderColor = '#e0e0e0'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = 'none'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 5px 0', fontSize: '16px', fontWeight: 'bold' }}>
+                      {course.title}
+                    </h4>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                      {course.description}
+                    </p>
+                  </div>
+                  {course.progress.is_completed && (
+                    <span style={{ 
+                      padding: '4px 8px', 
+                      backgroundColor: '#28a745', 
+                      color: 'white', 
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: 'bold'
+                    }}>
+                      ✅ Завершен
+                    </span>
+                  )}
+                </div>
+                <div style={{ marginTop: '10px' }}>
+                  <ProgressBar percent={course.progress.progress_percent} />
+                  <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#666' }}>
+                    Пройдено: {course.progress.completed_lessons} / {course.progress.total_lessons} уроков
+                    {course.progress.progress_percent > 0 && (
+                      <span> ({course.progress.progress_percent}%)</span>
+                    )}
+                  </p>
+                  {course.progress.purchased_at && (
+                    <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>
+                      Куплен: {new Date(course.progress.purchased_at).toLocaleDateString('ru-RU')}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+            <p>У вас пока нет купленных курсов</p>
+            <p style={{ fontSize: '14px', marginTop: '10px' }}>
+              Выберите курс из каталога, чтобы начать обучение
+            </p>
+            <button
+              onClick={() => navigate('/courses')}
+              style={{
+                marginTop: '15px',
+                padding: '10px 20px',
+                backgroundColor: '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Перейти к каталогу курсов
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Поддержка */}
