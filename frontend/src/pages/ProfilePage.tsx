@@ -831,7 +831,16 @@ const ProfilePage = () => {
           <div className="loading">Загрузка курсов...</div>
         ) : myCourses.length > 0 ? (
           <div className="courses-list">
-            {myCourses.map((course) => {
+            {myCourses.map((course, index) => {
+              // МАКСИМАЛЬНОЕ ЛОГИРОВАНИЕ КУРСА
+              console.log(`🎨 [RENDER] Курс #${index}:`, {
+                course,
+                id: { value: course?.id, type: typeof course?.id },
+                title: { value: course?.title, type: typeof course?.title },
+                description: { value: course?.description, type: typeof course?.description },
+                progress: { value: course?.progress, type: typeof course?.progress, isObject: course?.progress instanceof Object }
+              })
+              
               // Безопасно проверяем структуру course
               if (!course || typeof course !== 'object') {
                 console.warn('⚠️ Некорректный курс:', course)
@@ -841,6 +850,9 @@ const ProfilePage = () => {
               const courseId = typeof course.id === 'number' ? course.id : 0
               const courseTitle = typeof course.title === 'string' ? course.title : 'Без названия'
               const courseDescription = typeof course.description === 'string' ? course.description : ''
+              
+              console.log(`🎨 [RENDER] Курс #${index} нормализован:`, { courseId, courseTitle, courseDescription })
+              
               return (
               <div 
                 key={courseId} 

@@ -35,6 +35,30 @@ class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('❌ Error Boundary поймал ошибку:', error)
     console.error('📍 Error Info:', errorInfo)
+    console.error('📍 Stack trace:', error.stack)
+    console.error('📍 Component stack:', errorInfo.componentStack)
+    
+    // Пытаемся показать ошибку на экране
+    try {
+      const errorDiv = document.createElement('div')
+      errorDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; background: #dc3545; color: white; padding: 20px; z-index: 99999; font-family: monospace; font-size: 12px; max-height: 50vh; overflow: auto;'
+      errorDiv.innerHTML = `
+        <h3 style="margin: 0 0 10px 0;">❌ React Error #301</h3>
+        <p style="margin: 0 0 10px 0;"><strong>Ошибка:</strong> ${error.message}</p>
+        <details style="margin-top: 10px;">
+          <summary style="cursor: pointer; font-weight: bold;">Stack trace</summary>
+          <pre style="background: rgba(0,0,0,0.3); padding: 10px; margin: 10px 0; overflow: auto; white-space: pre-wrap;">${error.stack || 'Нет stack trace'}</pre>
+        </details>
+        <details style="margin-top: 10px;">
+          <summary style="cursor: pointer; font-weight: bold;">Component stack</summary>
+          <pre style="background: rgba(0,0,0,0.3); padding: 10px; margin: 10px 0; overflow: auto; white-space: pre-wrap;">${errorInfo.componentStack || 'Нет component stack'}</pre>
+        </details>
+        <button onclick="this.parentElement.remove()" style="margin-top: 10px; padding: 8px 16px; background: white; color: #dc3545; border: none; border-radius: 4px; cursor: pointer; font-weight: bold;">Закрыть</button>
+      `
+      document.body.appendChild(errorDiv)
+    } catch (e) {
+      console.error('Не удалось показать ошибку на экране:', e)
+    }
     
     this.setState({
       error,
