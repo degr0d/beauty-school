@@ -83,9 +83,32 @@ const ProfilePage = () => {
           email: profileResponse.data?.email,
           city: profileResponse.data?.city,
           username: profileResponse.data?.username,
-          points: profileResponse.data?.points
+          points: profileResponse.data?.points,
+          created_at: profileResponse.data?.created_at,
+          created_at_type: typeof profileResponse.data?.created_at
         })
-        profileData = profileResponse.data
+        // Безопасно нормализуем данные профиля - гарантируем что все значения примитивы
+        const rawProfile = profileResponse.data
+        if (rawProfile) {
+          profileData = {
+            ...rawProfile,
+            // Гарантируем что created_at это строка
+            created_at: rawProfile.created_at 
+              ? (typeof rawProfile.created_at === 'string' 
+                  ? rawProfile.created_at 
+                  : (rawProfile.created_at instanceof Date 
+                      ? rawProfile.created_at.toISOString() 
+                      : String(rawProfile.created_at)))
+              : '',
+            // Гарантируем что все остальные поля это примитивы
+            full_name: String(rawProfile.full_name || 'Пользователь'),
+            phone: String(rawProfile.phone || ''),
+            email: rawProfile.email ? String(rawProfile.email) : undefined,
+            city: rawProfile.city ? String(rawProfile.city) : undefined,
+            username: rawProfile.username ? String(rawProfile.username) : undefined,
+            points: typeof rawProfile.points === 'number' ? rawProfile.points : 0
+          }
+        }
         
         // Проверяем, что данные не пустые
         if (profileData) {
@@ -683,7 +706,19 @@ const ProfilePage = () => {
               <span className="stat-icon">📅</span>
               <div>
                 <p className="stat-value">
-                  {profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : 'Не указано'}
+                  {(() => {
+                    try {
+                      if (!profile.created_at) return 'Не указано'
+                      // Безопасно преобразуем в дату
+                      const dateStr = String(profile.created_at)
+                      const date = new Date(dateStr)
+                      if (isNaN(date.getTime())) return 'Не указано'
+                      return date.toLocaleDateString('ru-RU')
+                    } catch (e) {
+                      console.error('Ошибка форматирования даты:', e)
+                      return 'Не указано'
+                    }
+                  })()}
                 </p>
                 <p className="stat-label">Дата регистрации</p>
               </div>
