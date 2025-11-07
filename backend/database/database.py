@@ -13,12 +13,20 @@ from backend.config import settings
 # ========================================
 # Создание движка БД
 # ========================================
+# Важно: используем connect_args для правильной работы с event loop
 engine = create_async_engine(
     settings.database_url,
     echo=settings.ENVIRONMENT == "development",  # Логирование SQL-запросов в dev-режиме
     future=True,
     pool_size=10,  # Размер пула соединений
     max_overflow=20,  # Максимум дополнительных соединений
+    pool_pre_ping=True,  # Проверка соединений перед использованием
+    pool_recycle=3600,  # Пересоздание соединений каждый час
+    connect_args={
+        "server_settings": {
+            "application_name": "beauty_school_api"
+        }
+    }
 )
 
 
@@ -52,31 +60,15 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async def get_users(session: AsyncSession = Depends(get_session)):
         ...
     """
-    # Создаем session через async_sessionmaker
-    # Важно: не используем async with, чтобы избежать конфликтов с event loop
-    session = async_session()
-    try:
-        # Убеждаемся, что session готов к использованию
-        yield session
-        # Коммитим только если не было исключений
+    # Используем async with для правильного управления session
+    # Это гарантирует, что session создается и закрывается в правильном event loop
+    async with async_session() as session:
         try:
+            yield session
             await session.commit()
-        except Exception as commit_error:
-            await session.rollback()
-            raise commit_error
-    except Exception as e:
-        # Откатываем при любой ошибке
-        try:
-            await session.rollback()
         except Exception:
-            pass  # Игнорируем ошибки при rollback
-        raise e
-    finally:
-        # Закрываем session
-        try:
-            await session.close()
-        except Exception:
-            pass  # Игнорируем ошибки при close
+            await session.rollback()
+            raise
 
 
 # ========================================
