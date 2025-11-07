@@ -93,6 +93,10 @@ const ProfilePage = () => {
         
         // Если 404 - пользователь не зарегистрирован (но backend должен создавать автоматически)
         if (error.response?.status === 404) {
+          addLog('⚠️ Пользователь не найден (404)')
+          addLog('💡 Backend должен создавать профиль автоматически. Проверьте логи Railway.')
+          addLog('💡 Возможно проблема с типами данных telegram_id')
+          addLog(`Детали ошибки: ${JSON.stringify({ status: 404, message: error.message, url: error.config?.url })}`)
           console.log('⚠️ Пользователь не найден (404)')
           console.log('💡 Backend должен создавать профиль автоматически. Проверьте логи Railway.')
           console.log('💡 Возможно проблема с типами данных telegram_id')
@@ -102,6 +106,8 @@ const ProfilePage = () => {
         
         // Если 500 - ошибка на сервере
         if (error.response?.status === 500) {
+          addLog(`❌ Ошибка сервера (500): ${JSON.stringify(error.response?.data)}`)
+          addLog('💡 Проверьте логи backend для деталей')
           console.error('❌ Ошибка сервера (500):', error.response?.data)
           console.log('💡 Проверьте логи backend для деталей')
           // Показываем ошибку, но не блокируем - может быть временная проблема
@@ -110,6 +116,9 @@ const ProfilePage = () => {
         }
         
         // Другая ошибка - тоже считаем не зарегистрирован
+        addLog(`❌ Неизвестная ошибка: ${error.message || 'Неизвестная ошибка'}`)
+        addLog(`Статус: ${error.response?.status || 'нет статуса'}`)
+        addLog(`URL: ${error.config?.url || 'нет URL'}`)
         console.error('❌ Неизвестная ошибка:', error)
         setStatus('not_registered')
         return
@@ -210,6 +219,11 @@ const ProfilePage = () => {
         setStatus('paid')
       }
     } catch (error: any) {
+      addLog(`❌ Неожиданная ошибка загрузки профиля: ${error.message || 'Неизвестная ошибка'}`)
+      addLog(`Тип ошибки: ${error.name || 'Error'}`)
+      if (error.stack) {
+        addLog(`Stack: ${error.stack.substring(0, 200)}...`)
+      }
       console.error('Неожиданная ошибка загрузки профиля:', error)
       // В случае любой ошибки - считаем что не зарегистрирован
       setStatus('not_registered')
@@ -245,13 +259,23 @@ const ProfilePage = () => {
     return (
       <div className="profile-page">
         <div className="error">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h2>Профиль не найден</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '10px' }}>
+            <h2 style={{ margin: 0 }}>Профиль не найден</h2>
             <button 
               onClick={() => setShowDebug(!showDebug)}
-              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+              style={{ 
+                padding: '8px 16px', 
+                fontSize: '14px', 
+                backgroundColor: '#007bff', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+              }}
             >
-              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
+              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'} {debugLogs.length > 0 && `(${debugLogs.length})`}
             </button>
           </div>
           <p>Для доступа к платформе необходимо пройти регистрацию через Telegram-бота.</p>
@@ -267,14 +291,23 @@ const ProfilePage = () => {
           <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
             ⚠️ Если вы уже регистрировались, попробуйте закрыть и открыть Mini App заново
           </p>
-          {showDebug && debugLogs.length > 0 && (
-            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
-              <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
-              <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
-                {debugLogs.map((log, i) => (
-                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
-                ))}
-              </div>
+          {debugLogs.length > 0 && (
+            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: showDebug ? '#f5f5f5' : '#fff3cd', borderRadius: '8px', fontSize: '12px', border: '2px solid #ffc107' }}>
+              {!showDebug && (
+                <p style={{ margin: '0 0 10px 0', fontWeight: 'bold', color: '#856404' }}>
+                  ⚠️ Есть {debugLogs.length} логов для диагностики. Нажмите кнопку "Показать логи" выше.
+                </p>
+              )}
+              {showDebug && (
+                <>
+                  <h4 style={{ marginTop: 0, marginBottom: '10px' }}>📋 Логи для диагностики ({debugLogs.length}):</h4>
+                  <div style={{ maxHeight: '400px', overflow: 'auto', fontFamily: 'monospace', backgroundColor: 'white', padding: '10px', borderRadius: '4px', border: '1px solid #ddd' }}>
+                    {debugLogs.map((log, i) => (
+                      <div key={i} style={{ marginBottom: '8px', wordBreak: 'break-word', fontSize: '11px', lineHeight: '1.4' }}>{log}</div>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
