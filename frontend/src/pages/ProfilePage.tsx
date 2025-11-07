@@ -235,11 +235,7 @@ const ProfilePage = () => {
     )
   }
 
-      // status === 'paid' - показываем профиль
-      if (!profile) {
-        return <div className="loading">Загрузка...</div>
-      }
-
+  // Функции для редактирования профиля
   const handleSave = async () => {
     if (!profile) return
     
@@ -269,7 +265,13 @@ const ProfilePage = () => {
     setIsEditing(false)
   }
 
-      return (
+  // status === 'paid' - показываем профиль
+  if (status === 'paid') {
+    if (!profile) {
+      return <div className="loading">Загрузка...</div>
+    }
+
+    return (
         <div className="profile-page">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h1>👤 Мой профиль</h1>
@@ -446,7 +448,11 @@ const ProfilePage = () => {
         </a>
       </div>
     </div>
-  )
+    )
+  }
+
+  // Fallback - не должно произойти, но на всякий случай
+  return <div className="loading">Загрузка...</div>
 }
 
 export default ProfilePage
