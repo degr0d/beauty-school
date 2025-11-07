@@ -21,6 +21,7 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const webApp = window.Telegram?.WebApp
   if (webApp?.initData) {
+    // Режим продакшена: используем реальный Telegram initData
     config.headers['X-Telegram-Init-Data'] = webApp.initData
     console.log('📤 [API] Отправка запроса с initData:', {
       url: config.url,
@@ -28,8 +29,20 @@ api.interceptors.request.use((config) => {
       telegramId: webApp.initDataUnsafe?.user?.id
     })
   } else {
-    console.warn('⚠️ [API] Запрос без initData:', config.url)
-    console.warn('   Это может быть проблемой если открыто не через Telegram бота')
+    // Режим разработки: используем заголовок X-Telegram-User-ID для локального тестирования
+    const devTelegramId = localStorage.getItem('dev_telegram_id')
+    if (devTelegramId) {
+      config.headers['X-Telegram-User-ID'] = devTelegramId
+      console.log('🔧 [DEV MODE] Используем dev_telegram_id из localStorage:', devTelegramId)
+    } else {
+      // Пробуем получить из переменной окружения или используем дефолтный админский ID
+      const defaultDevId = import.meta.env.VITE_DEV_TELEGRAM_ID || '310836227' // Ваш админский ID
+      config.headers['X-Telegram-User-ID'] = defaultDevId
+      console.log('🔧 [DEV MODE] Используем дефолтный telegram_id:', defaultDevId)
+      console.log('💡 [DEV MODE] Чтобы использовать другой ID, выполните в консоли:')
+      console.log('   localStorage.setItem("dev_telegram_id", "YOUR_TELEGRAM_ID")')
+    }
+    console.warn('⚠️ [API] Запрос без initData (режим разработки):', config.url)
   }
   return config
 }, (error) => {

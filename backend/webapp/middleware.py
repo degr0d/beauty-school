@@ -143,6 +143,35 @@ def get_telegram_user(request: Request) -> dict:
     if hasattr(request.state, "telegram_user"):
         return request.state.telegram_user
     
+    # РЕЖИМ РАЗРАБОТКИ: Если ENVIRONMENT=development, разрешаем обход авторизации
+    if settings.ENVIRONMENT == "development":
+        # Пробуем получить telegram_id из заголовка (для локального тестирования)
+        dev_telegram_id = request.headers.get("X-Telegram-User-ID")
+        if dev_telegram_id:
+            try:
+                telegram_id = int(dev_telegram_id)
+                print(f"🔧 [DEV MODE] Используем telegram_id из заголовка: {telegram_id}")
+                return {
+                    "id": telegram_id,
+                    "first_name": "Dev",
+                    "last_name": "User",
+                    "username": "dev_user"
+                }
+            except ValueError:
+                print(f"⚠️ [DEV MODE] Невалидный X-Telegram-User-ID: {dev_telegram_id}")
+        
+        # Или используем админский ID по умолчанию
+        admin_ids = settings.admin_ids_list
+        if admin_ids:
+            default_id = admin_ids[0]
+            print(f"🔧 [DEV MODE] Используем админский ID по умолчанию: {default_id}")
+            return {
+                "id": default_id,
+                "first_name": "Admin",
+                "last_name": "Dev",
+                "username": "admin_dev"
+            }
+    
     # В режиме разработки (когда middleware отключен):
     # Пробуем получить initData из заголовка и проверить его
     init_data = request.headers.get("X-Telegram-Init-Data")
