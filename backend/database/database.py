@@ -62,15 +62,26 @@ def get_async_session() -> async_sessionmaker:
     return _async_session
 
 
-# Для обратной совместимости - создаем engine и session как функции
-# Это позволяет использовать их как раньше, но с ленивой инициализацией
-def engine():
-    """Для обратной совместимости - возвращает engine"""
-    return get_engine()
+# Для обратной совместимости - создаем классы-обертки
+class LazyEngine:
+    """Обертка для ленивой инициализации engine"""
+    def __call__(self):
+        return get_engine()
+    
+    def __getattr__(self, name):
+        return getattr(get_engine(), name)
 
-def async_session():
-    """Для обратной совместимости - возвращает фабрику сессий"""
-    return get_async_session()
+class LazyAsyncSession:
+    """Обертка для ленивой инициализации async_session"""
+    def __call__(self):
+        return get_async_session()
+    
+    def __getattr__(self, name):
+        return getattr(get_async_session(), name)
+
+# Создаем экземпляры для обратной совместимости
+engine = LazyEngine()
+async_session = LazyAsyncSession()
 
 
 # ========================================
