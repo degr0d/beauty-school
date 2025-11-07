@@ -410,7 +410,8 @@ const ProfilePage = () => {
 
   if (status === 'not_paid') {
     console.log('🔍 [not_paid] Рендер страницы not_paid, profile:', profile)
-    addLog(`🔍 Рендер страницы not_paid, profile: ${profile ? profile.full_name : 'null'}`)
+    // Не вызываем addLog во время рендера - это может вызвать ошибку React
+    // addLog(`🔍 Рендер страницы not_paid, profile: ${profile ? profile.full_name : 'null'}`)
     return (
       <div className="profile-page">
         <div className="error">
@@ -489,10 +490,11 @@ const ProfilePage = () => {
   // status === 'paid' - показываем профиль
   if (status === 'paid') {
     console.log('🔍 [paid] Рендер страницы paid, profile:', profile)
-    addLog(`🔍 Рендер страницы paid, profile: ${profile ? profile.full_name : 'null'}`)
+    // Не вызываем addLog во время рендера - это может вызвать ошибку React
+    // addLog(`🔍 Рендер страницы paid, profile: ${profile ? profile.full_name : 'null'}`)
     if (!profile) {
       console.warn('⚠️ [paid] Профиль отсутствует, показываю загрузку')
-      addLog('⚠️ Профиль отсутствует, показываю загрузку')
+      // addLog('⚠️ Профиль отсутствует, показываю загрузку')
       return <div className="loading">Загрузка профиля...</div>
     }
 
@@ -504,7 +506,7 @@ const ProfilePage = () => {
       city: profile.city,
       points: profile.points
     })
-    addLog(`✅ Рендер полного профиля: ${profile.full_name}, телефон: ${profile.phone || 'нет'}`)
+    // addLog(`✅ Рендер полного профиля: ${profile.full_name}, телефон: ${profile.phone || 'нет'}`)
 
     return (
         <div className="profile-page">
