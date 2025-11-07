@@ -289,8 +289,19 @@ const ProfilePage = () => {
       addLog('📚 Загрузка курсов пользователя...')
       const response = await coursesApi.getMy()
       const courses = Array.isArray(response.data) ? response.data : []
-      setMyCourses(courses)
-      addLog(`✅ Загружено курсов: ${courses.length}`)
+      // Безопасно обрабатываем курсы - гарантируем правильную структуру progress
+      const safeCourses = courses.map(course => ({
+        ...course,
+        progress: {
+          total_lessons: course.progress?.total_lessons ?? 0,
+          completed_lessons: course.progress?.completed_lessons ?? 0,
+          progress_percent: typeof course.progress?.progress_percent === 'number' ? course.progress.progress_percent : 0,
+          purchased_at: course.progress?.purchased_at ?? null,
+          is_completed: course.progress?.is_completed ?? false
+        }
+      }))
+      setMyCourses(safeCourses)
+      addLog(`✅ Загружено курсов: ${safeCourses.length}`)
     } catch (error: any) {
       console.error('Ошибка загрузки курсов:', error)
       addLog(`❌ Ошибка загрузки курсов: ${error.message}`)
@@ -720,7 +731,7 @@ const ProfilePage = () => {
                       {course.description}
                     </p>
                   </div>
-                  {course.progress.is_completed && (
+                  {course.progress?.is_completed && (
                     <span style={{ 
                       padding: '4px 8px', 
                       backgroundColor: '#28a745', 
@@ -734,16 +745,16 @@ const ProfilePage = () => {
                   )}
                 </div>
                 <div style={{ marginTop: '10px' }}>
-                  <ProgressBar percent={course.progress.progress_percent} />
+                  <ProgressBar percent={course.progress?.progress_percent ?? 0} />
                   <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#666' }}>
-                    Пройдено: {course.progress.completed_lessons} / {course.progress.total_lessons} уроков
-                    {course.progress.progress_percent > 0 && (
-                      <span> ({course.progress.progress_percent}%)</span>
+                    Пройдено: {course.progress?.completed_lessons ?? 0} / {course.progress?.total_lessons ?? 0} уроков
+                    {(course.progress?.progress_percent ?? 0) > 0 && (
+                      <span> ({course.progress?.progress_percent ?? 0}%)</span>
                     )}
                   </p>
-                  {course.progress.purchased_at && (
+                  {course.progress?.purchased_at && (
                     <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>
-                      Куплен: {new Date(course.progress.purchased_at).toLocaleDateString('ru-RU')}
+                      Куплен: {course.progress.purchased_at ? new Date(course.progress.purchased_at).toLocaleDateString('ru-RU') : 'Не указано'}
                     </p>
                   )}
                 </div>
