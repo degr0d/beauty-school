@@ -124,10 +124,18 @@ const ProfilePage = () => {
         // addLog автоматически преобразует объект в строку через JSON.stringify
         addLog('🔍 Детали профиля', profileDetails)
         // Безопасно нормализуем данные профиля - гарантируем что все значения примитивы
+        // НЕ используем spread оператор - создаем новый объект с явными полями
         const rawProfile = profileResponse.data
         if (rawProfile) {
           profileData = {
-            ...rawProfile,
+            id: typeof rawProfile.id === 'number' && !isNaN(rawProfile.id) ? rawProfile.id : 0,
+            telegram_id: typeof rawProfile.telegram_id === 'number' && !isNaN(rawProfile.telegram_id) ? rawProfile.telegram_id : 0,
+            username: rawProfile.username && typeof rawProfile.username === 'string' && rawProfile.username.trim() !== '' ? rawProfile.username : undefined,
+            full_name: typeof rawProfile.full_name === 'string' && rawProfile.full_name.trim() !== '' ? rawProfile.full_name : 'Пользователь',
+            phone: typeof rawProfile.phone === 'string' && rawProfile.phone.trim() !== '' ? rawProfile.phone : '',
+            email: rawProfile.email && typeof rawProfile.email === 'string' && rawProfile.email.trim() !== '' ? rawProfile.email : undefined,
+            city: rawProfile.city && typeof rawProfile.city === 'string' && rawProfile.city.trim() !== '' ? rawProfile.city : undefined,
+            points: typeof rawProfile.points === 'number' && !isNaN(rawProfile.points) ? rawProfile.points : 0,
             // Гарантируем что created_at это строка
             created_at: rawProfile.created_at 
               ? (typeof rawProfile.created_at === 'string' 
@@ -135,14 +143,7 @@ const ProfilePage = () => {
                   : (rawProfile.created_at instanceof Date 
                       ? rawProfile.created_at.toISOString() 
                       : String(rawProfile.created_at)))
-              : '',
-            // Гарантируем что все остальные поля это примитивы
-            full_name: String(rawProfile.full_name || 'Пользователь'),
-            phone: String(rawProfile.phone || ''),
-            email: rawProfile.email ? String(rawProfile.email) : undefined,
-            city: rawProfile.city ? String(rawProfile.city) : undefined,
-            username: rawProfile.username ? String(rawProfile.username) : undefined,
-            points: typeof rawProfile.points === 'number' ? rawProfile.points : 0
+              : new Date().toISOString()
           }
         }
         
@@ -548,9 +549,24 @@ const ProfilePage = () => {
     setSaving(true)
     try {
       const updated = await profileApi.update(editForm)
-      setProfile(updated.data)
+      // Нормализуем обновленный профиль - НЕ используем spread оператор
+      const rawUpdated = updated.data
+      if (rawUpdated) {
+        const normalizedProfile: Profile = {
+          id: typeof rawUpdated.id === 'number' && !isNaN(rawUpdated.id) ? rawUpdated.id : 0,
+          telegram_id: typeof rawUpdated.telegram_id === 'number' && !isNaN(rawUpdated.telegram_id) ? rawUpdated.telegram_id : 0,
+          username: rawUpdated.username && typeof rawUpdated.username === 'string' && rawUpdated.username.trim() !== '' ? rawUpdated.username : undefined,
+          full_name: typeof rawUpdated.full_name === 'string' && rawUpdated.full_name.trim() !== '' ? rawUpdated.full_name : 'Пользователь',
+          phone: typeof rawUpdated.phone === 'string' && rawUpdated.phone.trim() !== '' ? rawUpdated.phone : '',
+          email: rawUpdated.email && typeof rawUpdated.email === 'string' && rawUpdated.email.trim() !== '' ? rawUpdated.email : undefined,
+          city: rawUpdated.city && typeof rawUpdated.city === 'string' && rawUpdated.city.trim() !== '' ? rawUpdated.city : undefined,
+          points: typeof rawUpdated.points === 'number' && !isNaN(rawUpdated.points) ? rawUpdated.points : 0,
+          created_at: typeof rawUpdated.created_at === 'string' ? rawUpdated.created_at : new Date().toISOString()
+        }
+        setProfile(normalizedProfile)
+      }
       setIsEditing(false)
-      console.log('✅ Профиль обновлен:', updated.data)
+      console.log('✅ Профиль обновлен')
     } catch (error: any) {
       console.error('❌ Ошибка обновления профиля:', error)
       alert('Ошибка при сохранении профиля. Попробуйте еще раз.')
