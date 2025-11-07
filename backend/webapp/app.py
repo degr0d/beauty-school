@@ -39,14 +39,15 @@ def create_app() -> FastAPI:
     )
     
     # Добавляем middleware для логирования всех запросов
-    @app.middleware("http")
-    async def log_requests(request, call_next):
-        print(f"📥 [Request] {request.method} {request.url.path}")
-        print(f"   Origin: {request.headers.get('origin', 'N/A')}")
-        print(f"   X-Telegram-Init-Data: {'Да' if request.headers.get('X-Telegram-Init-Data') else 'Нет'}")
-        response = await call_next(request)
-        print(f"📤 [Response] {request.method} {request.url.path} -> {response.status_code}")
-        return response
+    # Временно отключено для диагностики проблемы с event loop
+    # @app.middleware("http")
+    # async def log_requests(request, call_next):
+    #     print(f"📥 [Request] {request.method} {request.url.path}")
+    #     print(f"   Origin: {request.headers.get('origin', 'N/A')}")
+    #     print(f"   X-Telegram-Init-Data: {'Да' if request.headers.get('X-Telegram-Init-Data') else 'Нет'}")
+    #     response = await call_next(request)
+    #     print(f"📤 [Response] {request.method} {request.url.path} -> {response.status_code}")
+    #     return response
     
     # ========================================
     # Middleware: Проверка Telegram initData
