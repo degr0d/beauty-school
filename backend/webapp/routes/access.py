@@ -29,10 +29,16 @@ async def check_access(
         "total_payments": int
     }
     """
-    telegram_id = user["id"]
+    # Явно преобразуем telegram_id в int
+    telegram_id_raw = user["id"]
+    telegram_id = int(telegram_id_raw) if telegram_id_raw is not None else None
+    
+    if telegram_id is None:
+        raise HTTPException(status_code=400, detail="Missing telegram_id in user data")
+    
     is_admin = telegram_id in settings.admin_ids_list
     
-    print(f"🔍 [Access] Проверка доступа для telegram_id={telegram_id}, is_admin={is_admin}")
+    print(f"🔍 [Access] Проверка доступа для telegram_id={telegram_id} (type: {type(telegram_id)}), is_admin={is_admin}")
     
     # АДМИНЫ ВСЕГДА ИМЕЮТ ДОСТУП
     if is_admin:
@@ -48,6 +54,13 @@ async def check_access(
         select(User).where(User.telegram_id == telegram_id)
     )
     db_user = result.scalar_one_or_none()
+    
+    # Если не нашли - пробуем найти как строку
+    if not db_user:
+        result_str = await session.execute(
+            select(User).where(User.telegram_id == str(telegram_id))
+        )
+        db_user = result_str.scalar_one_or_none()
     
     if not db_user:
         print(f"❌ [Access] Пользователь не найден: telegram_id={telegram_id}")
@@ -96,7 +109,12 @@ async def check_course_access(
         "purchased_at": str | null
     }
     """
-    telegram_id = user["id"]
+    # Явно преобразуем telegram_id в int
+    telegram_id_raw = user["id"]
+    telegram_id = int(telegram_id_raw) if telegram_id_raw is not None else None
+    
+    if telegram_id is None:
+        raise HTTPException(status_code=400, detail="Missing telegram_id in user data")
     
     # АДМИНЫ ВСЕГДА ИМЕЮТ ДОСТУП К ЛЮБОМУ КУРСУ
     if telegram_id in settings.admin_ids_list:
@@ -111,6 +129,13 @@ async def check_course_access(
         select(User).where(User.telegram_id == telegram_id)
     )
     db_user = result.scalar_one_or_none()
+    
+    # Если не нашли - пробуем найти как строку
+    if not db_user:
+        result_str = await session.execute(
+            select(User).where(User.telegram_id == str(telegram_id))
+        )
+        db_user = result_str.scalar_one_or_none()
     
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
