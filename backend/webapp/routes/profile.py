@@ -40,19 +40,6 @@ async def get_profile(
         print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}, raw: {telegram_id_raw}, raw_type: {type(telegram_id_raw)}), is_admin={is_admin}")
         print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
         
-        # Проверяем, какие пользователи есть в БД (для диагностики)
-        try:
-            all_users_result = await session.execute(select(User.telegram_id, User.full_name, User.phone))
-            all_users = all_users_result.fetchall()
-            print(f"   Всего пользователей в БД: {len(all_users)}")
-            if all_users:
-                print(f"   Зарегистрированные telegram_id (первые 10): {[u[0] for u in all_users[:10]]}")
-                print(f"   Типы telegram_id в БД: {[type(u[0]) for u in all_users[:3]]}")
-        except Exception as users_error:
-            print(f"❌ [Profile] Ошибка при запросе пользователей: {users_error}")
-            print(f"   Возможно, таблица 'users' не создана или структура не совпадает")
-            # Продолжаем - попробуем создать пользователя
-        
         # Ищем пользователя - пробуем с явным преобразованием типа
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
