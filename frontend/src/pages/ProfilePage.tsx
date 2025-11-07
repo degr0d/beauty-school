@@ -131,7 +131,9 @@ const ProfilePage = () => {
     try {
       setLoadingCourses(true)
       const response = await coursesApi.getMy()
-      const courses = Array.isArray(response.data) ? response.data : []
+      // API возвращает курсы с прогрессом, но тип Course не включает progress
+      // Используем any для обработки ответа с прогрессом
+      const courses: any[] = Array.isArray(response.data) ? response.data : []
       
       // КРИТИЧНО: Нормализуем курсы, гарантируя что все значения это примитивы
       const safeCourses = courses.map(course => {
