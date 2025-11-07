@@ -85,6 +85,7 @@ async def get_profile(
             await session.refresh(db_user)
             
             print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
+            print(f"   Данные после создания: full_name={db_user.full_name}, phone={db_user.phone}, username={db_user.username}")
             
             # Безопасно получаем email (на случай если миграция не применена)
             try:
@@ -93,7 +94,20 @@ async def get_profile(
                 email = None
                 print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
             
-            return ProfileResponse(
+            profile_data = {
+                "id": db_user.id,
+                "telegram_id": db_user.telegram_id,
+                "username": db_user.username,
+                "full_name": db_user.full_name,
+                "phone": db_user.phone,
+                "email": email,
+                "city": db_user.city,
+                "points": db_user.points,
+                "created_at": db_user.created_at
+            }
+            print(f"📤 [Profile] Возвращаю данные нового профиля: {profile_data}")
+            
+            response = ProfileResponse(
                 id=db_user.id,
                 telegram_id=db_user.telegram_id,
                 username=db_user.username,
@@ -104,6 +118,9 @@ async def get_profile(
                 points=db_user.points,
                 created_at=db_user.created_at
             )
+            
+            print(f"📤 [Profile] ProfileResponse создан для нового пользователя: full_name={response.full_name}, phone={response.phone}")
+            return response
         else:
             print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, phone={db_user.phone})")
         
@@ -114,7 +131,21 @@ async def get_profile(
             email = None
             print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
         
-        return ProfileResponse(
+        # Логируем все данные перед возвратом
+        profile_data = {
+            "id": db_user.id,
+            "telegram_id": db_user.telegram_id,
+            "username": db_user.username,
+            "full_name": db_user.full_name,
+            "phone": db_user.phone,
+            "email": email,
+            "city": db_user.city,
+            "points": db_user.points,
+            "created_at": db_user.created_at
+        }
+        print(f"📤 [Profile] Возвращаю данные профиля: {profile_data}")
+        
+        response = ProfileResponse(
             id=db_user.id,
             telegram_id=db_user.telegram_id,
             username=db_user.username,
@@ -125,6 +156,9 @@ async def get_profile(
             points=db_user.points,
             created_at=db_user.created_at
         )
+        
+        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, email={response.email}, city={response.city}")
+        return response
     except Exception as e:
         print(f"❌ [Profile] ОШИБКА при получении профиля: {e}")
         import traceback
