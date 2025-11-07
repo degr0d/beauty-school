@@ -43,16 +43,31 @@ const ProfilePage = () => {
   const [loadingCourses, setLoadingCourses] = useState(false)
   
   // Функция для добавления логов (должна быть определена до использования)
-  const addLog = (message: string) => {
+  const addLog = (message: string, data?: any) => {
     const timestamp = new Date().toLocaleTimeString()
-    const logMessage = `[${timestamp}] ${message}`
+    let logMessage = `[${timestamp}] ${message}`
+    
+    // Если передан объект - добавляем его как JSON
+    if (data !== undefined) {
+      try {
+        const dataStr = typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data)
+        logMessage += `\n   Данные: ${dataStr}`
+      } catch (e) {
+        logMessage += `\n   Данные: [не удалось сериализовать]`
+      }
+    }
+    
     setDebugLogs(prev => {
       const newLogs = [...prev, logMessage]
-      // Оставляем последние 50 логов
-      return newLogs.slice(-50)
+      // Оставляем последние 100 логов (увеличено для лучшей диагностики)
+      return newLogs.slice(-100)
     })
     // Также логируем в консоль для тех, у кого есть доступ
-    console.log(logMessage)
+    if (data !== undefined) {
+      console.log(logMessage, data)
+    } else {
+      console.log(logMessage)
+    }
   }
 
   const loadProfileAndAccess = async () => {
@@ -77,7 +92,7 @@ const ProfilePage = () => {
         const profileResponse = await profileApi.get()
         addLog(`✅ Профиль получен: ${JSON.stringify(profileResponse.data)}`)
         console.log('✅ Профиль получен:', profileResponse.data)
-        console.log('🔍 Детали профиля:', {
+        const profileDetails = {
           full_name: profileResponse.data?.full_name,
           phone: profileResponse.data?.phone,
           email: profileResponse.data?.email,
@@ -86,7 +101,9 @@ const ProfilePage = () => {
           points: profileResponse.data?.points,
           created_at: profileResponse.data?.created_at,
           created_at_type: typeof profileResponse.data?.created_at
-        })
+        }
+        console.log('🔍 Детали профиля:', profileDetails)
+        addLog('🔍 Детали профиля', profileDetails)
         // Безопасно нормализуем данные профиля - гарантируем что все значения примитивы
         const rawProfile = profileResponse.data
         if (rawProfile) {
