@@ -109,6 +109,7 @@ const ProfilePage = () => {
         const profileResponse = await profileApi.get()
         addLog(`✅ Профиль получен: ${JSON.stringify(profileResponse.data)}`)
         console.log('✅ Профиль получен:', profileResponse.data)
+        // Логируем детали профиля только в console, не в addLog (чтобы не рендерить объекты)
         const profileDetails = {
           full_name: profileResponse.data?.full_name,
           phone: profileResponse.data?.phone,
@@ -120,6 +121,7 @@ const ProfilePage = () => {
           created_at_type: typeof profileResponse.data?.created_at
         }
         console.log('🔍 Детали профиля:', profileDetails)
+        // addLog автоматически преобразует объект в строку через JSON.stringify
         addLog('🔍 Детали профиля', profileDetails)
         // Безопасно нормализуем данные профиля - гарантируем что все значения примитивы
         const rawProfile = profileResponse.data
