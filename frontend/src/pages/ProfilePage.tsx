@@ -549,9 +549,11 @@ const ProfilePage = () => {
 
           {/* Основная информация */}
           <div className="profile-card">
-            <div className="profile-avatar">
-              {profile.full_name.charAt(0).toUpperCase()}
-            </div>
+                  <div className="profile-avatar">
+                    {profile.full_name && typeof profile.full_name === 'string' && profile.full_name.length > 0 
+                      ? profile.full_name.charAt(0).toUpperCase() 
+                      : '?'}
+                  </div>
             
             {isEditing ? (
               <div className="profile-info" style={{ flex: 1 }}>
@@ -658,11 +660,11 @@ const ProfilePage = () => {
               </div>
             ) : (
               <div className="profile-info">
-                <h2>{profile.full_name}</h2>
-                {profile.username && <p className="username">@{profile.username}</p>}
-                <p className="phone">📞 {profile.phone}</p>
-                {profile.email && <p className="email">📧 {profile.email}</p>}
-                {profile.city && <p className="city">📍 {profile.city}</p>}
+                <h2>{String(profile.full_name || 'Пользователь')}</h2>
+                {profile.username && <p className="username">@{String(profile.username)}</p>}
+                <p className="phone">📞 {String(profile.phone || 'Не указан')}</p>
+                {profile.email && <p className="email">📧 {String(profile.email)}</p>}
+                {profile.city && <p className="city">📍 {String(profile.city)}</p>}
               </div>
             )}
           </div>
@@ -701,11 +703,15 @@ const ProfilePage = () => {
                 console.warn('⚠️ Некорректный курс:', course)
                 return null
               }
+              // Безопасно получаем все значения - гарантируем что это примитивы
+              const courseId = typeof course.id === 'number' ? course.id : 0
+              const courseTitle = typeof course.title === 'string' ? course.title : 'Без названия'
+              const courseDescription = typeof course.description === 'string' ? course.description : ''
               return (
               <div 
-                key={course.id} 
+                key={courseId} 
                 className="course-item"
-                onClick={() => navigate(`/courses/${course.id}`)}
+                onClick={() => navigate(`/courses/${courseId}`)}
                 style={{
                   padding: '15px',
                   marginBottom: '15px',
@@ -731,10 +737,10 @@ const ProfilePage = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <div style={{ flex: 1 }}>
                     <h4 style={{ margin: '0 0 5px 0', fontSize: '16px', fontWeight: 'bold' }}>
-                      {course.title}
+                      {courseTitle}
                     </h4>
                     <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                      {course.description}
+                      {courseDescription}
                     </p>
                   </div>
                   {course.progress?.is_completed && (
