@@ -753,7 +753,7 @@ const ProfilePage = () => {
                 })()}
                 {(() => {
                   try {
-                    if (profile.username) {
+                    if (profile.username && typeof profile.username === 'string' && profile.username.trim() !== '') {
                       const username = String(profile.username)
                       console.log('🎨 [RENDER] Username:', { username, original: profile.username, type: typeof profile.username })
                       return <p className="username">@{username}</p>
@@ -776,7 +776,7 @@ const ProfilePage = () => {
                 })()}
                 {(() => {
                   try {
-                    if (profile.email) {
+                    if (profile.email && typeof profile.email === 'string' && profile.email.trim() !== '') {
                       const email = String(profile.email)
                       console.log('🎨 [RENDER] Email:', { email, original: profile.email, type: typeof profile.email })
                       return <p className="email">📧 {email}</p>
@@ -789,7 +789,7 @@ const ProfilePage = () => {
                 })()}
                 {(() => {
                   try {
-                    if (profile.city) {
+                    if (profile.city && typeof profile.city === 'string' && profile.city.trim() !== '') {
                       const city = String(profile.city)
                       console.log('🎨 [RENDER] Город:', { city, original: profile.city, type: typeof profile.city })
                       return <p className="city">📍 {city}</p>
@@ -855,26 +855,33 @@ const ProfilePage = () => {
         ) : myCourses.length > 0 ? (
           <div className="courses-list">
             {myCourses.map((course, index) => {
-              // МАКСИМАЛЬНОЕ ЛОГИРОВАНИЕ КУРСА
-              console.log(`🎨 [RENDER] Курс #${index}:`, {
-                course,
-                id: { value: course?.id, type: typeof course?.id },
-                title: { value: course?.title, type: typeof course?.title },
-                description: { value: course?.description, type: typeof course?.description },
-                progress: { value: course?.progress, type: typeof course?.progress, isObject: course?.progress instanceof Object }
-              })
-              
-              // Безопасно проверяем структуру course
-              if (!course || typeof course !== 'object') {
+              // Безопасно проверяем структуру course ПЕРЕД любым логированием
+              if (!course || typeof course !== 'object' || Array.isArray(course)) {
                 console.warn('⚠️ Некорректный курс:', course)
                 return null
               }
+              
               // Безопасно получаем все значения - гарантируем что это примитивы
-              const courseId = typeof course.id === 'number' ? course.id : 0
+              const courseId = typeof course.id === 'number' && !isNaN(course.id) ? course.id : 0
               const courseTitle = typeof course.title === 'string' ? course.title : 'Без названия'
               const courseDescription = typeof course.description === 'string' ? course.description : ''
               
-              console.log(`🎨 [RENDER] Курс #${index} нормализован:`, { courseId, courseTitle, courseDescription })
+              // Безопасно нормализуем progress
+              const progress = course.progress && typeof course.progress === 'object' && !Array.isArray(course.progress)
+                ? {
+                    total_lessons: typeof course.progress.total_lessons === 'number' ? course.progress.total_lessons : 0,
+                    completed_lessons: typeof course.progress.completed_lessons === 'number' ? course.progress.completed_lessons : 0,
+                    progress_percent: typeof course.progress.progress_percent === 'number' ? course.progress.progress_percent : 0,
+                    purchased_at: course.progress.purchased_at && typeof course.progress.purchased_at === 'string' ? course.progress.purchased_at : null,
+                    is_completed: course.progress.is_completed === true
+                  }
+                : {
+                    total_lessons: 0,
+                    completed_lessons: 0,
+                    progress_percent: 0,
+                    purchased_at: null,
+                    is_completed: false
+                  }
               
               return (
               <div 
@@ -912,7 +919,7 @@ const ProfilePage = () => {
                       {courseDescription}
                     </p>
                   </div>
-                  {course.progress?.is_completed && (
+                  {progress.is_completed && (
                     <span style={{ 
                       padding: '4px 8px', 
                       backgroundColor: '#28a745', 
@@ -926,16 +933,24 @@ const ProfilePage = () => {
                   )}
                 </div>
                 <div style={{ marginTop: '10px' }}>
-                  <ProgressBar percent={course.progress?.progress_percent ?? 0} />
+                  <ProgressBar percent={progress.progress_percent} />
                   <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#666' }}>
-                    Пройдено: {course.progress?.completed_lessons ?? 0} / {course.progress?.total_lessons ?? 0} уроков
-                    {(course.progress?.progress_percent ?? 0) > 0 && (
-                      <span> ({course.progress?.progress_percent ?? 0}%)</span>
+                    Пройдено: {progress.completed_lessons} / {progress.total_lessons} уроков
+                    {progress.progress_percent > 0 && (
+                      <span> ({progress.progress_percent}%)</span>
                     )}
                   </p>
-                  {course.progress?.purchased_at && (
+                  {progress.purchased_at && (
                     <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>
-                      Куплен: {course.progress.purchased_at ? new Date(course.progress.purchased_at).toLocaleDateString('ru-RU') : 'Не указано'}
+                      Куплен: {(() => {
+                        try {
+                          const date = new Date(progress.purchased_at)
+                          if (isNaN(date.getTime())) return 'Не указано'
+                          return date.toLocaleDateString('ru-RU')
+                        } catch (e) {
+                          return 'Не указано'
+                        }
+                      })()}
                     </p>
                   )}
                 </div>
