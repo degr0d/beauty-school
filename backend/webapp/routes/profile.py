@@ -41,20 +41,20 @@ async def get_profile(
         print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
         
         # Ищем пользователя - пробуем с явным преобразованием типа
+        # Используем OR условие для поиска как int и как строка одновременно
+        from sqlalchemy import or_
         result = await session.execute(
-            select(User).where(User.telegram_id == telegram_id)
+            select(User).where(
+                or_(
+                    User.telegram_id == telegram_id,
+                    User.telegram_id == str(telegram_id)
+                )
+            )
         )
         db_user = result.scalar_one_or_none()
         
-        # Если не нашли - пробуем найти как строку (на случай если в БД хранится строка)
-        if not db_user:
-            print(f"⚠️ [Profile] Пользователь не найден с telegram_id={telegram_id} (int), пробуем найти как строку...")
-            result_str = await session.execute(
-                select(User).where(User.telegram_id == str(telegram_id))
-            )
-            db_user = result_str.scalar_one_or_none()
-            if db_user:
-                print(f"✅ [Profile] Пользователь найден при поиске как строка! telegram_id в БД: {db_user.telegram_id} (type: {type(db_user.telegram_id)})")
+        if db_user:
+            print(f"✅ [Profile] Пользователь найден: telegram_id={db_user.telegram_id} (type: {type(db_user.telegram_id)})")
         
         if not db_user:
             # Если пользователя нет в БД - создаем профиль автоматически для любого пользователя
