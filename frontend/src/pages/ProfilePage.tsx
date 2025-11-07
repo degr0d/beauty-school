@@ -76,12 +76,12 @@ const ProfilePage = () => {
             total_payments: typeof rawAccess.total_payments === 'number' && !isNaN(rawAccess.total_payments) ? rawAccess.total_payments : 0
           }
           setAccessStatus(normalizedAccess)
-        }
-        
-        if (accessData.has_access) {
-          setStatus('paid')
-        } else {
-          setStatus('not_paid')
+          
+          if (normalizedAccess.has_access) {
+            setStatus('paid')
+          } else {
+            setStatus('not_paid')
+          }
         }
       } catch (error: any) {
         if (error.response?.status === 404) {
