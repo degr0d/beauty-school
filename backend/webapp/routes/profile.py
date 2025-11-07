@@ -3,7 +3,7 @@ API эндпоинты для профиля пользователя
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_session, User
@@ -42,7 +42,6 @@ async def get_profile(
         
         # Ищем пользователя - пробуем с явным преобразованием типа
         # Используем OR условие для поиска как int и как строка одновременно
-        from sqlalchemy import or_
         result = await session.execute(
             select(User).where(
                 or_(
@@ -144,17 +143,16 @@ async def update_profile(
     if telegram_id is None:
         raise HTTPException(status_code=400, detail="Missing telegram_id in user data")
     
+    # Используем OR условие для поиска как int и как строка одновременно
     result = await session.execute(
-        select(User).where(User.telegram_id == telegram_id)
+        select(User).where(
+            or_(
+                User.telegram_id == telegram_id,
+                User.telegram_id == str(telegram_id)
+            )
+        )
     )
     db_user = result.scalar_one_or_none()
-    
-    # Если не нашли - пробуем найти как строку
-    if not db_user:
-        result_str = await session.execute(
-            select(User).where(User.telegram_id == str(telegram_id))
-        )
-        db_user = result_str.scalar_one_or_none()
     
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
