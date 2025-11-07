@@ -17,7 +17,17 @@ const CommunitiesPage = () => {
     try {
       const response = await communitiesApi.getAll()
       // Гарантируем что это массив
-      const communities = Array.isArray(response.data) ? response.data : []
+      const rawCommunities = Array.isArray(response.data) ? response.data : []
+      // Нормализуем все сообщества - гарантируем что все поля это примитивы
+      const communities = rawCommunities.map(community => ({
+        id: typeof community?.id === 'number' && !isNaN(community.id) ? community.id : 0,
+        title: typeof community?.title === 'string' ? community.title : 'Без названия',
+        description: typeof community?.description === 'string' && community.description.trim() !== '' ? community.description : undefined,
+        type: typeof community?.type === 'string' && (community.type === 'city' || community.type === 'profession') ? community.type : 'city',
+        city: typeof community?.city === 'string' && community.city.trim() !== '' ? community.city : undefined,
+        category: typeof community?.category === 'string' && community.category.trim() !== '' ? community.category : undefined,
+        telegram_link: typeof community?.telegram_link === 'string' && community.telegram_link.trim() !== '' ? community.telegram_link : ''
+      }))
       setCommunities(communities)
     } catch (error) {
       console.error('Ошибка загрузки сообществ:', error)

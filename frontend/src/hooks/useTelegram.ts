@@ -87,10 +87,11 @@ export function useTelegram() {
     }
   }, [])
 
+  // НЕ возвращаем объект user напрямую - это может вызвать ошибку React #301
+  // Если нужны данные пользователя - используйте webApp.initDataUnsafe.user напрямую
   return {
     webApp,
-    user: webApp?.initDataUnsafe?.user,
-    initData: webApp?.initData,
+    initData: webApp?.initData || '',
   }
 }
 

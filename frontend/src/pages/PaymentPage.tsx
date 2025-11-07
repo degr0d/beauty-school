@@ -25,12 +25,46 @@ const PaymentPage = () => {
   const checkPaymentStatus = async (id: number) => {
     try {
       const response = await paymentApi.getStatus(id)
-      setStatus(response.data)
+      const rawStatus = response.data
       
-      // Загружаем информацию о курсе
-      if (response.data.course_id) {
-        const courseResponse = await coursesApi.getById(response.data.course_id)
-        setCourse(courseResponse.data)
+      // Нормализуем статус платежа - гарантируем что все поля это примитивы
+      if (rawStatus) {
+        const normalizedStatus: PaymentStatus = {
+          payment_id: typeof rawStatus.payment_id === 'number' && !isNaN(rawStatus.payment_id) ? rawStatus.payment_id : 0,
+          status: typeof rawStatus.status === 'string' ? rawStatus.status : 'pending',
+          amount: typeof rawStatus.amount === 'number' && !isNaN(rawStatus.amount) ? rawStatus.amount : 0,
+          course_id: typeof rawStatus.course_id === 'number' && !isNaN(rawStatus.course_id) ? rawStatus.course_id : 0
+        }
+        setStatus(normalizedStatus)
+        
+        // Загружаем информацию о курсе
+        if (normalizedStatus.course_id) {
+          const courseResponse = await coursesApi.getById(normalizedStatus.course_id)
+          const rawCourse = courseResponse.data
+          
+          // Нормализуем курс
+          if (rawCourse) {
+            const normalizedCourse: CourseDetail = {
+              id: typeof rawCourse.id === 'number' && !isNaN(rawCourse.id) ? rawCourse.id : 0,
+              title: typeof rawCourse.title === 'string' ? rawCourse.title : 'Без названия',
+              description: typeof rawCourse.description === 'string' ? rawCourse.description : '',
+              category: typeof rawCourse.category === 'string' ? rawCourse.category : '',
+              cover_image_url: typeof rawCourse.cover_image_url === 'string' && rawCourse.cover_image_url.trim() !== '' ? rawCourse.cover_image_url : undefined,
+              is_top: rawCourse.is_top === true,
+              price: typeof rawCourse.price === 'number' && !isNaN(rawCourse.price) ? rawCourse.price : 0,
+              duration_hours: typeof rawCourse.duration_hours === 'number' && !isNaN(rawCourse.duration_hours) && rawCourse.duration_hours > 0 ? rawCourse.duration_hours : undefined,
+              full_description: typeof rawCourse.full_description === 'string' ? rawCourse.full_description : undefined,
+              lessons: Array.isArray(rawCourse.lessons) ? rawCourse.lessons.map((lesson: any) => ({
+                id: typeof lesson?.id === 'number' && !isNaN(lesson.id) ? lesson.id : 0,
+                title: typeof lesson?.title === 'string' ? lesson.title : 'Без названия',
+                order: typeof lesson?.order === 'number' && !isNaN(lesson.order) ? lesson.order : 0,
+                video_duration: typeof lesson?.video_duration === 'number' && !isNaN(lesson.video_duration) && lesson.video_duration > 0 ? lesson.video_duration : undefined,
+                is_free: lesson?.is_free === true
+              })) : []
+            }
+            setCourse(normalizedCourse)
+          }
+        }
       }
     } catch (error) {
       console.error('Ошибка проверки статуса платежа:', error)
