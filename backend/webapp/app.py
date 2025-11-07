@@ -64,6 +64,14 @@ def create_app() -> FastAPI:
     app.include_router(payment.router, prefix="/api/payment", tags=["Payment"])
     app.include_router(access.router, prefix="/api/access", tags=["Access"])
     
+    # Логирование зарегистрированных роутов для диагностики
+    print("=" * 60)
+    print("📋 Зарегистрированные роуты:")
+    for route in app.routes:
+        if hasattr(route, 'path') and hasattr(route, 'methods'):
+            print(f"   {list(route.methods)} {route.path}")
+    print("=" * 60)
+    
     # ========================================
     # Healthcheck эндпоинт
     # ========================================
