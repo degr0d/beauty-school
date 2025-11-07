@@ -31,6 +31,7 @@ const ProfilePage = () => {
   }
 
   useEffect(() => {
+    addLog('🚀 ProfilePage загружен, начинаю загрузку профиля...')
     loadProfileAndAccess()
   }, [])
 
