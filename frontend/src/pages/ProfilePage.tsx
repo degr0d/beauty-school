@@ -400,7 +400,7 @@ const ProfilePage = () => {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
               }}
             >
-              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'} {debugLogs.length > 0 && `(${debugLogs.length})`}
+              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'} {debugLogs.length > 0 ? `(${debugLogs.length})` : ''}
             </button>
           </div>
           
