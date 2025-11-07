@@ -52,15 +52,16 @@ async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async def get_users(session: AsyncSession = Depends(get_session)):
         ...
     """
-    async with async_session() as session:
-        try:
-            yield session
-            await session.commit()
-        except Exception:
-            await session.rollback()
-            raise
-        finally:
-            await session.close()
+    # Создаем session напрямую, без async with
+    session = async_session()
+    try:
+        yield session
+        await session.commit()
+    except Exception:
+        await session.rollback()
+        raise
+    finally:
+        await session.close()
 
 
 # ========================================
