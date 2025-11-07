@@ -47,10 +47,19 @@ const MainPage = () => {
     try {
       console.log('📚 Загрузка топ курсов...')
       const response = await coursesApi.getAll({ is_top: true })
-      console.log('✅ Топ курсов загружены:', response.data)
       // Гарантируем что это массив
-      const courses = Array.isArray(response.data) ? response.data : []
-      console.log('✅ Топ курсов (массив):', courses.length)
+      const rawCourses = Array.isArray(response.data) ? response.data : []
+      // Нормализуем все курсы - гарантируем что все поля это примитивы
+      const courses = rawCourses.map(course => ({
+        id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
+        title: typeof course?.title === 'string' ? course.title : 'Без названия',
+        description: typeof course?.description === 'string' ? course.description : '',
+        category: typeof course?.category === 'string' ? course.category : '',
+        cover_image_url: typeof course?.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined,
+        is_top: course?.is_top === true,
+        price: typeof course?.price === 'number' && !isNaN(course.price) ? course.price : 0,
+        duration_hours: typeof course?.duration_hours === 'number' && !isNaN(course.duration_hours) && course.duration_hours > 0 ? course.duration_hours : undefined
+      }))
       setTopCourses(courses)
     } catch (error: any) {
       console.error('❌ Ошибка загрузки топ курсов:', error)
@@ -94,13 +103,7 @@ const MainPage = () => {
     return () => clearTimeout(timeout)
   }, [checkingAccess, loading, accessStatus])
 
-  console.log('🎨 Рендер MainPage:', {
-    checkingAccess,
-    loading,
-    accessStatus,
-    accessError,
-    topCoursesCount: topCourses.length
-  })
+  // Убрано логирование объектов - может вызывать проблемы
 
   // Если нет доступа и нет ошибки - показываем блокировку
   if (!accessError && accessStatus && !accessStatus.has_access) {

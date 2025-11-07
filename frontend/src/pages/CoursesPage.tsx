@@ -40,20 +40,31 @@ const CoursesPage = () => {
   const loadCourses = useCallback(async () => {
     try {
       setLoading(true)
+      let rawCourses: any[] = []
+      
       // Если есть доступ - показываем только купленные курсы
       // Если нет - показываем все курсы для выбора
       if (accessStatus?.has_access) {
         const response = await coursesApi.getMy()
-        // Гарантируем что это массив
-        const courses = Array.isArray(response.data) ? response.data : []
-        setCourses(courses)
+        rawCourses = Array.isArray(response.data) ? response.data : []
       } else {
         const params = selectedCategory ? { category: selectedCategory } : {}
         const response = await coursesApi.getAll(params)
-        // Гарантируем что это массив
-        const courses = Array.isArray(response.data) ? response.data : []
-        setCourses(courses)
+        rawCourses = Array.isArray(response.data) ? response.data : []
       }
+      
+      // Нормализуем все курсы - гарантируем что все поля это примитивы
+      const courses = rawCourses.map(course => ({
+        id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
+        title: typeof course?.title === 'string' ? course.title : 'Без названия',
+        description: typeof course?.description === 'string' ? course.description : '',
+        category: typeof course?.category === 'string' ? course.category : '',
+        cover_image_url: typeof course?.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined,
+        is_top: course?.is_top === true,
+        price: typeof course?.price === 'number' && !isNaN(course.price) ? course.price : 0,
+        duration_hours: typeof course?.duration_hours === 'number' && !isNaN(course.duration_hours) && course.duration_hours > 0 ? course.duration_hours : undefined
+      }))
+      setCourses(courses)
     } catch (error) {
       console.error('Ошибка загрузки курсов:', error)
       // Устанавливаем пустой массив при ошибке
