@@ -22,18 +22,20 @@ const ProfilePage = () => {
   const [debugLogs, setDebugLogs] = useState<string[]>([])
   const [showDebug, setShowDebug] = useState(false)
   
-  // Функция для добавления логов
+  // Функция для добавления логов (должна быть определена до использования)
   const addLog = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
-    setDebugLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`])
+    const logMessage = `[${timestamp}] ${message}`
+    setDebugLogs(prev => {
+      const newLogs = [...prev, logMessage]
+      // Оставляем последние 50 логов
+      return newLogs.slice(-50)
+    })
     // Также логируем в консоль для тех, у кого есть доступ
-    console.log(message)
+    console.log(logMessage)
   }
 
-  useEffect(() => {
-    addLog('🚀 ProfilePage загружен, начинаю загрузку профиля...')
-    loadProfileAndAccess()
-  }, [])
+  const loadProfileAndAccess = async () => {
 
   const loadProfileAndAccess = async () => {
     try {
@@ -230,6 +232,11 @@ const ProfilePage = () => {
       setStatus('not_registered')
     }
   }
+
+  useEffect(() => {
+    addLog('🚀 ProfilePage загружен, начинаю загрузку профиля...')
+    loadProfileAndAccess()
+  }, [])
 
   if (status === 'loading') {
     return (
