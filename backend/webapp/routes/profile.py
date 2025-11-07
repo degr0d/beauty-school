@@ -27,42 +27,34 @@ async def get_profile(
     """
     print("🚀 [Profile] ФУНКЦИЯ get_profile ВЫЗВАНА!")
     try:
-        # Гарантируем, что telegram_id - это int (может быть строкой из JSON)
+        # Явно преобразуем telegram_id в int для корректного сравнения с БД
         telegram_id_raw = user["id"]
-        telegram_id = int(telegram_id_raw) if telegram_id_raw else None
+        telegram_id = int(telegram_id_raw) if telegram_id_raw is not None else None
         
-        if not telegram_id:
-            raise HTTPException(status_code=400, detail="Invalid telegram_id in user data")
+        if telegram_id is None:
+            print(f"❌ [Profile] telegram_id отсутствует в данных пользователя")
+            raise HTTPException(status_code=400, detail="Missing telegram_id in user data")
         
         is_admin = telegram_id in settings.admin_ids_list
         
-        print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}), is_admin={is_admin}")
+        print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}, raw: {telegram_id_raw}, raw_type: {type(telegram_id_raw)}), is_admin={is_admin}")
         print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
         
-        # Проверяем, какие пользователи есть в БД (для диагностики)
-        try:
-            all_users_result = await session.execute(select(User.telegram_id, User.full_name, User.phone))
-            all_users = all_users_result.fetchall()
-            print(f"   Всего пользователей в БД: {len(all_users)}")
-            if all_users:
-                telegram_ids_in_db = [int(u[0]) for u in all_users]  # Преобразуем в int для сравнения
-                print(f"   Зарегистрированные telegram_id: {telegram_ids_in_db[:10]}")  # Первые 10
-                print(f"   Ищем telegram_id={telegram_id} в БД...")
-                print(f"   Найден ли в списке: {telegram_id in telegram_ids_in_db}")
-        except Exception as users_error:
-            print(f"❌ [Profile] Ошибка при запросе пользователей: {users_error}")
-            print(f"   Возможно, таблица 'users' не создана или структура не совпадает")
-            # Продолжаем - попробуем найти или создать пользователя
-        
-        # Ищем пользователя - убеждаемся, что сравниваем int с BigInteger
+        # Ищем пользователя - пробуем с явным преобразованием типа
         result = await session.execute(
             select(User).where(User.telegram_id == telegram_id)
         )
         db_user = result.scalar_one_or_none()
         
-        print(f"   Результат поиска: {'найден' if db_user else 'не найден'}")
-        if db_user:
-            print(f"   Найденный пользователь: id={db_user.id}, telegram_id={db_user.telegram_id} (type: {type(db_user.telegram_id)}), full_name={db_user.full_name}")
+        # Если не нашли - пробуем найти как строку (на случай если в БД хранится строка)
+        if not db_user:
+            print(f"⚠️ [Profile] Пользователь не найден с telegram_id={telegram_id} (int), пробуем найти как строку...")
+            result_str = await session.execute(
+                select(User).where(User.telegram_id == str(telegram_id))
+            )
+            db_user = result_str.scalar_one_or_none()
+            if db_user:
+                print(f"✅ [Profile] Пользователь найден при поиске как строка! telegram_id в БД: {db_user.telegram_id} (type: {type(db_user.telegram_id)})")
         
         if not db_user:
             # Если пользователя нет в БД - создаем профиль автоматически для любого пользователя
@@ -75,39 +67,20 @@ async def get_profile(
             last_name = user.get("last_name", "")
             full_name = f"{first_name} {last_name}".strip() or ("Администратор" if is_admin else "Пользователь")
             
-            # Создаем пользователя
-            try:
-                db_user = User(
-                    telegram_id=telegram_id,
-                    username=username,
-                    full_name=full_name,
-                    phone="не указан",  # Пользователь может указать позже через редактирование профиля
-                    consent_personal_data=True,
-                    is_active=True
-                )
-                session.add(db_user)
-                await session.commit()
-                await session.refresh(db_user)
-                
-                print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
-            except Exception as create_error:
-                # Если ошибка уникальности - пользователь уже существует, ищем его снова
-                await session.rollback()
-                print(f"⚠️ [Profile] Ошибка при создании пользователя: {create_error}")
-                print(f"   Возможно, пользователь уже существует. Ищем снова...")
-                
-                # Пробуем найти пользователя еще раз (возможно, он был создан параллельно)
-                result = await session.execute(
-                    select(User).where(User.telegram_id == telegram_id)
-                )
-                db_user = result.scalar_one_or_none()
-                
-                if db_user:
-                    print(f"✅ [Profile] Пользователь найден после ошибки создания: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id})")
-                else:
-                    # Если все еще не найден - пробрасываем ошибку
-                    print(f"❌ [Profile] Пользователь не найден после ошибки создания")
-                    raise HTTPException(status_code=500, detail=f"Failed to create or find user: {str(create_error)}")
+            # Создаем пользователя - гарантируем что telegram_id это int
+            db_user = User(
+                telegram_id=int(telegram_id),  # Явно преобразуем в int
+                username=username,
+                full_name=full_name,
+                phone="не указан",  # Пользователь может указать позже через редактирование профиля
+                consent_personal_data=True,
+                is_active=True
+            )
+            session.add(db_user)
+            await session.commit()
+            await session.refresh(db_user)
+            
+            print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
             
             # Безопасно получаем email (на случай если миграция не применена)
             try:
@@ -164,17 +137,24 @@ async def update_profile(
     """
     Обновить профиль пользователя
     """
-    # Гарантируем, что telegram_id - это int
+    # Явно преобразуем telegram_id в int
     telegram_id_raw = user["id"]
-    telegram_id = int(telegram_id_raw) if telegram_id_raw else None
+    telegram_id = int(telegram_id_raw) if telegram_id_raw is not None else None
     
-    if not telegram_id:
-        raise HTTPException(status_code=400, detail="Invalid telegram_id in user data")
+    if telegram_id is None:
+        raise HTTPException(status_code=400, detail="Missing telegram_id in user data")
     
     result = await session.execute(
         select(User).where(User.telegram_id == telegram_id)
     )
     db_user = result.scalar_one_or_none()
+    
+    # Если не нашли - пробуем найти как строку
+    if not db_user:
+        result_str = await session.execute(
+            select(User).where(User.telegram_id == str(telegram_id))
+        )
+        db_user = result_str.scalar_one_or_none()
     
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
