@@ -81,6 +81,17 @@ class LazyAsyncSession:
     def __getattr__(self, name):
         """Доступ к атрибутам фабрики сессий"""
         return getattr(get_async_session(), name)
+    
+    async def __aenter__(self):
+        """Для async context manager - создаем session"""
+        session_factory = get_async_session()
+        self._session = session_factory()
+        return await self._session.__aenter__()
+    
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Для async context manager - закрываем session"""
+        if hasattr(self, '_session'):
+            return await self._session.__aexit__(exc_type, exc_val, exc_tb)
 
 # Создаем экземпляры для обратной совместимости
 engine = LazyEngine()
