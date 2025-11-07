@@ -3,7 +3,7 @@ API эндпоинты для профиля пользователя
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, or_
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_session, User
@@ -43,16 +43,10 @@ async def get_profile(
         print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
         print(f"   Session closed: {session.is_closed if hasattr(session, 'is_closed') else 'unknown'}")
         
-        # Ищем пользователя - пробуем с явным преобразованием типа
-        # Используем OR условие для поиска как int и как строка одновременно
+        # Ищем пользователя по telegram_id (BIGINT в БД)
         print(f"   Выполняю запрос к БД...")
         result = await session.execute(
-            select(User).where(
-                or_(
-                    User.telegram_id == telegram_id,
-                    User.telegram_id == str(telegram_id)
-                )
-            )
+            select(User).where(User.telegram_id == telegram_id)
         )
         db_user = result.scalar_one_or_none()
         print(f"   Результат запроса: {db_user}")
@@ -182,14 +176,9 @@ async def update_profile(
     if telegram_id is None:
         raise HTTPException(status_code=400, detail="Missing telegram_id in user data")
     
-    # Используем OR условие для поиска как int и как строка одновременно
+    # Ищем пользователя по telegram_id
     result = await session.execute(
-        select(User).where(
-            or_(
-                User.telegram_id == telegram_id,
-                User.telegram_id == str(telegram_id)
-            )
-        )
+        select(User).where(User.telegram_id == telegram_id)
     )
     db_user = result.scalar_one_or_none()
     
