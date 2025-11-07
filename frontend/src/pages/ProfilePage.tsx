@@ -19,6 +19,16 @@ const ProfilePage = () => {
     city: ''
   })
   const [saving, setSaving] = useState(false)
+  const [debugLogs, setDebugLogs] = useState<string[]>([])
+  const [showDebug, setShowDebug] = useState(false)
+  
+  // Функция для добавления логов
+  const addLog = (message: string) => {
+    const timestamp = new Date().toLocaleTimeString()
+    setDebugLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`])
+    // Также логируем в консоль для тех, у кого есть доступ
+    console.log(message)
+  }
 
   useEffect(() => {
     loadProfileAndAccess()
@@ -28,19 +38,23 @@ const ProfilePage = () => {
     try {
       // Проверяем наличие Telegram WebApp и initData
       const webApp = window.Telegram?.WebApp
-      console.log('🔍 Проверка Telegram WebApp:', {
+      const debugInfo = {
         hasWebApp: !!webApp,
         hasInitData: !!webApp?.initData,
         user: webApp?.initDataUnsafe?.user,
         telegramId: webApp?.initDataUnsafe?.user?.id
-      })
+      }
+      addLog(`🔍 Проверка Telegram WebApp: ${JSON.stringify(debugInfo)}`)
+      console.log('🔍 Проверка Telegram WebApp:', debugInfo)
       
       // Сначала пробуем загрузить профиль
       let profileData: Profile | null = null
       
       try {
+        addLog('📡 Запрос профиля...')
         console.log('📡 Запрос профиля...')
         const profileResponse = await profileApi.get()
+        addLog(`✅ Профиль получен: ${JSON.stringify(profileResponse.data)}`)
         console.log('✅ Профиль получен:', profileResponse.data)
         profileData = profileResponse.data
       } catch (error: any) {
@@ -55,6 +69,8 @@ const ProfilePage = () => {
         
         // Если 401 - проблема с авторизацией (initData не валиден или отсутствует)
         if (error.response?.status === 401) {
+          addLog('⚠️ Проблема с авторизацией (401)')
+          addLog('💡 Проверьте что открываете Mini App через бота в Telegram')
           console.log('⚠️ Проблема с авторизацией (401)')
           console.log('💡 Проверьте что:')
           console.log('   1. Открываете Mini App через бота в Telegram')
@@ -64,8 +80,10 @@ const ProfilePage = () => {
           // Проверяем наличие initData
           const webApp = window.Telegram?.WebApp
           if (!webApp?.initData) {
+            addLog('❌ initData отсутствует! Mini App открыт не через Telegram бота')
             console.error('❌ initData отсутствует! Это означает что Mini App открыт не через Telegram бота')
           } else {
+            addLog('✅ initData присутствует, но валидация не прошла. Возможно проблема на backend.')
             console.log('✅ initData присутствует, но валидация не прошла. Возможно проблема на backend.')
           }
           
@@ -164,30 +182,30 @@ const ProfilePage = () => {
       setAccessStatus(accessData)
       
       // Определяем статус
-      console.log('📊 Определение статуса:', {
+      const statusInfo = {
         hasProfile: !!profileData,
-        profileData: profileData,
         hasAccessData: !!accessData,
         hasAccess: accessData?.has_access,
         purchasedCourses: accessData?.purchased_courses_count,
-        profileState: profileData ? {
-          id: profileData.id,
-          full_name: profileData.full_name,
-          phone: profileData.phone,
-          email: profileData.email
-        } : null
-      })
+        profileName: profileData?.full_name || 'нет',
+        profilePhone: profileData?.phone || 'нет'
+      }
+      addLog(`📊 Определение статуса: ${JSON.stringify(statusInfo)}`)
+      console.log('📊 Определение статуса:', statusInfo)
       
       if (!profileData) {
         // Профиль не загружен - показываем ошибку регистрации
+        addLog('⚠️ Профиль не загружен - статус: not_registered')
         console.log('⚠️ Профиль не загружен - статус: not_registered')
         setStatus('not_registered')
       } else if (!accessData || !accessData.has_access) {
         // Зарегистрирован, но не оплатил - показываем профиль с ограничением
+        addLog(`⚠️ Доступ ограничен - статус: not_paid, профиль: ${profileData.full_name}`)
         console.log('⚠️ Доступ ограничен - статус: not_paid, но профиль есть:', profileData)
         setStatus('not_paid')
       } else {
         // Зарегистрирован и оплатил
+        addLog(`✅ Доступ есть - статус: paid, профиль: ${profileData.full_name}`)
         console.log('✅ Доступ есть - статус: paid, профиль:', profileData)
         setStatus('paid')
       }
@@ -199,14 +217,43 @@ const ProfilePage = () => {
   }
 
   if (status === 'loading') {
-    return <div className="loading">Загрузка...</div>
+    return (
+      <div className="profile-page">
+        <div className="loading">Загрузка...</div>
+        {debugLogs.length > 0 && (
+          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
+            <button 
+              onClick={() => setShowDebug(!showDebug)}
+              style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '12px' }}
+            >
+              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
+            </button>
+            {showDebug && (
+              <div style={{ maxHeight: '200px', overflow: 'auto', fontFamily: 'monospace' }}>
+                {debugLogs.map((log, i) => (
+                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    )
   }
 
   if (status === 'not_registered') {
     return (
       <div className="profile-page">
         <div className="error">
-          <h2>Профиль не найден</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h2>Профиль не найден</h2>
+            <button 
+              onClick={() => setShowDebug(!showDebug)}
+              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+            >
+              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
+            </button>
+          </div>
           <p>Для доступа к платформе необходимо пройти регистрацию через Telegram-бота.</p>
           <div className="register-hint" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
             <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📋 Инструкция:</p>
@@ -220,6 +267,16 @@ const ProfilePage = () => {
           <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
             ⚠️ Если вы уже регистрировались, попробуйте закрыть и открыть Mini App заново
           </p>
+          {showDebug && debugLogs.length > 0 && (
+            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
+              <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
+              <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
+                {debugLogs.map((log, i) => (
+                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -227,10 +284,19 @@ const ProfilePage = () => {
 
   if (status === 'not_paid') {
     console.log('🔍 [not_paid] Рендер страницы not_paid, profile:', profile)
+    addLog(`🔍 Рендер страницы not_paid, profile: ${profile ? profile.full_name : 'null'}`)
     return (
       <div className="profile-page">
         <div className="error">
-          <h2>❌ Доступ ограничен</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <h2>❌ Доступ ограничен</h2>
+            <button 
+              onClick={() => setShowDebug(!showDebug)}
+              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+            >
+              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
+            </button>
+          </div>
           <p>Для доступа к платформе необходимо оплатить курс.</p>
           <p className="register-hint">
             💡 Выберите курс на главной странице и оплатите его для получения доступа
@@ -247,6 +313,16 @@ const ProfilePage = () => {
           ) : (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
               <p>⚠️ Профиль загружается...</p>
+            </div>
+          )}
+          {showDebug && debugLogs.length > 0 && (
+            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
+              <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
+              <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
+                {debugLogs.map((log, i) => (
+                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -287,8 +363,10 @@ const ProfilePage = () => {
   // status === 'paid' - показываем профиль
   if (status === 'paid') {
     console.log('🔍 [paid] Рендер страницы paid, profile:', profile)
+    addLog(`🔍 Рендер страницы paid, profile: ${profile ? profile.full_name : 'null'}`)
     if (!profile) {
       console.warn('⚠️ [paid] Профиль отсутствует, показываю загрузку')
+      addLog('⚠️ Профиль отсутствует, показываю загрузку')
       return <div className="loading">Загрузка профиля...</div>
     }
 
@@ -300,11 +378,18 @@ const ProfilePage = () => {
       city: profile.city,
       points: profile.points
     })
+    addLog(`✅ Рендер полного профиля: ${profile.full_name}, телефон: ${profile.phone || 'нет'}`)
 
     return (
         <div className="profile-page">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h1>👤 Мой профиль</h1>
+            <button 
+              onClick={() => setShowDebug(!showDebug)}
+              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
+            >
+              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
+            </button>
             {!isEditing && (
               <button 
                 onClick={() => setIsEditing(true)}
@@ -477,6 +562,18 @@ const ProfilePage = () => {
           Написать в поддержку
         </a>
       </div>
+
+      {/* Логи для диагностики */}
+      {showDebug && debugLogs.length > 0 && (
+        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
+          <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
+          <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
+            {debugLogs.map((log, i) => (
+              <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
     )
   }
