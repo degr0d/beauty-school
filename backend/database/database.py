@@ -15,19 +15,36 @@ from backend.config import settings
 # Ленивая инициализация движка БД
 # ========================================
 # Проблема: engine создавался при импорте модуля, до создания event loop FastAPI
-# Решение: создаем engine лениво, только когда он нужен
+# Решение: создаем engine лениво, только когда он нужен, и проверяем event loop
 _engine: Optional[AsyncEngine] = None
 _async_session: Optional[async_sessionmaker] = None
-_lock = asyncio.Lock()
+_engine_event_loop = None
 
 
 def get_engine() -> AsyncEngine:
     """
     Получить или создать engine БД
-    Создается лениво, только когда нужен
+    Создается лениво, только когда нужен, в текущем event loop
     """
-    global _engine
-    if _engine is None:
+    global _engine, _engine_event_loop
+    import asyncio
+    
+    # Получаем текущий event loop (или создаем новый, если его нет)
+    try:
+        current_loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Нет запущенного event loop - создаем новый
+        current_loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(current_loop)
+    
+    # Если engine уже создан, но в другом event loop - пересоздаем
+    if _engine is None or _engine_event_loop != current_loop:
+        # Закрываем старый engine, если он был создан в другом loop
+        if _engine is not None and _engine_event_loop != current_loop:
+            # Не можем await здесь, так как это sync функция
+            # Просто пересоздаем engine
+            pass
+        
         _engine = create_async_engine(
             settings.database_url,
             echo=settings.ENVIRONMENT == "development",  # Логирование SQL-запросов в dev-режиме
@@ -42,6 +59,8 @@ def get_engine() -> AsyncEngine:
                 }
             }
         )
+        _engine_event_loop = current_loop
+    
     return _engine
 
 
@@ -74,9 +93,9 @@ class LazyEngine:
 class LazyAsyncSession:
     """Обертка для ленивой инициализации async_session"""
     def __call__(self):
-        """Вызов async_session() возвращает фабрику сессий (async_sessionmaker)"""
-        # Возвращаем фабрику сессий, которую можно использовать с async with
-        return get_async_session()
+        """Вызов async_session() возвращает сам объект для использования как async context manager"""
+        # Возвращаем сам объект, который поддерживает async context manager
+        return self
     
     def __getattr__(self, name):
         """Доступ к атрибутам фабрики сессий"""
