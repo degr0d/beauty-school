@@ -27,6 +27,26 @@ async def get_profile(
     """
     print("🚀 [Profile] ФУНКЦИЯ get_profile ВЫЗВАНА!")
     try:
+        # Проверяем подключение к БД
+        try:
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT 1"))
+            print("✅ [Profile] Подключение к БД работает")
+        except Exception as db_error:
+            print(f"❌ [Profile] Ошибка подключения к БД: {db_error}")
+            raise HTTPException(status_code=500, detail=f"Database connection error: {str(db_error)}")
+        
+        # Проверяем, существует ли таблица users
+        try:
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')"))
+            table_exists = result.scalar()
+            print(f"📊 [Profile] Таблица 'users' существует: {table_exists}")
+            if not table_exists:
+                print("⚠️ [Profile] Таблица 'users' не найдена! Нужно выполнить миграции или init_db()")
+        except Exception as table_error:
+            print(f"⚠️ [Profile] Не удалось проверить таблицу: {table_error}")
+        
         telegram_id = user["id"]
         is_admin = telegram_id in settings.admin_ids_list
         
@@ -34,11 +54,15 @@ async def get_profile(
         print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
         
         # Проверяем, какие пользователи есть в БД (для диагностики)
-        all_users_result = await session.execute(select(User.telegram_id, User.full_name, User.phone))
-        all_users = all_users_result.fetchall()
-        print(f"   Всего пользователей в БД: {len(all_users)}")
-        if all_users:
-            print(f"   Зарегистрированные telegram_id: {[u[0] for u in all_users[:10]]}")  # Первые 10
+        try:
+            all_users_result = await session.execute(select(User.telegram_id, User.full_name, User.phone))
+            all_users = all_users_result.fetchall()
+            print(f"   Всего пользователей в БД: {len(all_users)}")
+            if all_users:
+                print(f"   Зарегистрированные telegram_id: {[u[0] for u in all_users[:10]]}")  # Первые 10
+        except Exception as users_error:
+            print(f"❌ [Profile] Ошибка при запросе пользователей: {users_error}")
+            print(f"   Возможно, таблица 'users' не создана или структура не совпадает")
         
         # Ищем пользователя
         result = await session.execute(
