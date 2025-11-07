@@ -435,7 +435,7 @@ const ProfilePage = () => {
               {profile.phone && <p><strong>Телефон:</strong> {profile.phone}</p>}
               {profile.email && <p><strong>Email:</strong> {profile.email}</p>}
               {profile.city && <p><strong>Город:</strong> {profile.city}</p>}
-              <p><strong>Баллы:</strong> {profile.points || 0}</p>
+              <p><strong>Баллы:</strong> {profile.points ?? 0}</p>
             </div>
           ) : (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
@@ -661,7 +661,7 @@ const ProfilePage = () => {
             <div className="stat-card">
               <span className="stat-icon">⭐</span>
               <div>
-                <p className="stat-value">{profile.points}</p>
+                <p className="stat-value">{profile.points ?? 0}</p>
                 <p className="stat-label">Баллов</p>
               </div>
             </div>
@@ -670,7 +670,7 @@ const ProfilePage = () => {
               <span className="stat-icon">📅</span>
               <div>
                 <p className="stat-value">
-                  {new Date(profile.created_at).toLocaleDateString('ru-RU')}
+                  {profile.created_at ? new Date(profile.created_at).toLocaleDateString('ru-RU') : 'Не указано'}
                 </p>
                 <p className="stat-label">Дата регистрации</p>
               </div>
