@@ -24,6 +24,23 @@ type CourseWithProgress = {
   }
 }
 
+// Безопасная функция для рендеринга значений - гарантирует что всегда возвращается примитив
+const safeRender = (value: any): string | number | null => {
+  if (value === null || value === undefined) return null
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value
+  }
+  if (typeof value === 'object') {
+    // Если это объект - пытаемся преобразовать в строку
+    try {
+      return JSON.stringify(value)
+    } catch (e) {
+      return String(value)
+    }
+  }
+  return String(value)
+}
+
 const ProfilePage = () => {
   const navigate = useNavigate()
   const [profile, setProfile] = useState<Profile | null>(null)
