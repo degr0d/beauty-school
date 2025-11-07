@@ -109,7 +109,11 @@ class TelegramAuthMiddleware(BaseHTTPMiddleware):
             import json
             user_data = json.loads(data.get("user", "{}"))
             
-            print(f"✅ [Middleware] initData валиден: telegram_id={user_data.get('id')}")
+            # Явно конвертируем telegram_id в int (из JSON может прийти как число или строка)
+            if "id" in user_data:
+                user_data["id"] = int(user_data["id"])
+            
+            print(f"✅ [Middleware] initData валиден: telegram_id={user_data.get('id')} (type: {type(user_data.get('id'))})")
             return user_data
         
         except Exception as e:
@@ -212,7 +216,11 @@ def validate_init_data_direct(init_data: str) -> Optional[dict]:
         import json
         user_data = json.loads(data.get("user", "{}"))
         
-        print(f"✅ [validate_init_data_direct] initData валиден: telegram_id={user_data.get('id')}")
+        # Явно конвертируем telegram_id в int (из JSON может прийти как число или строка)
+        if "id" in user_data:
+            user_data["id"] = int(user_data["id"])
+        
+        print(f"✅ [validate_init_data_direct] initData валиден: telegram_id={user_data.get('id')} (type: {type(user_data.get('id'))})")
         return user_data
     
     except Exception as e:

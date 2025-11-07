@@ -29,13 +29,10 @@ async def check_access(
         "total_payments": int
     }
     """
-    # Гарантируем, что telegram_id - это int
-    telegram_id_raw = user["id"]
-    telegram_id = int(telegram_id_raw) if telegram_id_raw else None
-    
-    if not telegram_id:
-        raise HTTPException(status_code=400, detail="Invalid telegram_id in user data")
-    
+    # Явно конвертируем telegram_id в int
+    telegram_id = int(user.get("id", 0))
+    if telegram_id == 0:
+        raise HTTPException(status_code=401, detail="Telegram user ID not found in initData")
     is_admin = telegram_id in settings.admin_ids_list
     
     print(f"🔍 [Access] Проверка доступа для telegram_id={telegram_id}, is_admin={is_admin}")
@@ -102,12 +99,10 @@ async def check_course_access(
         "purchased_at": str | null
     }
     """
-    # Гарантируем, что telegram_id - это int
-    telegram_id_raw = user["id"]
-    telegram_id = int(telegram_id_raw) if telegram_id_raw else None
-    
-    if not telegram_id:
-        raise HTTPException(status_code=400, detail="Invalid telegram_id in user data")
+    # Явно конвертируем telegram_id в int
+    telegram_id = int(user.get("id", 0))
+    if telegram_id == 0:
+        raise HTTPException(status_code=401, detail="Telegram user ID not found in initData")
     
     # АДМИНЫ ВСЕГДА ИМЕЮТ ДОСТУП К ЛЮБОМУ КУРСУ
     if telegram_id in settings.admin_ids_list:
