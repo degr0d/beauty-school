@@ -88,19 +88,22 @@ def create_app() -> FastAPI:
     async def startup_event():
         """
         Инициализация при запуске приложения
-        Создаем engine в правильном event loop
+        Создаем engine в правильном event loop и сохраняем в app.state
         """
-        # Инициализируем engine при старте приложения
-        # Это гарантирует, что engine создается в правильном event loop
-        _ = get_engine()  # Создаем engine лениво, но принудительно при старте
-        print("✅ Database engine initialized")
+        # Инициализируем engine при старте приложения в правильном event loop
+        # Сохраняем в app.state для доступа из других мест
+        from backend.database.database import get_engine
+        app.state.engine = get_engine()
+        app.state.async_session = get_async_session()
+        print("✅ Database engine initialized in app.state")
     
     @app.on_event("shutdown")
     async def shutdown_event():
         """
         Закрытие соединений при остановке приложения
         """
-        await close_db()
+        if hasattr(app.state, 'engine') and app.state.engine:
+            await app.state.engine.dispose()
         print("✅ Database connections closed")
     
     return app
