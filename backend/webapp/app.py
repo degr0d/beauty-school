@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.webapp.routes import courses, lessons, profile, progress, communities, payment, access
 from backend.webapp.middleware import TelegramAuthMiddleware
+from backend.database.database import get_engine, close_db
 
 
 def create_app() -> FastAPI:
@@ -79,6 +80,28 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health():
         return {"status": "ok", "environment": settings.ENVIRONMENT}
+    
+    # ========================================
+    # Startup/Shutdown events для правильной инициализации БД
+    # ========================================
+    @app.on_event("startup")
+    async def startup_event():
+        """
+        Инициализация при запуске приложения
+        Создаем engine в правильном event loop
+        """
+        # Инициализируем engine при старте приложения
+        # Это гарантирует, что engine создается в правильном event loop
+        _ = get_engine()  # Создаем engine лениво, но принудительно при старте
+        print("✅ Database engine initialized")
+    
+    @app.on_event("shutdown")
+    async def shutdown_event():
+        """
+        Закрытие соединений при остановке приложения
+        """
+        await close_db()
+        print("✅ Database connections closed")
     
     return app
 
