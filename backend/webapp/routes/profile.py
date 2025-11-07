@@ -14,6 +14,7 @@ from backend.config import settings
 router = APIRouter()
 
 
+@router.get("", response_model=ProfileResponse)
 @router.get("/", response_model=ProfileResponse)
 async def get_profile(
     user: dict = Depends(get_telegram_user),
