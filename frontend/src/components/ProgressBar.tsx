@@ -8,16 +8,19 @@ interface ProgressBarProps {
 }
 
 const ProgressBar = ({ percent, showLabel = true }: ProgressBarProps) => {
+  // Безопасно обрабатываем percent - гарантируем что это число
+  const safePercent = typeof percent === 'number' && !isNaN(percent) ? Math.min(Math.max(percent, 0), 100) : 0
+  
   return (
     <div className="progress-bar-container">
       <div className="progress-bar">
         <div
           className="progress-fill"
-          style={{ width: `${Math.min(percent, 100)}%` }}
+          style={{ width: `${safePercent}%` }}
         />
       </div>
       {showLabel && (
-        <span className="progress-label">{Math.round(percent)}%</span>
+        <span className="progress-label">{Math.round(safePercent)}%</span>
       )}
     </div>
   )

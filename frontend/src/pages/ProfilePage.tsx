@@ -695,7 +695,13 @@ const ProfilePage = () => {
           <div className="loading">Загрузка курсов...</div>
         ) : myCourses.length > 0 ? (
           <div className="courses-list">
-            {myCourses.map((course) => (
+            {myCourses.map((course) => {
+              // Безопасно проверяем структуру course
+              if (!course || typeof course !== 'object') {
+                console.warn('⚠️ Некорректный курс:', course)
+                return null
+              }
+              return (
               <div 
                 key={course.id} 
                 className="course-item"
@@ -759,7 +765,8 @@ const ProfilePage = () => {
                   )}
                 </div>
               </div>
-            ))}
+            )
+            })}
           </div>
         ) : (
           <div className="empty-state" style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
