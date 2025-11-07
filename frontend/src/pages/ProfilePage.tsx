@@ -19,16 +19,6 @@ const ProfilePage = () => {
     city: ''
   })
   const [saving, setSaving] = useState(false)
-  const [debugLogs, setDebugLogs] = useState<string[]>([])
-  const [showDebug, setShowDebug] = useState(false)
-  
-  // Функция для добавления логов
-  const addLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString()
-    setDebugLogs(prev => [...prev.slice(-19), `[${timestamp}] ${message}`])
-    // Также логируем в консоль для тех, у кого есть доступ
-    console.log(message)
-  }
 
   useEffect(() => {
     loadProfileAndAccess()
@@ -38,23 +28,19 @@ const ProfilePage = () => {
     try {
       // Проверяем наличие Telegram WebApp и initData
       const webApp = window.Telegram?.WebApp
-      const debugInfo = {
+      console.log('🔍 Проверка Telegram WebApp:', {
         hasWebApp: !!webApp,
         hasInitData: !!webApp?.initData,
         user: webApp?.initDataUnsafe?.user,
         telegramId: webApp?.initDataUnsafe?.user?.id
-      }
-      addLog(`🔍 Проверка Telegram WebApp: ${JSON.stringify(debugInfo)}`)
-      console.log('🔍 Проверка Telegram WebApp:', debugInfo)
+      })
       
       // Сначала пробуем загрузить профиль
       let profileData: Profile | null = null
       
       try {
-        addLog('📡 Запрос профиля...')
         console.log('📡 Запрос профиля...')
         const profileResponse = await profileApi.get()
-        addLog(`✅ Профиль получен: ${JSON.stringify(profileResponse.data)}`)
         console.log('✅ Профиль получен:', profileResponse.data)
         profileData = profileResponse.data
       } catch (error: any) {
@@ -64,53 +50,33 @@ const ProfilePage = () => {
           data: error.response?.data,
           message: error.message,
           url: error.config?.url,
-          headers: error.config?.headers
+          headers: error.config?.headers,
+          hasInitData: !!webApp?.initData,
+          telegramId: webApp?.initDataUnsafe?.user?.id
         })
         
-        // Если 401 - проблема с авторизацией (initData не валиден или отсутствует)
+        // Если 401 - проблема с авторизацией (initData невалиден или отсутствует)
         if (error.response?.status === 401) {
-          addLog('⚠️ Проблема с авторизацией (401)')
-          addLog('💡 Проверьте что открываете Mini App через бота в Telegram')
           console.log('⚠️ Проблема с авторизацией (401)')
-          console.log('💡 Проверьте что:')
-          console.log('   1. Открываете Mini App через бота в Telegram')
-          console.log('   2. Mini App открыт из Telegram (не в браузере)')
-          console.log('   3. initData передается корректно')
-          
-          // Проверяем наличие initData
-          const webApp = window.Telegram?.WebApp
-          if (!webApp?.initData) {
-            addLog('❌ initData отсутствует! Mini App открыт не через Telegram бота')
-            console.error('❌ initData отсутствует! Это означает что Mini App открыт не через Telegram бота')
-          } else {
-            addLog('✅ initData присутствует, но валидация не прошла. Возможно проблема на backend.')
-            console.log('✅ initData присутствует, но валидация не прошла. Возможно проблема на backend.')
-          }
-          
+          console.log('💡 Проверьте что открываете Mini App через бота в Telegram')
+          console.log('💡 Если вы уже зарегистрированы, попробуйте закрыть и открыть Mini App заново')
           setStatus('not_registered')
           return
         }
         
-        // Если 404 - пользователь не зарегистрирован (но backend должен создавать автоматически)
+        // Если 404 - пользователь не найден (но backend должен создавать автоматически)
+        // Это может означать проблему с поиском пользователя в БД
         if (error.response?.status === 404) {
           console.log('⚠️ Пользователь не найден (404)')
-          console.log('💡 Backend должен создавать профиль автоматически. Проверьте логи Railway.')
-          console.log('💡 Возможно проблема с типами данных telegram_id')
-          setStatus('not_registered')
-          return
-        }
-        
-        // Если 500 - ошибка на сервере
-        if (error.response?.status === 500) {
-          console.error('❌ Ошибка сервера (500):', error.response?.data)
-          console.log('💡 Проверьте логи backend для деталей')
-          // Показываем ошибку, но не блокируем - может быть временная проблема
+          console.log('💡 Backend должен создавать профиль автоматически.')
+          console.log('💡 Если вы уже зарегистрированы через бота, это может быть проблема с поиском в БД.')
+          console.log('💡 Попробуйте закрыть и открыть Mini App заново.')
           setStatus('not_registered')
           return
         }
         
         // Другая ошибка - тоже считаем не зарегистрирован
-        console.error('❌ Неизвестная ошибка:', error)
+        console.log('⚠️ Неожиданная ошибка при загрузке профиля')
         setStatus('not_registered')
         return
       }
@@ -161,6 +127,10 @@ const ProfilePage = () => {
         }
       }
 
+      // Сохраняем данные
+      setProfile(profileData)
+      setAccessStatus(accessData)
+      
       // Инициализируем форму редактирования
       if (profileData) {
         setEditForm({
@@ -169,44 +139,27 @@ const ProfilePage = () => {
           email: profileData.email || '',
           city: profileData.city || ''
         })
-        console.log('📝 Форма редактирования инициализирована:', {
-          full_name: profileData.full_name,
-          phone: profileData.phone,
-          email: profileData.email,
-          city: profileData.city
-        })
       }
 
-      // Сохраняем данные ПЕРЕД определением статуса
-      setProfile(profileData)
-      setAccessStatus(accessData)
-      
       // Определяем статус
-      const statusInfo = {
+      console.log('📊 Определение статуса:', {
         hasProfile: !!profileData,
         hasAccessData: !!accessData,
         hasAccess: accessData?.has_access,
-        purchasedCourses: accessData?.purchased_courses_count,
-        profileName: profileData?.full_name || 'нет',
-        profilePhone: profileData?.phone || 'нет'
-      }
-      addLog(`📊 Определение статуса: ${JSON.stringify(statusInfo)}`)
-      console.log('📊 Определение статуса:', statusInfo)
+        purchasedCourses: accessData?.purchased_courses_count
+      })
       
       if (!profileData) {
         // Профиль не загружен - показываем ошибку регистрации
-        addLog('⚠️ Профиль не загружен - статус: not_registered')
         console.log('⚠️ Профиль не загружен - статус: not_registered')
         setStatus('not_registered')
       } else if (!accessData || !accessData.has_access) {
-        // Зарегистрирован, но не оплатил - показываем профиль с ограничением
-        addLog(`⚠️ Доступ ограничен - статус: not_paid, профиль: ${profileData.full_name}`)
-        console.log('⚠️ Доступ ограничен - статус: not_paid, но профиль есть:', profileData)
+        // Зарегистрирован, но не оплатил
+        console.log('⚠️ Доступ ограничен - статус: not_paid')
         setStatus('not_paid')
       } else {
         // Зарегистрирован и оплатил
-        addLog(`✅ Доступ есть - статус: paid, профиль: ${profileData.full_name}`)
-        console.log('✅ Доступ есть - статус: paid, профиль:', profileData)
+        console.log('✅ Доступ есть - статус: paid')
         setStatus('paid')
       }
     } catch (error: any) {
@@ -217,43 +170,14 @@ const ProfilePage = () => {
   }
 
   if (status === 'loading') {
-    return (
-      <div className="profile-page">
-        <div className="loading">Загрузка...</div>
-        {debugLogs.length > 0 && (
-          <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
-            <button 
-              onClick={() => setShowDebug(!showDebug)}
-              style={{ marginBottom: '10px', padding: '5px 10px', fontSize: '12px' }}
-            >
-              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
-            </button>
-            {showDebug && (
-              <div style={{ maxHeight: '200px', overflow: 'auto', fontFamily: 'monospace' }}>
-                {debugLogs.map((log, i) => (
-                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    )
+    return <div className="loading">Загрузка...</div>
   }
 
   if (status === 'not_registered') {
     return (
       <div className="profile-page">
         <div className="error">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h2>Профиль не найден</h2>
-            <button 
-              onClick={() => setShowDebug(!showDebug)}
-              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
-            >
-              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
-            </button>
-          </div>
+          <h2>Профиль не найден</h2>
           <p>Для доступа к платформе необходимо пройти регистрацию через Telegram-бота.</p>
           <div className="register-hint" style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
             <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>📋 Инструкция:</p>
@@ -267,62 +191,27 @@ const ProfilePage = () => {
           <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
             ⚠️ Если вы уже регистрировались, попробуйте закрыть и открыть Mini App заново
           </p>
-          {showDebug && debugLogs.length > 0 && (
-            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
-              <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
-              <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
-                {debugLogs.map((log, i) => (
-                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     )
   }
 
   if (status === 'not_paid') {
-    console.log('🔍 [not_paid] Рендер страницы not_paid, profile:', profile)
-    addLog(`🔍 Рендер страницы not_paid, profile: ${profile ? profile.full_name : 'null'}`)
     return (
       <div className="profile-page">
         <div className="error">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <h2>❌ Доступ ограничен</h2>
-            <button 
-              onClick={() => setShowDebug(!showDebug)}
-              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
-            >
-              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
-            </button>
-          </div>
+          <h2>❌ Доступ ограничен</h2>
           <p>Для доступа к платформе необходимо оплатить курс.</p>
           <p className="register-hint">
             💡 Выберите курс на главной странице и оплатите его для получения доступа
           </p>
-          {profile ? (
+          {profile && (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
               <h3 style={{ marginTop: 0 }}>Ваш профиль:</h3>
-              <p><strong>Имя:</strong> {profile.full_name || 'Не указано'}</p>
+              <p><strong>Имя:</strong> {profile.full_name}</p>
               {profile.phone && <p><strong>Телефон:</strong> {profile.phone}</p>}
-              {profile.email && <p><strong>Email:</strong> {profile.email}</p>}
               {profile.city && <p><strong>Город:</strong> {profile.city}</p>}
-              <p><strong>Баллы:</strong> {profile.points || 0}</p>
-            </div>
-          ) : (
-            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px' }}>
-              <p>⚠️ Профиль загружается...</p>
-            </div>
-          )}
-          {showDebug && debugLogs.length > 0 && (
-            <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
-              <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
-              <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
-                {debugLogs.map((log, i) => (
-                  <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
-                ))}
-              </div>
+              <p><strong>Баллы:</strong> {profile.points}</p>
             </div>
           )}
         </div>
@@ -330,7 +219,11 @@ const ProfilePage = () => {
     )
   }
 
-  // Функции для редактирования профиля
+      // status === 'paid' - показываем профиль
+      if (!profile) {
+        return <div className="loading">Загрузка...</div>
+      }
+
   const handleSave = async () => {
     if (!profile) return
     
@@ -360,36 +253,10 @@ const ProfilePage = () => {
     setIsEditing(false)
   }
 
-  // status === 'paid' - показываем профиль
-  if (status === 'paid') {
-    console.log('🔍 [paid] Рендер страницы paid, profile:', profile)
-    addLog(`🔍 Рендер страницы paid, profile: ${profile ? profile.full_name : 'null'}`)
-    if (!profile) {
-      console.warn('⚠️ [paid] Профиль отсутствует, показываю загрузку')
-      addLog('⚠️ Профиль отсутствует, показываю загрузку')
-      return <div className="loading">Загрузка профиля...</div>
-    }
-
-    console.log('✅ [paid] Рендер полного профиля:', {
-      id: profile.id,
-      full_name: profile.full_name,
-      phone: profile.phone,
-      email: profile.email,
-      city: profile.city,
-      points: profile.points
-    })
-    addLog(`✅ Рендер полного профиля: ${profile.full_name}, телефон: ${profile.phone || 'нет'}`)
-
-    return (
+      return (
         <div className="profile-page">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
             <h1>👤 Мой профиль</h1>
-            <button 
-              onClick={() => setShowDebug(!showDebug)}
-              style={{ padding: '5px 10px', fontSize: '12px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}
-            >
-              {showDebug ? '🔽 Скрыть логи' : '🔼 Показать логи'}
-            </button>
             {!isEditing && (
               <button 
                 onClick={() => setIsEditing(true)}
@@ -562,24 +429,8 @@ const ProfilePage = () => {
           Написать в поддержку
         </a>
       </div>
-
-      {/* Логи для диагностики */}
-      {showDebug && debugLogs.length > 0 && (
-        <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px', fontSize: '12px' }}>
-          <h4 style={{ marginTop: 0 }}>Логи для диагностики:</h4>
-          <div style={{ maxHeight: '300px', overflow: 'auto', fontFamily: 'monospace' }}>
-            {debugLogs.map((log, i) => (
-              <div key={i} style={{ marginBottom: '5px', wordBreak: 'break-word' }}>{log}</div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
-    )
-  }
-
-  // Fallback - не должно произойти, но на всякий случай
-  return <div className="loading">Загрузка...</div>
+  )
 }
 
 export default ProfilePage
