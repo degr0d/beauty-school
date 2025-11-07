@@ -12,54 +12,68 @@ from backend.config import settings
 
 
 # ========================================
-# Ленивая инициализация движка БД
+# Глобальные переменные для engine и session
 # ========================================
-# Проблема: engine создавался при импорте модуля, до создания event loop FastAPI
-# Решение: создаем engine лениво, только когда он нужен
-# В FastAPI engine создается в startup_event, в боте - при первом использовании
+# КРИТИЧНО: engine и session создаются только в startup_event FastAPI
+# Это гарантирует, что они создаются в правильном event loop
 _engine: Optional[AsyncEngine] = None
 _async_session: Optional[async_sessionmaker] = None
 
 
+def create_engine_and_session():
+    """
+    Создать engine и session factory
+    ДОЛЖНО вызываться только в startup_event FastAPI!
+    """
+    global _engine, _async_session
+    
+    print("🔧 Создание engine и session factory...")
+    
+    _engine = create_async_engine(
+        settings.database_url,
+        echo=settings.ENVIRONMENT == "development",  # Логирование SQL-запросов в dev-режиме
+        future=True,
+        pool_size=10,  # Размер пула соединений
+        max_overflow=20,  # Максимум дополнительных соединений
+        pool_pre_ping=True,  # Проверка соединений перед использованием
+        pool_recycle=3600,  # Пересоздание соединений каждый час
+        connect_args={
+            "server_settings": {
+                "application_name": "beauty_school_api"
+            }
+        }
+    )
+    
+    _async_session = async_sessionmaker(
+        _engine,
+        class_=AsyncSession,
+        expire_on_commit=False,  # Объекты не истекают после commit
+        autoflush=False,
+        autocommit=False,
+    )
+    
+    print("✅ Engine и session factory созданы")
+
+
 def get_engine() -> AsyncEngine:
     """
-    Получить или создать engine БД
-    Создается лениво, только когда нужен
-    В FastAPI должен вызываться в startup_event для правильного event loop
+    Получить engine БД
+    Должен быть создан в startup_event перед использованием!
     """
     global _engine
     if _engine is None:
-        _engine = create_async_engine(
-            settings.database_url,
-            echo=settings.ENVIRONMENT == "development",  # Логирование SQL-запросов в dev-режиме
-            future=True,
-            pool_size=10,  # Размер пула соединений
-            max_overflow=20,  # Максимум дополнительных соединений
-            pool_pre_ping=True,  # Проверка соединений перед использованием
-            pool_recycle=3600,  # Пересоздание соединений каждый час
-            connect_args={
-                "server_settings": {
-                    "application_name": "beauty_school_api"
-                }
-            }
-        )
+        raise RuntimeError("Engine не инициализирован! Вызовите create_engine_and_session() в startup_event")
     return _engine
 
 
 def get_async_session() -> async_sessionmaker:
     """
-    Получить или создать фабрику сессий
-    Создается лениво, только когда нужна
+    Получить фабрику сессий
+    Должна быть создана в startup_event перед использованием!
     """
     global _async_session
     if _async_session is None:
-        _async_session = async_sessionmaker(
-            get_engine(),
-            class_=AsyncSession,
-            expire_on_commit=False,  # Объекты не истекают после commit
-            autoflush=False,
-            autocommit=False,
-        )
+        raise RuntimeError("Session factory не инициализирована! Вызовите create_engine_and_session() в startup_event")
     return _async_session
 
 
