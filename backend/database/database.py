@@ -74,9 +74,12 @@ class LazyEngine:
 class LazyAsyncSession:
     """Обертка для ленивой инициализации async_session"""
     def __call__(self):
+        """Вызов async_session() возвращает фабрику сессий (async_sessionmaker)"""
+        # Возвращаем фабрику сессий, которую можно использовать с async with
         return get_async_session()
     
     def __getattr__(self, name):
+        """Доступ к атрибутам фабрики сессий"""
         return getattr(get_async_session(), name)
 
 # Создаем экземпляры для обратной совместимости
