@@ -54,7 +54,50 @@ railway variables set SECRET_KEY=your_secret_key_here
 
 **Важно:** Railway автоматически добавит `DATABASE_URL` после создания PostgreSQL.
 
-### 6. Деплой
+### 6. Создайте два сервиса
+
+**Важно:** Railway нужно создать ДВА сервиса:
+1. **API сервис** (для FastAPI)
+2. **Bot сервис** (для Telegram бота)
+
+#### Вариант A: Через веб-интерфейс (рекомендуется)
+
+1. **Создайте первый сервис (API):**
+   - В Railway проекте: **New** → **GitHub Repo**
+   - Выберите репозиторий: `beauty-school`
+   - Название: `beauty-school-api`
+   - **Settings** → **Start Command:** `python run_api.py`
+   - Добавьте переменные окружения (см. выше)
+
+2. **Создайте второй сервис (Bot):**
+   - В том же проекте Railway: **New** → **GitHub Repo**
+   - Выберите тот же репозиторий: `beauty-school`
+   - Название: `beauty-school-bot`
+   - **Settings** → **Start Command:** `python run_bot_production.py`
+   - Добавьте те же переменные окружения
+
+3. **Подключите оба сервиса к одной БД:**
+   - В каждом сервисе: **Settings** → **Variables**
+   - **Add Reference** → выберите PostgreSQL → `DATABASE_URL`
+
+#### Вариант B: Через CLI
+
+```bash
+# Создайте проект
+railway init
+
+# Создайте API сервис
+railway service create beauty-school-api
+railway service use beauty-school-api
+railway variables set START_COMMAND="python run_api.py"
+
+# Создайте Bot сервис
+railway service create beauty-school-bot
+railway service use beauty-school-bot
+railway variables set START_COMMAND="python run_bot_production.py"
+```
+
+### 7. Деплой
 
 ```bash
 railway up
@@ -63,7 +106,7 @@ railway up
 Railway автоматически:
 - Определит Python проект
 - Установит зависимости из `requirements.txt`
-- Запустит `python run_api.py` (из Procfile)
+- Запустит соответствующий скрипт для каждого сервиса
 
 ### 7. Получите URL
 

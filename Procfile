@@ -1,1 +1,2 @@
-web: python run_all.py
+web: python run_api.py
+bot: python run_bot_production.py

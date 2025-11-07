@@ -59,7 +59,7 @@ cat .env | grep WEBAPP_URL
 
 ### Telegram Mini App не открывается
 
-**Решение:** 
+**Решение:**
 1. Проверьте что `WEBAPP_URL` в `.env` указывает на HTTPS URL
 2. Перезапустите бота
 3. Проверьте что URL начинается с `https://`

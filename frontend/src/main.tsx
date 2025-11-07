@@ -34,12 +34,12 @@ setTimeout(() => {
     console.log('✅ [main.tsx] ReactDOM root создан')
     
     root.render(
-      <React.StrictMode>
+  <React.StrictMode>
         <ErrorBoundary>
-          <App />
+    <App />
         </ErrorBoundary>
-      </React.StrictMode>,
-    )
+  </React.StrictMode>,
+)
     
     console.log('✅ [main.tsx] Приложение отрендерено')
   } catch (error) {

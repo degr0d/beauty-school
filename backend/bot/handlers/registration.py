@@ -126,18 +126,36 @@ async def finalize_registration(message: Message, state: FSMContext, phone: str)
     telegram_id = message.from_user.id
     username = message.from_user.username
     
-    # Сохраняем в БД
+    # Проверяем, не зарегистрирован ли пользователь уже
     async with async_session() as session:
-        user = User(
-            telegram_id=telegram_id,
-            username=username,
-            full_name=fullname,
-            phone=phone,
-            consent_personal_data=True
+        from sqlalchemy import select
+        result = await session.execute(
+            select(User).where(User.telegram_id == telegram_id)
         )
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
+        existing_user = result.scalar_one_or_none()
+        
+        if existing_user:
+            # Пользователь уже зарегистрирован - обновляем данные
+            existing_user.full_name = fullname
+            existing_user.phone = phone
+            existing_user.username = username
+            await session.commit()
+            await session.refresh(existing_user)
+            user = existing_user
+            print(f"✅ [Registration] Обновлен существующий пользователь: {user.full_name} (ID: {user.telegram_id})")
+        else:
+            # Новый пользователь - создаем
+            user = User(
+                telegram_id=telegram_id,
+                username=username,
+                full_name=fullname,
+                phone=phone,
+                consent_personal_data=True
+            )
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+            print(f"✅ [Registration] Создан новый пользователь: {user.full_name} (ID: {user.telegram_id})")
     
     # Очищаем FSM
     await state.clear()
