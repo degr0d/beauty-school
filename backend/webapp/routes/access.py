@@ -3,7 +3,7 @@ API эндпоинты для проверки доступа пользоват
 """
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_session, User, UserCourse, Payment
@@ -112,9 +112,14 @@ async def check_course_access(
             "purchased_at": None  # Админы не покупают, у них всегда доступ
         }
     
-    # Получаем пользователя
+    # Получаем пользователя - используем OR условие для поиска как int и как строка одновременно
     result = await session.execute(
-        select(User).where(User.telegram_id == telegram_id)
+        select(User).where(
+            or_(
+                User.telegram_id == telegram_id,
+                User.telegram_id == str(telegram_id)
+            )
+        )
     )
     db_user = result.scalar_one_or_none()
     
