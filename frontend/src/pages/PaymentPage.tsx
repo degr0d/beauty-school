@@ -97,8 +97,8 @@ const PaymentPage = () => {
           <>
             <div className="success-icon">✅</div>
             <h1>Оплата успешна!</h1>
-            {course && (
-              <p>Курс "{course.title}" успешно приобретён</p>
+            {course !== null && (
+              <p>Курс "{String(course.title || '')}" успешно приобретён</p>
             )}
             <p className="payment-amount">Сумма: {status.amount} ₽</p>
             <button 

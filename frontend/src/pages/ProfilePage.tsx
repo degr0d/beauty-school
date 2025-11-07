@@ -164,7 +164,7 @@ const ProfilePage = () => {
         <div className="error">
           <h2>🔒 Доступ ограничен</h2>
           <p>Для доступа к платформе необходимо приобрести хотя бы один курс.</p>
-          {profile && (
+          {profile !== null && (
             <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f5f5f5', borderRadius: '8px' }}>
               <h3>Ваш профиль:</h3>
               <p><strong>Имя:</strong> {String(profile.full_name || 'Не указано')}</p>
