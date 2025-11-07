@@ -26,6 +26,8 @@ async def get_profile(
     Автоматически создает профиль для любого пользователя, если его нет в БД
     """
     print("🚀 [Profile] ФУНКЦИЯ get_profile ВЫЗВАНА!")
+    print(f"   Session type: {type(session)}")
+    print(f"   Session: {session}")
     try:
         # Явно преобразуем telegram_id в int для корректного сравнения с БД
         telegram_id_raw = user["id"]
@@ -39,9 +41,11 @@ async def get_profile(
         
         print(f"🔍 [Profile] Запрос профиля для telegram_id={telegram_id} (type: {type(telegram_id)}, raw: {telegram_id_raw}, raw_type: {type(telegram_id_raw)}), is_admin={is_admin}")
         print(f"   Данные из Telegram: username={user.get('username')}, first_name={user.get('first_name')}, last_name={user.get('last_name')}")
+        print(f"   Session closed: {session.is_closed if hasattr(session, 'is_closed') else 'unknown'}")
         
         # Ищем пользователя - пробуем с явным преобразованием типа
         # Используем OR условие для поиска как int и как строка одновременно
+        print(f"   Выполняю запрос к БД...")
         result = await session.execute(
             select(User).where(
                 or_(
@@ -51,6 +55,7 @@ async def get_profile(
             )
         )
         db_user = result.scalar_one_or_none()
+        print(f"   Результат запроса: {db_user}")
         
         if db_user:
             print(f"✅ [Profile] Пользователь найден: telegram_id={db_user.telegram_id} (type: {type(db_user.telegram_id)})")
