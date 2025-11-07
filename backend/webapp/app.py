@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import settings
 from backend.webapp.routes import courses, lessons, profile, progress, communities, payment, access
 from backend.webapp.middleware import TelegramAuthMiddleware
-from backend.database.database import get_engine, get_async_session
+from backend.database.database import create_engine_and_session, get_engine, get_async_session
 
 
 def create_app() -> FastAPI:
@@ -88,13 +88,16 @@ def create_app() -> FastAPI:
     async def startup_event():
         """
         Инициализация при запуске приложения
-        Создаем engine в правильном event loop и сохраняем в app.state
+        Создаем engine и session в правильном event loop
         """
-        # Инициализируем engine при старте приложения в правильном event loop
-        # Сохраняем в app.state для доступа из других мест
+        # КРИТИЧНО: создаем engine и session в startup_event
+        # Это гарантирует правильный event loop
+        create_engine_and_session()
+        
+        # Сохраняем в app.state для доступа из других мест (опционально)
         app.state.engine = get_engine()
         app.state.async_session = get_async_session()
-        print("✅ Database engine initialized in app.state")
+        print("✅ Database engine and session initialized in startup_event")
     
     @app.on_event("shutdown")
     async def shutdown_event():
