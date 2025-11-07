@@ -124,7 +124,7 @@ class TelegramAuthMiddleware(BaseHTTPMiddleware):
 # ========================================
 from fastapi import Depends
 
-async def get_telegram_user(request: Request) -> dict:
+def get_telegram_user(request: Request) -> dict:
     """
     Dependency для FastAPI эндпоинтов
     Возвращает данные пользователя из Telegram
@@ -144,7 +144,7 @@ async def get_telegram_user(request: Request) -> dict:
     init_data = request.headers.get("X-Telegram-Init-Data")
     if init_data:
         print(f"🔍 [get_telegram_user] initData найден в заголовке, валидирую...")
-        # Валидируем initData напрямую (синхронная функция, но вызывается в async контексте)
+        # Валидируем initData напрямую
         user = validate_init_data_direct(init_data)
         if user:
             print(f"✅ [get_telegram_user] Пользователь авторизован: telegram_id={user.get('id')}")
