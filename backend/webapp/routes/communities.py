@@ -32,6 +32,7 @@ class CommunityResponse(BaseModel):
 # ========================================
 # Эндпоинты
 # ========================================
+@router.get("", response_model=List[CommunityResponse])
 @router.get("/", response_model=List[CommunityResponse])
 async def get_communities(
     type: Optional[str] = None,  # Фильтр: city или profession
