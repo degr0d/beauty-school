@@ -14,6 +14,7 @@ from backend.webapp.middleware import get_telegram_user
 router = APIRouter()
 
 
+@router.get("", response_model=List[CourseResponse])
 @router.get("/", response_model=List[CourseResponse])
 async def get_courses(
     category: Optional[str] = None,
