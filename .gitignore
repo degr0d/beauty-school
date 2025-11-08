@@ -56,7 +56,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-package-lock.json
+# package-lock.json - НЕ игнорируем, нужен для npm ci в CI/CD
 yarn.lock
 
 # Build outputs

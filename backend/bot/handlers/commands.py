@@ -51,18 +51,45 @@ async def cmd_profile(message: Message):
         )
         return
     
-    # Формируем информацию о профиле
+    # Проверяем формат created_at для диагностики
+    created_at_str = "❓ Неизвестно"
+    created_at_type = "unknown"
+    try:
+        if hasattr(user.created_at, 'isoformat'):
+            created_at_str = user.created_at.isoformat()[:19]  # Берем только дату и время
+            created_at_type = "datetime (OK)"
+        elif hasattr(user.created_at, 'strftime'):
+            created_at_str = user.created_at.strftime('%d.%m.%Y %H:%M:%S')
+            created_at_type = "datetime (OK)"
+        else:
+            created_at_str = str(user.created_at)
+            created_at_type = f"{type(user.created_at).__name__} (⚠️)"
+    except Exception as e:
+        created_at_str = f"Ошибка: {str(e)}"
+        created_at_type = "ERROR"
+    
+    # Формируем информацию о профиле с диагностикой
     profile_text = (
         f"<b>👤 Твой профиль</b>\n\n"
-        f"ФИО: {user.full_name}\n"
-        f"Телефон: {user.phone}\n"
-        f"Username: @{user.username or 'не указан'}\n"
-        f"Баллы: {user.points} 🏆\n"
-        f"Дата регистрации: {user.created_at.strftime('%d.%m.%Y')}\n"
+        f"📝 ФИО: {user.full_name}\n"
+        f"📞 Телефон: {user.phone}\n"
+        f"🔗 Username: @{user.username or 'не указан'}\n"
+        f"🏆 Баллы: {user.points}\n"
+        f"📅 Дата регистрации: {created_at_str}\n"
     )
     
     if user.city:
-        profile_text += f"Город: {user.city}\n"
+        profile_text += f"📍 Город: {user.city}\n"
+    
+    # Диагностическая информация (только для отладки)
+    profile_text += (
+        f"\n🔍 <b>Диагностика:</b>\n"
+        f"ID: {user.id}\n"
+        f"Telegram ID: {user.telegram_id}\n"
+        f"Created at тип: {created_at_type}\n"
+    )
+    
+    profile_text += f"\n💡 Открой Mini App для редактирования профиля!"
     
     await message.answer(profile_text, parse_mode="HTML")
 

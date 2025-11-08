@@ -53,7 +53,13 @@ def create_app() -> FastAPI:
     # ========================================
     # Middleware: Проверка Telegram initData
     # ========================================
-    # app.add_middleware(TelegramAuthMiddleware)  # Раскомментировать для продакшена
+    # Включаем middleware только в продакшене
+    # В режиме разработки используем обход через X-Telegram-User-ID
+    if settings.ENVIRONMENT == "production":
+        app.add_middleware(TelegramAuthMiddleware)
+        print("🔒 [App] TelegramAuthMiddleware включен (production mode)")
+    else:
+        print("🔧 [App] TelegramAuthMiddleware отключен (development mode - используем X-Telegram-User-ID)")
     
     # ========================================
     # Подключение роутеров
