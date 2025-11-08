@@ -5,6 +5,7 @@
 
 import asyncio
 import logging
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 import uvicorn
@@ -12,7 +13,7 @@ from dotenv import load_dotenv
 
 from backend.config import settings
 from backend.bot.bot import setup_bot_handlers
-from backend.database.database import init_db
+from backend.database.database import init_db, create_engine_and_session
 from backend.webapp.app import create_app
 
 # Загружаем .env
@@ -101,9 +102,16 @@ async def main():
     logger.info("=" * 60)
     
     # Инициализация базы данных
+    # Сначала создаем engine и session factory
     logger.info("Инициализация базы данных...")
-    await init_db()
-    logger.info("✅ База данных готова")
+    create_engine_and_session()
+    # Теперь можем инициализировать БД (создать таблицы)
+    try:
+        await init_db()
+        logger.info("✅ База данных готова")
+    except Exception as db_error:
+        logger.warning(f"⚠️ Ошибка инициализации БД: {db_error}")
+        logger.warning("💡 Продолжаем запуск - таблицы могут быть созданы через startup_event")
     
     logger.info("=" * 60)
     logger.info("🚀 Запуск сервисов...")
@@ -113,13 +121,21 @@ async def main():
     # Если бот не запустится - API продолжит работать
     bot_task = None
     
-    try:
-        # Создаем задачу для бота (не блокируем API если бот упадет)
-        bot_task = asyncio.create_task(start_bot())
-        logger.info("Задача бота создана")
-    except Exception as bot_error:
-        logger.warning("⚠️ Не удалось создать задачу бота, но API запустится")
-        logger.warning(f"Ошибка: {bot_error}")
+    # В режиме разработки можно отключить бота, если он уже запущен на сервере
+    # Установите SKIP_BOT=true в .env чтобы пропустить запуск бота локально
+    skip_bot = os.getenv("SKIP_BOT", "false").lower() == "true"
+    
+    if skip_bot:
+        logger.info("⏭️  Пропуск запуска бота (SKIP_BOT=true)")
+        logger.info("💡 Бот уже запущен на сервере, локально не нужен")
+    else:
+        try:
+            # Создаем задачу для бота (не блокируем API если бот упадет)
+            bot_task = asyncio.create_task(start_bot())
+            logger.info("Задача бота создана")
+        except Exception as bot_error:
+            logger.warning("⚠️ Не удалось создать задачу бота, но API запустится")
+            logger.warning(f"Ошибка: {bot_error}")
     
     # Запускаем API (всегда должен работать)
     try:

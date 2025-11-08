@@ -51,7 +51,7 @@ jobs:
 
       - name: 📦 Установка зависимостей
         working-directory: ./frontend
-        run: npm install
+        run: npm ci
 
       - name: 🔨 Сборка frontend
         working-directory: ./frontend

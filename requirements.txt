@@ -70,3 +70,4 @@ gunicorn==23.0.0
 # Monitoring (опционально)
 # sentry-sdk==2.6.0  # Отслеживание ошибок
 
+aiosqlite

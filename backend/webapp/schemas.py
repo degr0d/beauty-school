@@ -91,31 +91,27 @@ class ProfileResponse(BaseModel):
     username: Optional[str] = None
     full_name: str
     phone: str
-    email: Optional[str] = None
     city: Optional[str] = None
     points: int
-    created_at: str  # Изменено на str для гарантированной сериализации
+    created_at: str  # Изменено с datetime на str для корректной JSON сериализации
     
     class Config:
         from_attributes = True
         
     @classmethod
-    def from_user(cls, user, email: Optional[str] = None):
+    def from_orm_with_datetime(cls, db_user):
         """
-        Создает ProfileResponse из User модели с правильной сериализацией datetime
+        Создает ProfileResponse из ORM объекта, преобразуя datetime в строку
         """
-        # Гарантируем что created_at это строка
-        created_at_str = user.created_at.isoformat() if hasattr(user.created_at, 'isoformat') else str(user.created_at)
-        
+        created_at_str = db_user.created_at.isoformat() if hasattr(db_user.created_at, 'isoformat') else str(db_user.created_at)
         return cls(
-            id=user.id,
-            telegram_id=user.telegram_id,
-            username=user.username,
-            full_name=user.full_name,
-            phone=user.phone,
-            email=email,
-            city=user.city,
-            points=user.points,
+            id=db_user.id,
+            telegram_id=db_user.telegram_id,
+            username=db_user.username,
+            full_name=db_user.full_name,
+            phone=db_user.phone,
+            city=db_user.city,
+            points=db_user.points,
             created_at=created_at_str
         )
 
@@ -126,7 +122,6 @@ class ProfileUpdateRequest(BaseModel):
     """
     full_name: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[str] = None
     city: Optional[str] = None
 
 

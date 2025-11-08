@@ -18,6 +18,8 @@ import PaymentPage from './pages/PaymentPage'
 
 // Components
 import Navigation from './components/Navigation'
+import DevToolsButton from './components/DevToolsButton'
+import DevModeSelector from './components/DevModeSelector'
 
 function App() {
   console.log('🎯 [App] Компонент App рендерится')
@@ -27,6 +29,18 @@ function App() {
     console.log('🚀 [App] Инициализация приложения...')
     console.log('📍 [App] Текущий URL:', window.location.href)
     console.log('📍 [App] Telegram WebApp доступен:', !!window.Telegram?.WebApp)
+    
+    // Информация о DevTools
+    if (!window.Telegram?.WebApp || window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.log('🔧 [DevTools] Режим разработки активен')
+      console.log('💡 [DevTools] Горячие клавиши:')
+      console.log('   - Alt + D: Показать инструкции по DevTools')
+      console.log('   - Ctrl+Shift+I (Win/Linux) или Cmd+Option+I (Mac): Открыть DevTools')
+      console.log('   - F12: Открыть DevTools (если доступно)')
+    } else {
+      console.log('💡 [DevTools] В Telegram WebApp F12 не работает')
+      console.log('   Добавьте ?dev=true к URL для показа кнопки DevTools')
+    }
     
     // Инициализация Telegram WebApp
     if (webApp) {
@@ -105,6 +119,24 @@ function App() {
     }
   }, [])
 
+  // Добавляем глобальные горячие клавиши для DevTools
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Alt+D для открытия DevTools (работает даже в Telegram WebApp)
+      if (e.altKey && e.key === 'd') {
+        e.preventDefault()
+        console.log('🔧 Горячая клавиша Alt+D нажата - откройте DevTools вручную')
+        console.log('💡 В Telegram WebApp используйте:')
+        console.log('   1. Откройте приложение в браузере напрямую')
+        console.log('   2. Или используйте удаленную отладку')
+        console.log('   3. Или добавьте ?dev=true к URL для показа кнопки DevTools')
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   console.log('🎯 [App] Рендер JSX')
   
   try {
@@ -113,6 +145,12 @@ function App() {
         <div className="app">
           {/* Навигация */}
           <Navigation />
+          
+          {/* Кнопка DevTools для режима разработки */}
+          <DevToolsButton />
+          
+          {/* Селектор Telegram ID для режима разработки */}
+          <DevModeSelector />
           
           {/* Контент */}
           <main className="content">

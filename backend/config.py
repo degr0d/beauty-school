@@ -35,20 +35,20 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_NAME: str = "beauty_db"
-    DB_USER: str = "beauty_user"
-    DB_PASSWORD: str = ""
+    DB_USER: str = "postgres"  # По умолчанию для Docker
+    DB_PASSWORD: str = "2580"  # По умолчанию для Docker (из docker-compose.yml)
     
     @property
     def database_url(self) -> str:
-        """Строка подключения к PostgreSQL (async)"""
+        """Строка подключения к БД (async)"""
         # Если Railway предоставил DATABASE_URL - используем его
-        if self.DATABASE_URL:
+        if self.DATABASE_URL and not self.DATABASE_URL.startswith("${"):
             # Конвертируем postgresql:// в postgresql+asyncpg://
             if self.DATABASE_URL.startswith("postgresql://"):
                 return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
             return self.DATABASE_URL
         
-        # Иначе используем отдельные параметры
+        # Используем отдельные параметры PostgreSQL
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @property
@@ -86,6 +86,8 @@ class Settings(BaseSettings):
     BACKEND_URL: str = "http://localhost:8000"
     SECRET_KEY: str = "change_me_in_production"
     ENVIRONMENT: str = "development"  # development / production
+    DEV_MODE: bool = True  # Режим разработки - позволяет работать без Telegram initData
+    DEV_TELEGRAM_ID: int = 0  # Telegram ID для локальной разработки (если 0 - используется из заголовка X-Telegram-User-ID)
     
     # ========================================
     # File Storage

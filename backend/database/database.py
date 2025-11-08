@@ -29,20 +29,46 @@ def create_engine_and_session():
     
     print("🔧 Создание engine и session factory...")
     
-    _engine = create_async_engine(
-        settings.database_url,
-        echo=settings.ENVIRONMENT == "development",  # Логирование SQL-запросов в dev-режиме
-        future=True,
-        pool_size=10,  # Размер пула соединений
-        max_overflow=20,  # Максимум дополнительных соединений
-        pool_pre_ping=True,  # Проверка соединений перед использованием
-        pool_recycle=3600,  # Пересоздание соединений каждый час
-        connect_args={
-            "server_settings": {
-                "application_name": "beauty_school_api"
+    # КРИТИЧНО: Очищаем метаданные Base перед созданием engine
+    # Это гарантирует, что SQLAlchemy перечитает структуру моделей
+    # Очищаем ДО импорта моделей, чтобы они зарегистрировались заново
+    Base.metadata.clear()
+    # Теперь импортируем модели - они автоматически зарегистрируются в Base.metadata
+    from backend.database.models import User, Course, Lesson, UserCourse, UserProgress, Achievement, UserAchievement, Community, Payment
+    
+    # Параметры для разных типов БД
+    db_url = settings.database_url
+    is_sqlite = db_url.startswith("sqlite")
+    
+    if is_sqlite:
+        # SQLite для локальной разработки
+        _engine = create_async_engine(
+            db_url,
+            echo=settings.ENVIRONMENT == "development",
+            future=True,
+            connect_args={"check_same_thread": False}  # Для SQLite
+        )
+    else:
+        # PostgreSQL для продакшена
+        # Важно: statement_cache_size передается через connect_args для asyncpg
+        # Это отключает кеширование prepared statements, что решает проблему
+        # когда структура таблицы изменилась, но asyncpg использует закешированный statement
+        _engine = create_async_engine(
+            db_url,
+            echo=settings.ENVIRONMENT == "development",
+            future=True,
+            pool_size=10,
+            max_overflow=20,
+            pool_pre_ping=True,
+            pool_recycle=3600,
+            pool_reset_on_return='commit',  # Сбрасываем соединения при возврате в пул
+            connect_args={
+                "server_settings": {
+                    "application_name": "beauty_school_api"
+                },
+                "statement_cache_size": 0  # Отключаем кеш prepared statements в asyncpg
             }
-        }
-    )
+        )
     
     _async_session = async_sessionmaker(
         _engine,

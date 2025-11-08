@@ -5,6 +5,7 @@ API эндпоинты для профиля пользователя
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
 
 from backend.database import get_session, User
 from backend.webapp.schemas import ProfileResponse, ProfileUpdateRequest
@@ -66,13 +67,15 @@ async def get_profile(
             full_name = f"{first_name} {last_name}".strip() or ("Администратор" if is_admin else "Пользователь")
             
             # Создаем пользователя - гарантируем что telegram_id это int
+            from datetime import datetime
             db_user = User(
                 telegram_id=int(telegram_id),  # Явно преобразуем в int
                 username=username,
                 full_name=full_name,
                 phone="не указан",  # Пользователь может указать позже через редактирование профиля
                 consent_personal_data=True,
-                is_active=True
+                is_active=True,
+                created_at=datetime.now()  # Явно устанавливаем created_at
             )
             session.add(db_user)
             await session.commit()
@@ -81,59 +84,60 @@ async def get_profile(
             print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
             print(f"   Данные после создания: full_name={db_user.full_name}, phone={db_user.phone}, username={db_user.username}")
             
-            # Безопасно получаем email (на случай если миграция не применена)
+            # Преобразуем datetime в строку для корректной JSON сериализации
             try:
-                email = db_user.email
-            except AttributeError:
-                email = None
-                print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
+                if db_user.created_at is None:
+                    created_at_str = ""
+                elif hasattr(db_user.created_at, 'isoformat'):
+                    created_at_str = db_user.created_at.isoformat()
+                else:
+                    created_at_str = str(db_user.created_at)
+            except Exception as e:
+                print(f"⚠️ [Profile] Ошибка преобразования created_at: {e}")
+                from datetime import datetime
+                created_at_str = datetime.now().isoformat()
             
-            profile_data = {
-                "id": db_user.id,
-                "telegram_id": db_user.telegram_id,
-                "username": db_user.username,
-                "full_name": db_user.full_name,
-                "phone": db_user.phone,
-                "email": email,
-                "city": db_user.city,
-                "points": db_user.points,
-                "created_at": db_user.created_at
-            }
-            print(f"📤 [Profile] Возвращаю данные нового профиля: {profile_data}")
+            response = ProfileResponse(
+                id=db_user.id,
+                telegram_id=db_user.telegram_id,
+                username=db_user.username,
+                full_name=db_user.full_name,
+                phone=db_user.phone,
+                city=db_user.city,
+                points=db_user.points,
+                created_at=created_at_str
+            )
             
-            # Используем метод from_user для правильной сериализации
-            response = ProfileResponse.from_user(db_user, email=email)
-            
-            print(f"📤 [Profile] ProfileResponse создан для нового пользователя: full_name={response.full_name}, phone={response.phone}, created_at={response.created_at} (type: {type(response.created_at)})")
+            print(f"📤 [Profile] ProfileResponse создан для нового пользователя: full_name={response.full_name}, phone={response.phone}")
             return response
         else:
             print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, phone={db_user.phone})")
         
-        # Безопасно получаем email (на случай если миграция не применена)
+        # Преобразуем datetime в строку для корректной JSON сериализации
         try:
-            email = db_user.email
-        except AttributeError:
-            email = None
-            print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
+            if db_user.created_at is None:
+                created_at_str = ""
+            elif hasattr(db_user.created_at, 'isoformat'):
+                created_at_str = db_user.created_at.isoformat()
+            else:
+                created_at_str = str(db_user.created_at)
+        except Exception as e:
+            print(f"⚠️ [Profile] Ошибка преобразования created_at: {e}")
+            from datetime import datetime
+            created_at_str = datetime.now().isoformat()
         
-        # Логируем все данные перед возвратом
-        profile_data = {
-            "id": db_user.id,
-            "telegram_id": db_user.telegram_id,
-            "username": db_user.username,
-            "full_name": db_user.full_name,
-            "phone": db_user.phone,
-            "email": email,
-            "city": db_user.city,
-            "points": db_user.points,
-            "created_at": db_user.created_at
-        }
-        print(f"📤 [Profile] Возвращаю данные профиля: {profile_data}")
+        response = ProfileResponse(
+            id=db_user.id,
+            telegram_id=db_user.telegram_id,
+            username=db_user.username,
+            full_name=db_user.full_name,
+            phone=db_user.phone,
+            city=db_user.city,
+            points=db_user.points,
+            created_at=created_at_str
+        )
         
-        # Используем метод from_user для правильной сериализации
-        response = ProfileResponse.from_user(db_user, email=email)
-        
-        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, email={response.email}, city={response.city}, created_at={response.created_at} (type: {type(response.created_at)})")
+        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, city={response.city}")
         return response
     except Exception as e:
         print(f"❌ [Profile] ОШИБКА при получении профиля: {e}")
@@ -172,76 +176,68 @@ async def update_profile(
         db_user.full_name = profile_data.full_name
     if profile_data.phone:
         db_user.phone = profile_data.phone
-    if profile_data.email is not None:  # Разрешаем пустую строку для очистки email
-        db_user.email = profile_data.email
     if profile_data.city is not None:  # Разрешаем пустую строку для очистки city
         db_user.city = profile_data.city
     
     await session.commit()
     await session.refresh(db_user)
     
-    # Безопасно получаем email (на случай если миграция не применена)
+    # Преобразуем datetime в строку для корректной JSON сериализации
     try:
-        email = db_user.email
-    except AttributeError:
-        email = None
+        if db_user.created_at is None:
+            created_at_str = ""
+        elif hasattr(db_user.created_at, 'isoformat'):
+            created_at_str = db_user.created_at.isoformat()
+        else:
+            created_at_str = str(db_user.created_at)
+    except Exception as e:
+        print(f"⚠️ [Profile] Ошибка преобразования created_at: {e}")
+        from datetime import datetime
+        created_at_str = datetime.now().isoformat()
     
-    # Используем метод from_user для правильной сериализации
-    return ProfileResponse.from_user(db_user, email=email)
+    return ProfileResponse(
+        id=db_user.id,
+        telegram_id=db_user.telegram_id,
+        username=db_user.username,
+        full_name=db_user.full_name,
+        phone=db_user.phone,
+        city=db_user.city,
+        points=db_user.points,
+        created_at=created_at_str
+    )
 
 
-# ========================================
-# Тестовый эндпоинт для диагностики (только для разработки)
-# ========================================
-@router.get("/test-format")
-async def test_profile_format(
+@router.get("/dev/users")
+async def get_dev_users(
+    limit: int = 20,
     session: AsyncSession = Depends(get_session)
 ):
     """
-    Тестовый эндпоинт для проверки формата ответа ProfileResponse
-    Без авторизации, только для диагностики
+    Получить список пользователей для режима разработки
+    Доступно только в режиме разработки (DEV_MODE=True)
     """
-    from backend.database import User
+    if not settings.DEV_MODE:
+        raise HTTPException(status_code=403, detail="This endpoint is only available in development mode")
     
-    # Получаем первого пользователя для теста
-    result = await session.execute(select(User).limit(1))
-    test_user = result.scalar_one_or_none()
+    # Получаем список пользователей
+    result = await session.execute(
+        select(User).order_by(User.created_at.desc()).limit(limit)
+    )
+    users = result.scalars().all()
     
-    if not test_user:
-        return {
-            "error": "Нет пользователей в БД для теста",
-            "message": "Создайте пользователя через /start в боте"
-        }
+    users_list = []
+    for u in users:
+        users_list.append({
+            "telegram_id": str(u.telegram_id),
+            "full_name": u.full_name or "Без имени",
+            "username": u.username,
+            "phone": u.phone or "не указан",
+            "id": u.id
+        })
     
-    # Безопасно получаем email
-    try:
-        email = test_user.email
-    except AttributeError:
-        email = None
-    
-    # Создаем ответ используя наш метод
-    response = ProfileResponse.from_user(test_user, email=email)
-    
-    # Возвращаем информацию о формате
     return {
-        "test_user_id": test_user.id,
-        "profile_response": {
-            "id": response.id,
-            "telegram_id": response.telegram_id,
-            "full_name": response.full_name,
-            "phone": response.phone,
-            "email": response.email,
-            "city": response.city,
-            "points": response.points,
-            "created_at": response.created_at,
-            "created_at_type": type(response.created_at).__name__
-        },
-        "raw_created_at": {
-            "value": str(test_user.created_at),
-            "type": type(test_user.created_at).__name__,
-            "has_isoformat": hasattr(test_user.created_at, 'isoformat')
-        },
-        "message": "✅ Формат правильный! created_at это строка."
+        "users": users_list,
+        "total": len(users_list)
     }
 
 
@@ -251,5 +247,4 @@ async def test_profile_format(
 # GET /api/profile
 # PUT /api/profile
 # Body: {"full_name": "Иванова Мария", "city": "Москва"}
-# GET /api/profile/test-format - Тестовый эндпоинт для диагностики
 

@@ -20,29 +20,52 @@ const api = axios.create({
 // Добавляем interceptor для автоматической отправки Telegram initData
 api.interceptors.request.use((config) => {
   const webApp = window.Telegram?.WebApp
-  if (webApp?.initData) {
-    // Режим продакшена: используем реальный Telegram initData
-    config.headers['X-Telegram-Init-Data'] = webApp.initData
-    console.log('📤 [API] Отправка запроса с initData:', {
-      url: config.url,
-      hasInitData: !!webApp.initData,
-      telegramId: webApp.initDataUnsafe?.user?.id
-    })
-  } else {
-    // Режим разработки: используем заголовок X-Telegram-User-ID для локального тестирования
-    const devTelegramId = localStorage.getItem('dev_telegram_id')
-    if (devTelegramId) {
-      config.headers['X-Telegram-User-ID'] = devTelegramId
-      console.log('🔧 [DEV MODE] Используем dev_telegram_id из localStorage:', devTelegramId)
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.includes('localhost')
+  
+  // На localhost ВСЕГДА используем режим разработки
+  if (isLocalhost) {
+    // Проверяем, есть ли реальный initData (не пустая строка)
+    const hasRealInitData = webApp?.initData && webApp.initData.trim().length > 0
+    
+    if (hasRealInitData) {
+      // Если есть реальный initData - используем его
+      config.headers['X-Telegram-Init-Data'] = webApp.initData
+      console.log('📤 [API] Отправка запроса с initData:', {
+        url: config.url,
+        hasInitData: !!webApp.initData,
+        telegramId: webApp.initDataUnsafe?.user?.id
+      })
     } else {
-      // Пробуем получить из переменной окружения или используем дефолтный админский ID
-      const defaultDevId = import.meta.env.VITE_DEV_TELEGRAM_ID || '310836227' // Ваш админский ID
-      config.headers['X-Telegram-User-ID'] = defaultDevId
-      console.log('🔧 [DEV MODE] Используем дефолтный telegram_id:', defaultDevId)
-      console.log('💡 [DEV MODE] Чтобы использовать другой ID, выполните в консоли:')
-      console.log('   localStorage.setItem("dev_telegram_id", "YOUR_TELEGRAM_ID")')
+      // РЕЖИМ РАЗРАБОТКИ: На localhost используем X-Telegram-User-ID
+      // даже если есть Telegram WebApp, но нет реального initData
+      let devTelegramId = localStorage.getItem('dev_telegram_id')
+      if (!devTelegramId) {
+        // Используем дефолтный ID для разработки
+        devTelegramId = '123456789'
+        localStorage.setItem('dev_telegram_id', devTelegramId)
+        console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки:', devTelegramId)
+        console.log('💡 [DEV MODE] Чтобы изменить, выполните в консоли: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
+      }
+      
+      config.headers['X-Telegram-User-ID'] = devTelegramId
+      console.log('🔧 [DEV MODE] Отправка запроса с X-Telegram-User-ID:', devTelegramId)
     }
-    console.warn('⚠️ [API] Запрос без initData (режим разработки):', config.url)
+  } else {
+    // НЕ localhost - используем стандартную логику
+    if (webApp?.initData && webApp.initData.trim().length > 0) {
+      config.headers['X-Telegram-Init-Data'] = webApp.initData
+      console.log('📤 [API] Отправка запроса с initData:', {
+        url: config.url,
+        hasInitData: !!webApp.initData,
+        telegramId: webApp.initDataUnsafe?.user?.id
+      })
+    } else {
+      // На НЕ localhost без initData - предупреждаем
+      console.warn('⚠️ [API] Запрос без initData:', config.url)
+      console.warn('   Это может быть проблемой если открыто не через Telegram бота')
+    }
   }
   return config
 }, (error) => {
@@ -139,6 +162,19 @@ export interface Profile {
   created_at: string
 }
 
+export interface DevUser {
+  telegram_id: string
+  full_name: string
+  username?: string
+  phone: string
+  id: number
+}
+
+export interface DevUsersResponse {
+  users: DevUser[]
+  total: number
+}
+
 export const profileApi = {
   // Получить профиль
   get: () =>
@@ -147,6 +183,10 @@ export const profileApi = {
   // Обновить профиль
   update: (data: { full_name?: string; phone?: string; email?: string; city?: string }) =>
     api.put<Profile>('/profile', data),
+
+  // Получить список пользователей (только для разработки)
+  getDevUsers: () =>
+    api.get<DevUsersResponse>('/profile/dev/users'),
 }
 
 // ========================================

@@ -7,13 +7,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database import get_session, Course, Lesson, UserCourse, User, UserProgress
+from backend.database import get_session, Course, Lesson, UserCourse, User
 from backend.webapp.schemas import CourseResponse, CourseDetailResponse
 from backend.webapp.middleware import get_telegram_user
 
 router = APIRouter()
 
 
+@router.get("", response_model=List[CourseResponse])
 @router.get("/", response_model=List[CourseResponse])
 async def get_courses(
     category: Optional[str] = None,

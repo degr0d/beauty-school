@@ -157,3 +157,4 @@ ngrok.yml
 !.vscode/launch.json
 !.vscode/keybindings.json
 
+.vercel
