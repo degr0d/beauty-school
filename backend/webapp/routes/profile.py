@@ -64,7 +64,14 @@ async def get_profile(
             username = user.get("username")
             first_name = user.get("first_name", "")
             last_name = user.get("last_name", "")
-            full_name = f"{first_name} {last_name}".strip() or ("Администратор" if is_admin else "Пользователь")
+            
+            # В режиме разработки, если first_name и last_name пустые, используем "Пользователь"
+            # Но лучше попробовать найти пользователя в БД по telegram_id еще раз
+            if not first_name and not last_name:
+                # Это режим разработки - используем дефолтное имя
+                full_name = "Пользователь"
+            else:
+                full_name = f"{first_name} {last_name}".strip() or ("Администратор" if is_admin else "Пользователь")
             
             # Создаем пользователя - гарантируем что telegram_id это int
             from datetime import datetime

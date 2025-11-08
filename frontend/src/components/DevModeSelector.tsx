@@ -69,9 +69,20 @@ const DevModeSelector = () => {
 
   const handleSave = () => {
     if (telegramId && !isNaN(Number(telegramId))) {
+      const oldId = localStorage.getItem('dev_telegram_id')
       localStorage.setItem('dev_telegram_id', telegramId)
-      alert(`✅ Telegram ID установлен: ${telegramId}\n\nПерезагрузите страницу для применения изменений.`)
-      window.location.reload()
+      
+      console.log('💾 [DevModeSelector] Сохранен новый telegram_id:', telegramId, 'старый:', oldId)
+      
+      // Отправляем кастомное событие для обновления профиля без перезагрузки страницы
+      // Используем setTimeout чтобы дать время localStorage обновиться
+      setTimeout(() => {
+        console.log('📢 [DevModeSelector] Отправляю событие dev_telegram_id_changed')
+        window.dispatchEvent(new Event('dev_telegram_id_changed'))
+      }, 100)
+      
+      alert(`✅ Telegram ID установлен: ${telegramId}\n\nПрофиль обновится автоматически через 1-2 секунды.`)
+      setIsOpen(false)
     } else {
       alert('❌ Введите корректный Telegram ID (число)')
     }

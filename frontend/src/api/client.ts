@@ -156,7 +156,6 @@ export interface Profile {
   username?: string
   full_name: string
   phone: string
-  email?: string
   city?: string
   points: number
   created_at: string
