@@ -4,11 +4,14 @@
  */
 
 import { useState, useEffect } from 'react'
+import { profileApi, DevUser } from '../api/client'
 
 const DevModeSelector = () => {
   const [isVisible, setIsVisible] = useState(false)
   const [telegramId, setTelegramId] = useState<string>('')
   const [isOpen, setIsOpen] = useState(false)
+  const [users, setUsers] = useState<DevUser[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
 
   useEffect(() => {
     // Показываем только на localhost
@@ -26,6 +29,26 @@ const DevModeSelector = () => {
       setTelegramId('123456789')
     }
   }, [])
+
+  useEffect(() => {
+    // Загружаем список пользователей при открытии панели
+    if (isOpen && isVisible) {
+      loadUsers()
+    }
+  }, [isOpen, isVisible])
+
+  const loadUsers = async () => {
+    setLoadingUsers(true)
+    try {
+      const response = await profileApi.getDevUsers()
+      setUsers(response.data.users || [])
+    } catch (error) {
+      console.error('Ошибка загрузки пользователей:', error)
+      setUsers([])
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
 
   const handleSave = () => {
     if (telegramId && !isNaN(Number(telegramId))) {
@@ -80,6 +103,42 @@ const DevModeSelector = () => {
           <p style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '12px' }}>
             Укажите ваш Telegram ID для локальной разработки:
           </p>
+          
+          {/* Список пользователей из БД */}
+          {users.length > 0 && (
+            <div style={{ marginBottom: '8px' }}>
+              <p style={{ margin: '0 0 4px 0', color: '#856404', fontSize: '11px', fontWeight: 'bold' }}>
+                👥 Пользователи из БД:
+              </p>
+              <select
+                value={telegramId}
+                onChange={(e) => setTelegramId(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '6px',
+                  border: '1px solid #ffc107',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  marginBottom: '4px',
+                  backgroundColor: '#fff'
+                }}
+              >
+                <option value="">-- Выберите пользователя --</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.telegram_id}>
+                    {user.full_name} (ID: {user.telegram_id})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
+          {loadingUsers && (
+            <p style={{ margin: '4px 0', color: '#856404', fontSize: '11px' }}>
+              Загрузка пользователей...
+            </p>
+          )}
+          
           <input
             type="text"
             value={telegramId}
@@ -123,7 +182,7 @@ const DevModeSelector = () => {
             color: '#856404', 
             fontSize: '11px'
           }}>
-            💡 Укажите ваш реальный Telegram ID из базы данных или любой существующий ID пользователя
+            💡 Выберите пользователя из списка или введите Telegram ID вручную
           </p>
         </div>
       )}

@@ -146,6 +146,19 @@ export interface Profile {
   created_at: string
 }
 
+export interface DevUser {
+  telegram_id: string
+  full_name: string
+  username?: string
+  phone: string
+  id: number
+}
+
+export interface DevUsersResponse {
+  users: DevUser[]
+  total: number
+}
+
 export const profileApi = {
   // Получить профиль
   get: () =>
@@ -154,6 +167,10 @@ export const profileApi = {
   // Обновить профиль
   update: (data: { full_name?: string; phone?: string; email?: string; city?: string }) =>
     api.put<Profile>('/profile', data),
+
+  // Получить список пользователей (только для разработки)
+  getDevUsers: () =>
+    api.get<DevUsersResponse>('/profile/dev/users'),
 }
 
 // ========================================

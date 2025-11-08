@@ -5,6 +5,7 @@ API эндпоинты для профиля пользователя
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
 
 from backend.database import get_session, User
 from backend.webapp.schemas import ProfileResponse, ProfileUpdateRequest
@@ -256,6 +257,40 @@ async def update_profile(
         points=db_user.points,
         created_at=created_at_str
     )
+
+
+@router.get("/dev/users")
+async def get_dev_users(
+    limit: int = 20,
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Получить список пользователей для режима разработки
+    Доступно только в режиме разработки (DEV_MODE=True)
+    """
+    if not settings.DEV_MODE:
+        raise HTTPException(status_code=403, detail="This endpoint is only available in development mode")
+    
+    # Получаем список пользователей
+    result = await session.execute(
+        select(User).order_by(User.created_at.desc()).limit(limit)
+    )
+    users = result.scalars().all()
+    
+    users_list = []
+    for u in users:
+        users_list.append({
+            "telegram_id": str(u.telegram_id),
+            "full_name": u.full_name or "Без имени",
+            "username": u.username,
+            "phone": u.phone or "не указан",
+            "id": u.id
+        })
+    
+    return {
+        "users": users_list,
+        "total": len(users_list)
+    }
 
 
 # ========================================
