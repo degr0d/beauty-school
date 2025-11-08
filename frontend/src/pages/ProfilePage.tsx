@@ -49,41 +49,68 @@ const ProfilePage = () => {
       const rawProfile = profileResponse.data
       
       if (rawProfile) {
+        // КРИТИЧЕСКИ ВАЖНО: Преобразуем ВСЕ поля в примитивы перед установкой в state
+        // Это предотвращает React error #301 (Objects are not valid as a React child)
+        
         // Безопасно преобразуем created_at - может быть объектом datetime
         let created_at_str: string
-        if (typeof rawProfile.created_at === 'string') {
-          created_at_str = rawProfile.created_at
-        } else if (rawProfile.created_at && typeof rawProfile.created_at === 'object') {
-          // Если это объект datetime, пытаемся преобразовать
-          try {
+        try {
+          if (!rawProfile.created_at) {
+            created_at_str = new Date().toISOString()
+          } else if (typeof rawProfile.created_at === 'string') {
+            created_at_str = rawProfile.created_at
+          } else if (typeof rawProfile.created_at === 'object') {
+            // Если это объект datetime, пытаемся преобразовать
             const created_at: any = rawProfile.created_at
             if (created_at instanceof Date) {
               created_at_str = created_at.toISOString()
-            } else if (typeof created_at.toISOString === 'function') {
+            } else if (created_at && typeof created_at.toISOString === 'function') {
               created_at_str = created_at.toISOString()
             } else {
-              created_at_str = new Date().toISOString()
+              // Пытаемся преобразовать через JSON
+              try {
+                created_at_str = JSON.stringify(created_at)
+              } catch {
+                created_at_str = new Date().toISOString()
+              }
             }
-          } catch (e) {
-            console.warn('Ошибка преобразования created_at:', e)
-            created_at_str = new Date().toISOString()
+          } else {
+            created_at_str = String(rawProfile.created_at)
           }
-        } else {
+        } catch (e) {
+          console.warn('Ошибка преобразования created_at:', e)
           created_at_str = new Date().toISOString()
         }
         
-        // Нормализуем профиль - гарантируем что все поля это примитивы
+        // Нормализуем профиль - гарантируем что ВСЕ поля это примитивы (string, number, boolean, undefined)
+        // НИКАКИХ объектов или массивов!
         const normalizedProfile: Profile = {
           id: typeof rawProfile.id === 'number' && !isNaN(rawProfile.id) ? rawProfile.id : 0,
           telegram_id: typeof rawProfile.telegram_id === 'number' && !isNaN(rawProfile.telegram_id) ? rawProfile.telegram_id : 0,
-          username: rawProfile.username && typeof rawProfile.username === 'string' && rawProfile.username.trim() !== '' ? rawProfile.username : undefined,
-          full_name: typeof rawProfile.full_name === 'string' && rawProfile.full_name.trim() !== '' ? rawProfile.full_name : 'Пользователь',
-          phone: typeof rawProfile.phone === 'string' && rawProfile.phone.trim() !== '' ? rawProfile.phone : 'не указан',
-          email: rawProfile.email && typeof rawProfile.email === 'string' && rawProfile.email.trim() !== '' ? rawProfile.email : undefined,
-          city: rawProfile.city && typeof rawProfile.city === 'string' && rawProfile.city.trim() !== '' ? rawProfile.city : undefined,
-          points: typeof rawProfile.points === 'number' && !isNaN(rawProfile.points) ? rawProfile.points : 0,
-          created_at: created_at_str
+          username: rawProfile.username && typeof rawProfile.username === 'string' && rawProfile.username.trim() !== '' ? String(rawProfile.username).trim() : undefined,
+          full_name: typeof rawProfile.full_name === 'string' && rawProfile.full_name.trim() !== '' ? String(rawProfile.full_name).trim() : 'Пользователь',
+          phone: typeof rawProfile.phone === 'string' && rawProfile.phone.trim() !== '' ? String(rawProfile.phone).trim() : 'не указан',
+          email: rawProfile.email && typeof rawProfile.email === 'string' && rawProfile.email.trim() !== '' ? String(rawProfile.email).trim() : undefined,
+          city: rawProfile.city && typeof rawProfile.city === 'string' && rawProfile.city.trim() !== '' ? String(rawProfile.city).trim() : undefined,
+          points: typeof rawProfile.points === 'number' && !isNaN(rawProfile.points) ? Number(rawProfile.points) : 0,
+          created_at: String(created_at_str) // Явно преобразуем в строку
         }
+        
+        // Дополнительная проверка: убеждаемся что в профиле нет объектов
+        const profileKeys = Object.keys(normalizedProfile) as Array<keyof Profile>
+        for (const key of profileKeys) {
+          const value = normalizedProfile[key]
+          if (value !== null && value !== undefined && typeof value === 'object') {
+            console.error(`❌ КРИТИЧЕСКАЯ ОШИБКА: Поле ${key} является объектом!`, value)
+            // Преобразуем объект в строку
+            try {
+              (normalizedProfile as any)[key] = JSON.stringify(value)
+            } catch {
+              (normalizedProfile as any)[key] = String(value)
+            }
+          }
+        }
+        
         setProfile(normalizedProfile)
       }
 
