@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database import get_session, Course, Lesson, UserCourse
+from backend.database import get_session, Course, Lesson, UserCourse, User
 from backend.webapp.schemas import CourseResponse, CourseDetailResponse
 from backend.webapp.middleware import get_telegram_user
 

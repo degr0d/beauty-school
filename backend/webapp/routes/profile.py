@@ -84,26 +84,6 @@ async def get_profile(
             print(f"✅ [Profile] Профиль создан: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, is_admin={is_admin})")
             print(f"   Данные после создания: full_name={db_user.full_name}, phone={db_user.phone}, username={db_user.username}")
             
-            # Безопасно получаем email (на случай если миграция не применена)
-            try:
-                email = db_user.email
-            except AttributeError:
-                email = None
-                print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
-            
-            profile_data = {
-                "id": db_user.id,
-                "telegram_id": db_user.telegram_id,
-                "username": db_user.username,
-                "full_name": db_user.full_name,
-                "phone": db_user.phone,
-                "email": email,
-                "city": db_user.city,
-                "points": db_user.points,
-                "created_at": db_user.created_at
-            }
-            print(f"📤 [Profile] Возвращаю данные нового профиля: {profile_data}")
-            
             # Преобразуем datetime в строку для корректной JSON сериализации
             try:
                 if db_user.created_at is None:
@@ -123,7 +103,6 @@ async def get_profile(
                 username=db_user.username,
                 full_name=db_user.full_name,
                 phone=db_user.phone,
-                email=email,
                 city=db_user.city,
                 points=db_user.points,
                 created_at=created_at_str
@@ -133,27 +112,6 @@ async def get_profile(
             return response
         else:
             print(f"✅ [Profile] Профиль найден: {db_user.full_name} (telegram_id={db_user.telegram_id}, id={db_user.id}, phone={db_user.phone})")
-        
-        # Безопасно получаем email (на случай если миграция не применена)
-        try:
-            email = db_user.email
-        except AttributeError:
-            email = None
-            print(f"⚠️ [Profile] Поле email не найдено в модели (миграция не применена)")
-        
-        # Логируем все данные перед возвратом
-        profile_data = {
-            "id": db_user.id,
-            "telegram_id": db_user.telegram_id,
-            "username": db_user.username,
-            "full_name": db_user.full_name,
-            "phone": db_user.phone,
-            "email": email,
-            "city": db_user.city,
-            "points": db_user.points,
-            "created_at": db_user.created_at
-        }
-        print(f"📤 [Profile] Возвращаю данные профиля: {profile_data}")
         
         # Преобразуем datetime в строку для корректной JSON сериализации
         try:
@@ -174,13 +132,12 @@ async def get_profile(
             username=db_user.username,
             full_name=db_user.full_name,
             phone=db_user.phone,
-            email=email,
             city=db_user.city,
             points=db_user.points,
             created_at=created_at_str
         )
         
-        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, email={response.email}, city={response.city}")
+        print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, city={response.city}")
         return response
     except Exception as e:
         print(f"❌ [Profile] ОШИБКА при получении профиля: {e}")
@@ -219,19 +176,11 @@ async def update_profile(
         db_user.full_name = profile_data.full_name
     if profile_data.phone:
         db_user.phone = profile_data.phone
-    if profile_data.email is not None:  # Разрешаем пустую строку для очистки email
-        db_user.email = profile_data.email
     if profile_data.city is not None:  # Разрешаем пустую строку для очистки city
         db_user.city = profile_data.city
     
     await session.commit()
     await session.refresh(db_user)
-    
-    # Безопасно получаем email (на случай если миграция не применена)
-    try:
-        email = db_user.email
-    except AttributeError:
-        email = None
     
     # Преобразуем datetime в строку для корректной JSON сериализации
     try:
@@ -252,7 +201,6 @@ async def update_profile(
         username=db_user.username,
         full_name=db_user.full_name,
         phone=db_user.phone,
-        email=email,
         city=db_user.city,
         points=db_user.points,
         created_at=created_at_str

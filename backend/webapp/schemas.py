@@ -91,7 +91,6 @@ class ProfileResponse(BaseModel):
     username: Optional[str] = None
     full_name: str
     phone: str
-    email: Optional[str] = None
     city: Optional[str] = None
     points: int
     created_at: str  # Изменено с datetime на str для корректной JSON сериализации
@@ -111,7 +110,6 @@ class ProfileResponse(BaseModel):
             username=db_user.username,
             full_name=db_user.full_name,
             phone=db_user.phone,
-            email=getattr(db_user, 'email', None),
             city=db_user.city,
             points=db_user.points,
             created_at=created_at_str
@@ -124,7 +122,6 @@ class ProfileUpdateRequest(BaseModel):
     """
     full_name: Optional[str] = None
     phone: Optional[str] = None
-    email: Optional[str] = None
     city: Optional[str] = None
 
 
