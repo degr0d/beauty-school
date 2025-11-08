@@ -56,10 +56,11 @@ const ProfilePage = () => {
         } else if (rawProfile.created_at && typeof rawProfile.created_at === 'object') {
           // Если это объект datetime, пытаемся преобразовать
           try {
-            if (rawProfile.created_at instanceof Date) {
-              created_at_str = rawProfile.created_at.toISOString()
-            } else if (typeof rawProfile.created_at.toISOString === 'function') {
-              created_at_str = rawProfile.created_at.toISOString()
+            const created_at: any = rawProfile.created_at
+            if (created_at instanceof Date) {
+              created_at_str = created_at.toISOString()
+            } else if (typeof created_at.toISOString === 'function') {
+              created_at_str = created_at.toISOString()
             } else {
               created_at_str = new Date().toISOString()
             }
@@ -129,7 +130,7 @@ const ProfilePage = () => {
       const courses = Array.isArray(response.data) ? response.data : []
       
       // Нормализуем курсы
-      const safeCourses = courses.map(course => {
+      const safeCourses = courses.map((course: any) => {
         const normalizedCourse: CourseWithProgress = {
           id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
           title: typeof course?.title === 'string' ? course.title : 'Без названия',
@@ -148,10 +149,11 @@ const ProfilePage = () => {
                 return purchasedAt
               } else if (purchasedAt && typeof purchasedAt === 'object') {
                 try {
-                  if (purchasedAt instanceof Date) {
-                    return purchasedAt.toISOString()
-                  } else if (typeof purchasedAt.toISOString === 'function') {
-                    return purchasedAt.toISOString()
+                  const purchasedAtAny: any = purchasedAt
+                  if (purchasedAtAny instanceof Date) {
+                    return purchasedAtAny.toISOString()
+                  } else if (typeof purchasedAtAny.toISOString === 'function') {
+                    return purchasedAtAny.toISOString()
                   }
                 } catch (e) {
                   console.warn('Ошибка преобразования purchased_at:', e)
@@ -304,10 +306,11 @@ const ProfilePage = () => {
                       return purchasedAt
                     } else if (purchasedAt && typeof purchasedAt === 'object') {
                       try {
-                        if (purchasedAt instanceof Date) {
-                          return purchasedAt.toISOString()
-                        } else if (typeof purchasedAt.toISOString === 'function') {
-                          return purchasedAt.toISOString()
+                        const purchasedAtAny: any = purchasedAt
+                        if (purchasedAtAny instanceof Date) {
+                          return purchasedAtAny.toISOString()
+                        } else if (typeof purchasedAtAny.toISOString === 'function') {
+                          return purchasedAtAny.toISOString()
                         }
                       } catch (e) {
                         console.warn('Ошибка преобразования purchased_at:', e)

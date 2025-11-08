@@ -7,7 +7,6 @@ import { useState, useEffect } from 'react'
 
 const DevToolsButton = () => {
   const [isVisible, setIsVisible] = useState(false)
-  const [isDevMode, setIsDevMode] = useState(false)
 
   useEffect(() => {
     // Проверяем, находимся ли мы в режиме разработки
@@ -25,7 +24,6 @@ const DevToolsButton = () => {
       return isLocalhost || hasDevParam || notInTelegram
     }
 
-    setIsDevMode(checkDevMode())
     setIsVisible(checkDevMode())
 
     // Обработчик клавиатуры для открытия DevTools
