@@ -5,6 +5,7 @@
 
 import asyncio
 import logging
+import os
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.memory import MemoryStorage
 import uvicorn
@@ -120,13 +121,21 @@ async def main():
     # Если бот не запустится - API продолжит работать
     bot_task = None
     
-    try:
-        # Создаем задачу для бота (не блокируем API если бот упадет)
-        bot_task = asyncio.create_task(start_bot())
-        logger.info("Задача бота создана")
-    except Exception as bot_error:
-        logger.warning("⚠️ Не удалось создать задачу бота, но API запустится")
-        logger.warning(f"Ошибка: {bot_error}")
+    # В режиме разработки можно отключить бота, если он уже запущен на сервере
+    # Установите SKIP_BOT=true в .env чтобы пропустить запуск бота локально
+    skip_bot = os.getenv("SKIP_BOT", "false").lower() == "true"
+    
+    if skip_bot:
+        logger.info("⏭️  Пропуск запуска бота (SKIP_BOT=true)")
+        logger.info("💡 Бот уже запущен на сервере, локально не нужен")
+    else:
+        try:
+            # Создаем задачу для бота (не блокируем API если бот упадет)
+            bot_task = asyncio.create_task(start_bot())
+            logger.info("Задача бота создана")
+        except Exception as bot_error:
+            logger.warning("⚠️ Не удалось создать задачу бота, но API запустится")
+            logger.warning(f"Ошибка: {bot_error}")
     
     # Запускаем API (всегда должен работать)
     try:
