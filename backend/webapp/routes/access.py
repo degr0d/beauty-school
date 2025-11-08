@@ -6,9 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database import get_session, User, UserCourse, Payment
+from backend.database import get_session, User, UserCourse, Payment, Course
 from backend.webapp.middleware import get_telegram_user
 from backend.config import settings
+from datetime import datetime
 
 router = APIRouter()
 
@@ -65,13 +66,28 @@ async def check_access(
         print(f"❌ [Access] Пользователь не найден: telegram_id={telegram_id}")
         raise HTTPException(status_code=404, detail="User not found")
     
-    print(f"✅ [Access] Пользователь найден: {db_user.full_name}")
+    print(f"✅ [Access] Пользователь найден: {db_user.full_name} (id={db_user.id}, telegram_id={db_user.telegram_id})")
     
     # Проверяем количество оплаченных курсов
     result = await session.execute(
         select(func.count(UserCourse.id)).where(UserCourse.user_id == db_user.id)
     )
     purchased_courses_count = result.scalar() or 0
+    
+    # Детальное логирование для диагностики
+    print(f"🔍 [Access] Количество курсов у пользователя: {purchased_courses_count}")
+    
+    # Если курсов нет, выводим список всех курсов для отладки
+    if purchased_courses_count == 0:
+        result = await session.execute(select(UserCourse).where(UserCourse.user_id == db_user.id))
+        user_courses = result.scalars().all()
+        print(f"🔍 [Access] Записи UserCourse для пользователя: {[uc.course_id for uc in user_courses]}")
+        
+        # Проверяем все курсы в системе
+        from backend.database.models import Course
+        result = await session.execute(select(Course))
+        all_courses = result.scalars().all()
+        print(f"🔍 [Access] Всего курсов в системе: {len(all_courses)}")
     
     # Проверяем количество успешных платежей
     result = await session.execute(
@@ -82,8 +98,12 @@ async def check_access(
     )
     total_payments = result.scalar() or 0
     
+    print(f"🔍 [Access] Успешных платежей: {total_payments}")
+    
     # Доступ есть если есть хотя бы один оплаченный курс
     has_access = purchased_courses_count > 0
+    
+    print(f"🔍 [Access] Итоговый результат: has_access={has_access}, purchased_courses_count={purchased_courses_count}")
     
     return {
         "has_access": has_access,
@@ -145,5 +165,70 @@ async def check_course_access(
         "has_access": has_access,
         "course_id": course_id,
         "purchased_at": user_course.purchased_at.isoformat() if user_course and user_course.purchased_at else None
+    }
+
+
+@router.post("/grant-dev-access")
+async def grant_dev_access(
+    user: dict = Depends(get_telegram_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Выдает доступ ко всем курсам для разработки
+    Работает только в режиме разработки (ENVIRONMENT=development)
+    """
+    if settings.ENVIRONMENT != "development":
+        raise HTTPException(status_code=403, detail="This endpoint is only available in development mode")
+    
+    telegram_id = int(user.get("id", 0))
+    if telegram_id == 0:
+        raise HTTPException(status_code=401, detail="Telegram user ID not found")
+    
+    # Получаем пользователя
+    result = await session.execute(
+        select(User).where(User.telegram_id == telegram_id)
+    )
+    db_user = result.scalar_one_or_none()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Получаем все курсы
+    result = await session.execute(select(Course))
+    all_courses = result.scalars().all()
+    
+    if not all_courses:
+        return {"message": "No courses found", "granted": 0}
+    
+    # Выдаем доступ ко всем курсам
+    granted_count = 0
+    for course in all_courses:
+        # Проверяем, есть ли уже доступ
+        result = await session.execute(
+            select(UserCourse).where(
+                UserCourse.user_id == db_user.id,
+                UserCourse.course_id == course.id
+            )
+        )
+        existing = result.scalar_one_or_none()
+        
+        if not existing:
+            # Создаем новую запись
+            user_course = UserCourse(
+                user_id=db_user.id,
+                course_id=course.id,
+                purchased_at=datetime.now()
+            )
+            session.add(user_course)
+            granted_count += 1
+    
+    if granted_count > 0:
+        await session.commit()
+        print(f"✅ [Access] Выдан доступ к {granted_count} курсам для пользователя {db_user.full_name} (telegram_id={telegram_id})")
+    
+    return {
+        "message": f"Access granted to {granted_count} courses",
+        "granted": granted_count,
+        "total_courses": len(all_courses)
     }
 

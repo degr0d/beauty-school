@@ -306,6 +306,10 @@ export const accessApi = {
   // Проверить доступ к курсу
   checkCourseAccess: (courseId: number) =>
     api.get<CourseAccessStatus>(`/access/check-course/${courseId}`),
+
+  // Выдать доступ ко всем курсам (только в режиме разработки)
+  grantDevAccess: () =>
+    api.post<{ message: string; granted: number; total_courses: number }>('/access/grant-dev-access'),
 }
 
 export default api

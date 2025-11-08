@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react'
-import { profileApi, DevUser } from '../api/client'
+import { profileApi, DevUser, accessApi } from '../api/client'
 
 const DevModeSelector = () => {
   // Проверяем видимость сразу при инициализации
@@ -33,6 +33,7 @@ const DevModeSelector = () => {
   const [isOpen, setIsOpen] = useState(false)
   const [users, setUsers] = useState<DevUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [grantingAccess, setGrantingAccess] = useState(false)
 
   useEffect(() => {
     console.log('🔧 [DevModeSelector] Компонент смонтирован:', {
@@ -85,6 +86,25 @@ const DevModeSelector = () => {
       setIsOpen(false)
     } else {
       alert('❌ Введите корректный Telegram ID (число)')
+    }
+  }
+
+  const handleGrantAccess = async () => {
+    setGrantingAccess(true)
+    try {
+      const response = await accessApi.grantDevAccess()
+      alert(`✅ Доступ выдан!\n\n${response.data.message}\n\nВсего курсов: ${response.data.total_courses}\nВыдано: ${response.data.granted}`)
+      // Перезагружаем страницу чтобы обновить доступ
+      window.location.reload()
+    } catch (error: any) {
+      console.error('Ошибка выдачи доступа:', error)
+      if (error.response?.status === 403) {
+        alert('❌ Этот эндпоинт работает только в режиме разработки (ENVIRONMENT=development)')
+      } else {
+        alert(`❌ Ошибка: ${error.response?.data?.detail || error.message}`)
+      }
+    } finally {
+      setGrantingAccess(false)
     }
   }
 
@@ -217,6 +237,34 @@ const DevModeSelector = () => {
             fontSize: '11px'
           }}>
             💡 Выберите пользователя из списка или введите Telegram ID вручную
+          </p>
+          
+          {/* Кнопка для выдачи доступа к курсам */}
+          <button
+            onClick={handleGrantAccess}
+            disabled={grantingAccess}
+            style={{
+              width: '100%',
+              padding: '8px',
+              backgroundColor: grantingAccess ? '#ccc' : '#28a745',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: grantingAccess ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+              fontSize: '12px',
+              marginTop: '8px'
+            }}
+          >
+            {grantingAccess ? '⏳ Выдача доступа...' : '🎓 Выдать доступ ко всем курсам'}
+          </button>
+          <p style={{ 
+            margin: '4px 0 0 0', 
+            color: '#856404', 
+            fontSize: '10px',
+            fontStyle: 'italic'
+          }}>
+            ⚠️ Работает только в режиме разработки
           </p>
         </div>
       )}
