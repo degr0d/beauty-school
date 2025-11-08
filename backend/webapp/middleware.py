@@ -133,6 +133,9 @@ def get_telegram_user(request: Request) -> dict:
     Dependency для FastAPI эндпоинтов
     Возвращает данные пользователя из Telegram
     
+    В режиме разработки (DEV_MODE=True) позволяет использовать заголовок X-Telegram-User-ID
+    для локальной разработки без Telegram бота.
+    
     Использование:
     @app.get("/api/profile")
     async def get_profile(user: dict = Depends(get_telegram_user)):
@@ -142,6 +145,49 @@ def get_telegram_user(request: Request) -> dict:
     # Если middleware установил telegram_user - используем его
     if hasattr(request.state, "telegram_user"):
         return request.state.telegram_user
+    
+    # РЕЖИМ РАЗРАБОТКИ: Если включен DEV_MODE, позволяем работать без initData
+    if settings.DEV_MODE and settings.ENVIRONMENT == "development":
+        # Пробуем получить telegram_id из заголовка X-Telegram-User-ID
+        dev_telegram_id = request.headers.get("X-Telegram-User-ID")
+        
+        if dev_telegram_id:
+            try:
+                telegram_id = int(dev_telegram_id)
+                print(f"🔧 [DEV MODE] Используется telegram_id из заголовка: {telegram_id}")
+                # Создаем фейкового пользователя для разработки
+                return {
+                    "id": telegram_id,
+                    "first_name": "Dev",
+                    "last_name": "User",
+                    "username": "dev_user",
+                    "language_code": "ru"
+                }
+            except ValueError:
+                print(f"⚠️ [DEV MODE] Невалидный X-Telegram-User-ID: {dev_telegram_id}")
+        
+        # Или используем DEV_TELEGRAM_ID из настроек
+        if settings.DEV_TELEGRAM_ID > 0:
+            print(f"🔧 [DEV MODE] Используется DEV_TELEGRAM_ID из настроек: {settings.DEV_TELEGRAM_ID}")
+            return {
+                "id": settings.DEV_TELEGRAM_ID,
+                "first_name": "Dev",
+                "last_name": "User",
+                "username": "dev_user",
+                "language_code": "ru"
+            }
+        
+        # Если ничего не указано - используем дефолтный ID для разработки
+        default_dev_id = 123456789  # Можно изменить в .env через DEV_TELEGRAM_ID
+        print(f"🔧 [DEV MODE] Используется дефолтный telegram_id для разработки: {default_dev_id}")
+        print(f"💡 [DEV MODE] Чтобы указать свой ID, добавьте заголовок X-Telegram-User-ID или установите DEV_TELEGRAM_ID в .env")
+        return {
+            "id": default_dev_id,
+            "first_name": "Dev",
+            "last_name": "User",
+            "username": "dev_user",
+            "language_code": "ru"
+        }
     
     # В режиме разработки (когда middleware отключен):
     # Пробуем получить initData из заголовка и проверить его

@@ -19,6 +19,7 @@ import PaymentPage from './pages/PaymentPage'
 // Components
 import Navigation from './components/Navigation'
 import DevToolsButton from './components/DevToolsButton'
+import DevModeSelector from './components/DevModeSelector'
 
 function App() {
   console.log('🎯 [App] Компонент App рендерится')
@@ -147,6 +148,9 @@ function App() {
           
           {/* Кнопка DevTools для режима разработки */}
           <DevToolsButton />
+          
+          {/* Селектор Telegram ID для режима разработки */}
+          <DevModeSelector />
           
           {/* Контент */}
           <main className="content">

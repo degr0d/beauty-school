@@ -1,0 +1,135 @@
+/**
+ * Компонент для выбора telegram_id в режиме разработки
+ * Показывается только на localhost
+ */
+
+import { useState, useEffect } from 'react'
+
+const DevModeSelector = () => {
+  const [isVisible, setIsVisible] = useState(false)
+  const [telegramId, setTelegramId] = useState<string>('')
+  const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    // Показываем только на localhost
+    const isLocalhost = window.location.hostname === 'localhost' || 
+                       window.location.hostname === '127.0.0.1' ||
+                       window.location.hostname.includes('localhost')
+    
+    setIsVisible(isLocalhost)
+    
+    // Загружаем сохраненный telegram_id
+    const savedId = localStorage.getItem('dev_telegram_id')
+    if (savedId) {
+      setTelegramId(savedId)
+    } else {
+      setTelegramId('123456789')
+    }
+  }, [])
+
+  const handleSave = () => {
+    if (telegramId && !isNaN(Number(telegramId))) {
+      localStorage.setItem('dev_telegram_id', telegramId)
+      alert(`✅ Telegram ID установлен: ${telegramId}\n\nПерезагрузите страницу для применения изменений.`)
+      window.location.reload()
+    } else {
+      alert('❌ Введите корректный Telegram ID (число)')
+    }
+  }
+
+  if (!isVisible) return null
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: '10px',
+      right: '10px',
+      zIndex: 10000,
+      backgroundColor: '#fff3cd',
+      border: '2px solid #ffc107',
+      borderRadius: '8px',
+      padding: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      maxWidth: '300px',
+      fontFamily: 'system-ui, sans-serif',
+      fontSize: '14px'
+    }}>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center',
+        marginBottom: '8px'
+      }}>
+        <strong style={{ color: '#856404' }}>🔧 Режим разработки</strong>
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          style={{
+            background: 'none',
+            border: 'none',
+            fontSize: '18px',
+            cursor: 'pointer',
+            color: '#856404'
+          }}
+        >
+          {isOpen ? '−' : '+'}
+        </button>
+      </div>
+      
+      {isOpen && (
+        <div>
+          <p style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '12px' }}>
+            Укажите ваш Telegram ID для локальной разработки:
+          </p>
+          <input
+            type="text"
+            value={telegramId}
+            onChange={(e) => setTelegramId(e.target.value)}
+            placeholder="123456789"
+            style={{
+              width: '100%',
+              padding: '6px',
+              border: '1px solid #ffc107',
+              borderRadius: '4px',
+              marginBottom: '8px',
+              fontSize: '14px'
+            }}
+          />
+          <button
+            onClick={handleSave}
+            style={{
+              width: '100%',
+              padding: '8px',
+              backgroundColor: '#ffc107',
+              color: '#000',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}
+          >
+            💾 Сохранить и перезагрузить
+          </button>
+          <p style={{ 
+            margin: '8px 0 0 0', 
+            color: '#856404', 
+            fontSize: '11px',
+            fontStyle: 'italic'
+          }}>
+            Текущий ID: {localStorage.getItem('dev_telegram_id') || '123456789'}
+          </p>
+          <p style={{ 
+            margin: '8px 0 0 0', 
+            color: '#856404', 
+            fontSize: '11px'
+          }}>
+            💡 Укажите ваш реальный Telegram ID из базы данных или любой существующий ID пользователя
+          </p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default DevModeSelector
+
