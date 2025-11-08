@@ -16,7 +16,12 @@ const DevModeSelector = () => {
   
   const urlParams = new URLSearchParams(window.location.search)
   const hasDevParam = urlParams.get('dev') === 'true'
-  const notInTelegram = !window.Telegram?.WebApp
+  
+  // На localhost ВСЕГДА показываем, даже если есть Telegram WebApp
+  // Проверяем, есть ли реальный initData
+  const webApp = window.Telegram?.WebApp
+  const hasRealInitData = webApp?.initData && webApp.initData.trim().length > 0
+  const notInTelegram = !hasRealInitData
   
   const shouldShow = isLocalhost || hasDevParam || notInTelegram
   

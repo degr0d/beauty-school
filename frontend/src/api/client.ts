@@ -24,31 +24,47 @@ api.interceptors.request.use((config) => {
                      window.location.hostname === '127.0.0.1' ||
                      window.location.hostname.includes('localhost')
   
-  // Если есть initData - используем его
-  if (webApp?.initData) {
-    config.headers['X-Telegram-Init-Data'] = webApp.initData
-    console.log('📤 [API] Отправка запроса с initData:', {
-      url: config.url,
-      hasInitData: !!webApp.initData,
-      telegramId: webApp.initDataUnsafe?.user?.id
-    })
-  } else if (isLocalhost) {
-    // РЕЖИМ РАЗРАБОТКИ: На localhost всегда используем X-Telegram-User-ID
-    // даже если есть Telegram WebApp, но нет initData
-    let devTelegramId = localStorage.getItem('dev_telegram_id')
-    if (!devTelegramId) {
-      // Используем дефолтный ID для разработки
-      devTelegramId = '123456789'
-      localStorage.setItem('dev_telegram_id', devTelegramId)
-      console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки:', devTelegramId)
-      console.log('💡 [DEV MODE] Чтобы изменить, выполните в консоли: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
-    }
+  // На localhost ВСЕГДА используем режим разработки
+  if (isLocalhost) {
+    // Проверяем, есть ли реальный initData (не пустая строка)
+    const hasRealInitData = webApp?.initData && webApp.initData.trim().length > 0
     
-    config.headers['X-Telegram-User-ID'] = devTelegramId
-    console.log('🔧 [DEV MODE] Отправка запроса с X-Telegram-User-ID:', devTelegramId)
+    if (hasRealInitData) {
+      // Если есть реальный initData - используем его
+      config.headers['X-Telegram-Init-Data'] = webApp.initData
+      console.log('📤 [API] Отправка запроса с initData:', {
+        url: config.url,
+        hasInitData: !!webApp.initData,
+        telegramId: webApp.initDataUnsafe?.user?.id
+      })
+    } else {
+      // РЕЖИМ РАЗРАБОТКИ: На localhost используем X-Telegram-User-ID
+      // даже если есть Telegram WebApp, но нет реального initData
+      let devTelegramId = localStorage.getItem('dev_telegram_id')
+      if (!devTelegramId) {
+        // Используем дефолтный ID для разработки
+        devTelegramId = '123456789'
+        localStorage.setItem('dev_telegram_id', devTelegramId)
+        console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки:', devTelegramId)
+        console.log('💡 [DEV MODE] Чтобы изменить, выполните в консоли: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
+      }
+      
+      config.headers['X-Telegram-User-ID'] = devTelegramId
+      console.log('🔧 [DEV MODE] Отправка запроса с X-Telegram-User-ID:', devTelegramId)
+    }
   } else {
-    console.warn('⚠️ [API] Запрос без initData:', config.url)
-    console.warn('   Это может быть проблемой если открыто не через Telegram бота')
+    // НЕ localhost - используем стандартную логику
+    if (webApp?.initData && webApp.initData.trim().length > 0) {
+      config.headers['X-Telegram-Init-Data'] = webApp.initData
+      console.log('📤 [API] Отправка запроса с initData:', {
+        url: config.url,
+        hasInitData: !!webApp.initData,
+        telegramId: webApp.initDataUnsafe?.user?.id
+      })
+    } else {
+      console.warn('⚠️ [API] Запрос без initData:', config.url)
+      console.warn('   Это может быть проблемой если открыто не через Telegram бота')
+    }
   }
   return config
 }, (error) => {
