@@ -35,8 +35,8 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 5432
     DB_NAME: str = "beauty_db"
-    DB_USER: str = "beauty_user"
-    DB_PASSWORD: str = ""
+    DB_USER: str = "postgres"  # По умолчанию для Docker
+    DB_PASSWORD: str = "2580"  # По умолчанию для Docker (из docker-compose.yml)
     
     @property
     def database_url(self) -> str:
@@ -48,13 +48,7 @@ class Settings(BaseSettings):
                 return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
             return self.DATABASE_URL
         
-        # Для локальной разработки без PostgreSQL используем SQLite
-        if self.ENVIRONMENT == "development":
-            import os
-            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "local.db")
-            return f"sqlite+aiosqlite:///{db_path}"
-        
-        # Иначе используем отдельные параметры PostgreSQL
+        # Используем отдельные параметры PostgreSQL
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @property
