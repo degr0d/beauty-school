@@ -28,7 +28,7 @@ const DevModeSelector = () => {
   const [isVisible] = useState(shouldShow)
   const [telegramId, setTelegramId] = useState<string>(() => {
     const savedId = localStorage.getItem('dev_telegram_id')
-    return savedId || '123456789'
+    return savedId || '310836227'  // Админ по умолчанию
   })
   const [isOpen, setIsOpen] = useState(false)
   const [users, setUsers] = useState<DevUser[]>([])
