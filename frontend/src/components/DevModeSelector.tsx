@@ -19,7 +19,20 @@ const DevModeSelector = () => {
                        window.location.hostname === '127.0.0.1' ||
                        window.location.hostname.includes('localhost')
     
-    setIsVisible(isLocalhost)
+    // Также проверяем параметр ?dev=true
+    const urlParams = new URLSearchParams(window.location.search)
+    const hasDevParam = urlParams.get('dev') === 'true'
+    
+    const shouldShow = isLocalhost || hasDevParam
+    
+    console.log('🔧 [DevModeSelector] Проверка видимости:', {
+      hostname: window.location.hostname,
+      isLocalhost,
+      hasDevParam,
+      shouldShow
+    })
+    
+    setIsVisible(shouldShow)
     
     // Загружаем сохраненный telegram_id
     const savedId = localStorage.getItem('dev_telegram_id')
@@ -60,7 +73,13 @@ const DevModeSelector = () => {
     }
   }
 
-  if (!isVisible) return null
+  // Всегда показываем в режиме разработки, но логируем для отладки
+  if (!isVisible) {
+    console.log('🔧 [DevModeSelector] Компонент скрыт, isVisible=false')
+    return null
+  }
+
+  console.log('🔧 [DevModeSelector] Компонент отображается')
 
   return (
     <div style={{
