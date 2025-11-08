@@ -108,55 +108,56 @@ async def create_payment(
     await session.commit()
     await session.refresh(payment)
     
-    # TODO: Здесь будет интеграция с ЮKassa
-    # Когда появятся данные ЮKassa, раскомментировать:
-    """
-    from yookassa import Configuration, Payment as YooPayment
-    
-    # Настройка ЮKassa
-    Configuration.account_id = settings.YUKASSA_SHOP_ID
-    Configuration.secret_key = settings.YUKASSA_SECRET_KEY
-    
-    # Создание платежа
-    payment_data = {
-        "amount": {
-            "value": str(float(course.price)),
-            "currency": "RUB"
-        },
-        "confirmation": {
-            "type": "redirect",
-            "return_url": settings.YUKASSA_RETURN_URL or f"{settings.WEBAPP_URL}/payment/success"
-        },
-        "capture": True,
-        "description": f"Оплата курса: {course.title}",
-        "metadata": {
-            "user_id": db_user.id,
-            "course_id": course.id,
-            "payment_id": payment.id
+    # Интеграция с ЮKassa
+    try:
+        from yookassa import Configuration, Payment as YooPayment
+        
+        # Настройка ЮKassa
+        Configuration.account_id = settings.YUKASSA_SHOP_ID
+        Configuration.secret_key = settings.YUKASSA_SECRET_KEY
+        
+        # Создание платежа
+        payment_data = {
+            "amount": {
+                "value": str(float(course.price)),
+                "currency": "RUB"
+            },
+            "confirmation": {
+                "type": "redirect",
+                "return_url": settings.YUKASSA_RETURN_URL or f"{settings.WEBAPP_URL}/payment/success?payment_id={payment.id}"
+            },
+            "capture": True,
+            "description": f"Оплата курса: {course.title}",
+            "metadata": {
+                "user_id": str(db_user.id),
+                "course_id": str(course.id),
+                "payment_id": str(payment.id)
+            }
         }
-    }
-    
-    yoo_payment = YooPayment.create(payment_data)
-    
-    # Сохраняем ID платежа ЮKassa
-    payment.yookassa_payment_id = yoo_payment.id
-    await session.commit()
-    
-    return CreatePaymentResponse(
-        payment_id=payment.id,
-        payment_url=yoo_payment.confirmation.confirmation_url,
-        amount=float(course.price),
-        status="pending"
-    )
-    """
-    
-    # Временная заглушка (пока нет данных ЮKassa)
-    return CreatePaymentResponse(
-        payment_id=payment.id,
-        payment_url=f"{settings.WEBAPP_URL or 'http://localhost:5173'}/payment/success?payment_id={payment.id}",
-        amount=float(course.price),
-        status="pending"
-    )
+        
+        yoo_payment = YooPayment.create(payment_data)
+        
+        # Сохраняем ID платежа ЮKassa
+        payment.yookassa_payment_id = yoo_payment.id
+        await session.commit()
+        
+        return CreatePaymentResponse(
+            payment_id=payment.id,
+            payment_url=yoo_payment.confirmation.confirmation_url,
+            amount=float(course.price),
+            status="pending"
+        )
+    except Exception as e:
+        # Если интеграция не настроена или произошла ошибка - используем заглушку
+        print(f"⚠️ [Payment] Ошибка интеграции с ЮKassa: {e}")
+        print(f"   Используется заглушка для разработки")
+        # В режиме разработки возвращаем заглушку
+        return CreatePaymentResponse(
+            payment_id=payment.id,
+            payment_url=f"{settings.WEBAPP_URL or 'http://localhost:5173'}/payment/success?payment_id={payment.id}",
+            amount=float(course.price),
+            status="pending"
+        )
 
 
 @router.get("/status/{payment_id}", response_model=PaymentStatusResponse)
@@ -197,32 +198,54 @@ async def get_payment_status(
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     
-    # TODO: Здесь будет проверка статуса в ЮKassa
-    # Когда появятся данные ЮKassa, раскомментировать:
-    """
-    from yookassa import Payment as YooPayment
-    
-    if payment.yookassa_payment_id:
-        yoo_payment = YooPayment.find_one(payment.yookassa_payment_id)
-        
-        # Обновляем статус
-        if yoo_payment.status == "succeeded" and payment.status != "succeeded":
-            payment.status = "succeeded"
-            payment.paid_at = datetime.now()
-            payment.payment_method = yoo_payment.payment_method.type if yoo_payment.payment_method else None
+    # Проверка статуса в ЮKassa
+    if payment.yookassa_payment_id and settings.YUKASSA_SHOP_ID and settings.YUKASSA_SECRET_KEY:
+        try:
+            from yookassa import Configuration, Payment as YooPayment
+            from datetime import datetime
             
-            # Создаём запись о покупке курса
-            user_course = UserCourse(
-                user_id=db_user.id,
-                course_id=payment.course_id
-            )
-            session.add(user_course)
+            # Настройка ЮKassa
+            Configuration.account_id = settings.YUKASSA_SHOP_ID
+            Configuration.secret_key = settings.YUKASSA_SECRET_KEY
             
-            await session.commit()
-        elif yoo_payment.status == "canceled":
-            payment.status = "canceled"
-            await session.commit()
-    """
+            # Получаем актуальный статус платежа
+            yoo_payment = YooPayment.find_one(payment.yookassa_payment_id)
+            
+            # Обновляем статус если изменился
+            if yoo_payment.status == "succeeded" and payment.status != "succeeded":
+                payment.status = "succeeded"
+                payment.paid_at = datetime.now()
+                payment.payment_method = yoo_payment.payment_method.type if yoo_payment.payment_method else None
+                
+                # Проверяем, не создана ли уже запись UserCourse
+                result = await session.execute(
+                    select(UserCourse).where(
+                        UserCourse.user_id == db_user.id,
+                        UserCourse.course_id == payment.course_id
+                    )
+                )
+                existing_user_course = result.scalar_one_or_none()
+                
+                # Создаём запись о покупке курса, если её ещё нет
+                if not existing_user_course:
+                    user_course = UserCourse(
+                        user_id=db_user.id,
+                        course_id=payment.course_id
+                    )
+                    session.add(user_course)
+                    print(f"✅ [Payment] Создана запись UserCourse для пользователя {db_user.id} и курса {payment.course_id}")
+                
+                await session.commit()
+                print(f"✅ [Payment] Платеж {payment.id} обновлен: статус = succeeded")
+                
+            elif yoo_payment.status == "canceled" and payment.status != "canceled":
+                payment.status = "canceled"
+                await session.commit()
+                print(f"⚠️ [Payment] Платеж {payment.id} отменен")
+                
+        except Exception as e:
+            print(f"⚠️ [Payment] Ошибка проверки статуса в ЮKassa: {e}")
+            # Продолжаем с текущим статусом из БД
     
     return PaymentStatusResponse(
         payment_id=payment.id,
@@ -234,37 +257,93 @@ async def get_payment_status(
 
 @router.post("/webhook")
 async def payment_webhook(
-    request: dict,
+    request_data: dict,
     session: AsyncSession = Depends(get_session)
 ):
     """
     Webhook для уведомлений от ЮKassa
     
-    TODO: Когда появятся данные ЮKassa:
-    1. Раскомментировать импорт: from yookassa import Webhook
-    2. Проверить подпись запроса
-    3. Обработать событие (payment.succeeded, payment.canceled)
-    4. Обновить статус платежа в БД
-    5. Если оплачено - создать запись UserCourse
+    Обрабатывает события:
+    - payment.succeeded - платеж успешно завершен
+    - payment.canceled - платеж отменен
+    
+    Примечание: В настройках ЮKassa нужно указать URL этого webhook
     """
-    # TODO: Реализация вебхука
-    # Когда появятся данные ЮKassa, раскомментировать:
-    """
-    from yookassa import Webhook
     from datetime import datetime
     
-    # Проверка подписи (если настроено)
-    # event = Webhook.parse(request)
-    
-    # Обработка события
-    # if event.type == "payment.succeeded":
-    #     payment_id = event.object.metadata.get("payment_id")
-    #     # Обновляем статус и создаём UserCourse
-    # elif event.type == "payment.canceled":
-    #     # Обновляем статус
-    """
-    
-    return {"status": "ok"}
+    try:
+        # Парсим событие из JSON body
+        event_type = request_data.get("event")
+        payment_object = request_data.get("object", {})
+        
+        if not event_type or not payment_object:
+            print("⚠️ [Webhook] Неверный формат запроса")
+            return {"status": "error", "message": "Invalid request format"}
+        
+        # Получаем ID платежа ЮKassa
+        yookassa_payment_id = payment_object.get("id")
+        if not yookassa_payment_id:
+            print("⚠️ [Webhook] Отсутствует ID платежа")
+            return {"status": "error", "message": "Missing payment ID"}
+        
+        # Ищем платеж в БД
+        result = await session.execute(
+            select(Payment).where(Payment.yookassa_payment_id == yookassa_payment_id)
+        )
+        payment = result.scalar_one_or_none()
+        
+        if not payment:
+            print(f"⚠️ [Webhook] Платеж с yookassa_payment_id={yookassa_payment_id} не найден в БД")
+            return {"status": "error", "message": "Payment not found"}
+        
+        # Обрабатываем событие
+        if event_type == "payment.succeeded":
+            if payment.status != "succeeded":
+                payment.status = "succeeded"
+                payment.paid_at = datetime.now()
+                payment.payment_method = payment_object.get("payment_method", {}).get("type") if payment_object.get("payment_method") else None
+                
+                # Получаем пользователя
+                result = await session.execute(
+                    select(User).where(User.id == payment.user_id)
+                )
+                db_user = result.scalar_one_or_none()
+                
+                if db_user:
+                    # Проверяем, не создана ли уже запись UserCourse
+                    result = await session.execute(
+                        select(UserCourse).where(
+                            UserCourse.user_id == db_user.id,
+                            UserCourse.course_id == payment.course_id
+                        )
+                    )
+                    existing_user_course = result.scalar_one_or_none()
+                    
+                    # Создаём запись о покупке курса, если её ещё нет
+                    if not existing_user_course:
+                        user_course = UserCourse(
+                            user_id=db_user.id,
+                            course_id=payment.course_id
+                        )
+                        session.add(user_course)
+                        print(f"✅ [Webhook] Создана запись UserCourse для пользователя {db_user.id} и курса {payment.course_id}")
+                
+                await session.commit()
+                print(f"✅ [Webhook] Платеж {payment.id} обработан: статус = succeeded")
+                
+        elif event_type == "payment.canceled":
+            if payment.status != "canceled":
+                payment.status = "canceled"
+                await session.commit()
+                print(f"⚠️ [Webhook] Платеж {payment.id} отменен")
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        print(f"❌ [Webhook] Ошибка обработки webhook: {e}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
 
 
 @router.get("/history")

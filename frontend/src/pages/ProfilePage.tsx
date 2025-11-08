@@ -49,17 +49,39 @@ const ProfilePage = () => {
       const rawProfile = profileResponse.data
       
       if (rawProfile) {
-        // Нормализуем профиль - только ФИО и телефон
+        // Безопасно преобразуем created_at - может быть объектом datetime
+        let created_at_str: string
+        if (typeof rawProfile.created_at === 'string') {
+          created_at_str = rawProfile.created_at
+        } else if (rawProfile.created_at && typeof rawProfile.created_at === 'object') {
+          // Если это объект datetime, пытаемся преобразовать
+          try {
+            if (rawProfile.created_at instanceof Date) {
+              created_at_str = rawProfile.created_at.toISOString()
+            } else if (typeof rawProfile.created_at.toISOString === 'function') {
+              created_at_str = rawProfile.created_at.toISOString()
+            } else {
+              created_at_str = new Date().toISOString()
+            }
+          } catch (e) {
+            console.warn('Ошибка преобразования created_at:', e)
+            created_at_str = new Date().toISOString()
+          }
+        } else {
+          created_at_str = new Date().toISOString()
+        }
+        
+        // Нормализуем профиль - гарантируем что все поля это примитивы
         const normalizedProfile: Profile = {
           id: typeof rawProfile.id === 'number' && !isNaN(rawProfile.id) ? rawProfile.id : 0,
           telegram_id: typeof rawProfile.telegram_id === 'number' && !isNaN(rawProfile.telegram_id) ? rawProfile.telegram_id : 0,
           username: rawProfile.username && typeof rawProfile.username === 'string' && rawProfile.username.trim() !== '' ? rawProfile.username : undefined,
           full_name: typeof rawProfile.full_name === 'string' && rawProfile.full_name.trim() !== '' ? rawProfile.full_name : 'Пользователь',
           phone: typeof rawProfile.phone === 'string' && rawProfile.phone.trim() !== '' ? rawProfile.phone : 'не указан',
-          email: undefined,
-          city: undefined,
+          email: rawProfile.email && typeof rawProfile.email === 'string' && rawProfile.email.trim() !== '' ? rawProfile.email : undefined,
+          city: rawProfile.city && typeof rawProfile.city === 'string' && rawProfile.city.trim() !== '' ? rawProfile.city : undefined,
           points: typeof rawProfile.points === 'number' && !isNaN(rawProfile.points) ? rawProfile.points : 0,
-          created_at: typeof rawProfile.created_at === 'string' ? rawProfile.created_at : new Date().toISOString()
+          created_at: created_at_str
         }
         setProfile(normalizedProfile)
       }
@@ -118,7 +140,25 @@ const ProfilePage = () => {
             total_lessons: typeof course?.progress?.total_lessons === 'number' && !isNaN(course.progress.total_lessons) ? course.progress.total_lessons : 0,
             completed_lessons: typeof course?.progress?.completed_lessons === 'number' && !isNaN(course.progress.completed_lessons) ? course.progress.completed_lessons : 0,
             progress_percent: typeof course?.progress?.progress_percent === 'number' && !isNaN(course.progress.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
-            purchased_at: course?.progress?.purchased_at && typeof course.progress.purchased_at === 'string' && course.progress.purchased_at.trim() !== '' ? course.progress.purchased_at : null,
+            purchased_at: (() => {
+              const purchasedAt = course?.progress?.purchased_at
+              if (!purchasedAt) return null
+              // Безопасно преобразуем purchased_at - может быть объектом datetime
+              if (typeof purchasedAt === 'string' && purchasedAt.trim() !== '') {
+                return purchasedAt
+              } else if (purchasedAt && typeof purchasedAt === 'object') {
+                try {
+                  if (purchasedAt instanceof Date) {
+                    return purchasedAt.toISOString()
+                  } else if (typeof purchasedAt.toISOString === 'function') {
+                    return purchasedAt.toISOString()
+                  }
+                } catch (e) {
+                  console.warn('Ошибка преобразования purchased_at:', e)
+                }
+              }
+              return null
+            })(),
             is_completed: course?.progress?.is_completed === true
           }
         }
@@ -256,7 +296,25 @@ const ProfilePage = () => {
                   total_lessons: typeof course.progress.total_lessons === 'number' && !isNaN(course.progress.total_lessons) ? course.progress.total_lessons : 0,
                   completed_lessons: typeof course.progress.completed_lessons === 'number' && !isNaN(course.progress.completed_lessons) ? course.progress.completed_lessons : 0,
                   progress_percent: typeof course.progress.progress_percent === 'number' && !isNaN(course.progress.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
-                  purchased_at: course.progress.purchased_at && typeof course.progress.purchased_at === 'string' && course.progress.purchased_at.trim() !== '' ? String(course.progress.purchased_at) : null,
+                  purchased_at: (() => {
+                    const purchasedAt = course.progress.purchased_at
+                    if (!purchasedAt) return null
+                    // Безопасно преобразуем purchased_at - может быть объектом datetime
+                    if (typeof purchasedAt === 'string' && purchasedAt.trim() !== '') {
+                      return purchasedAt
+                    } else if (purchasedAt && typeof purchasedAt === 'object') {
+                      try {
+                        if (purchasedAt instanceof Date) {
+                          return purchasedAt.toISOString()
+                        } else if (typeof purchasedAt.toISOString === 'function') {
+                          return purchasedAt.toISOString()
+                        }
+                      } catch (e) {
+                        console.warn('Ошибка преобразования purchased_at:', e)
+                      }
+                    }
+                    return null
+                  })(),
                   is_completed: course.progress.is_completed === true
                 }
               } else {

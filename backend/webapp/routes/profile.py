@@ -66,13 +66,15 @@ async def get_profile(
             full_name = f"{first_name} {last_name}".strip() or ("Администратор" if is_admin else "Пользователь")
             
             # Создаем пользователя - гарантируем что telegram_id это int
+            from datetime import datetime
             db_user = User(
                 telegram_id=int(telegram_id),  # Явно преобразуем в int
                 username=username,
                 full_name=full_name,
                 phone="не указан",  # Пользователь может указать позже через редактирование профиля
                 consent_personal_data=True,
-                is_active=True
+                is_active=True,
+                created_at=datetime.now()  # Явно устанавливаем created_at
             )
             session.add(db_user)
             await session.commit()
@@ -101,6 +103,19 @@ async def get_profile(
             }
             print(f"📤 [Profile] Возвращаю данные нового профиля: {profile_data}")
             
+            # Преобразуем datetime в строку для корректной JSON сериализации
+            try:
+                if db_user.created_at is None:
+                    created_at_str = ""
+                elif hasattr(db_user.created_at, 'isoformat'):
+                    created_at_str = db_user.created_at.isoformat()
+                else:
+                    created_at_str = str(db_user.created_at)
+            except Exception as e:
+                print(f"⚠️ [Profile] Ошибка преобразования created_at: {e}")
+                from datetime import datetime
+                created_at_str = datetime.now().isoformat()
+            
             response = ProfileResponse(
                 id=db_user.id,
                 telegram_id=db_user.telegram_id,
@@ -110,7 +125,7 @@ async def get_profile(
                 email=email,
                 city=db_user.city,
                 points=db_user.points,
-                created_at=db_user.created_at
+                created_at=created_at_str
             )
             
             print(f"📤 [Profile] ProfileResponse создан для нового пользователя: full_name={response.full_name}, phone={response.phone}")
@@ -139,6 +154,19 @@ async def get_profile(
         }
         print(f"📤 [Profile] Возвращаю данные профиля: {profile_data}")
         
+        # Преобразуем datetime в строку для корректной JSON сериализации
+        try:
+            if db_user.created_at is None:
+                created_at_str = ""
+            elif hasattr(db_user.created_at, 'isoformat'):
+                created_at_str = db_user.created_at.isoformat()
+            else:
+                created_at_str = str(db_user.created_at)
+        except Exception as e:
+            print(f"⚠️ [Profile] Ошибка преобразования created_at: {e}")
+            from datetime import datetime
+            created_at_str = datetime.now().isoformat()
+        
         response = ProfileResponse(
             id=db_user.id,
             telegram_id=db_user.telegram_id,
@@ -148,7 +176,7 @@ async def get_profile(
             email=email,
             city=db_user.city,
             points=db_user.points,
-            created_at=db_user.created_at
+            created_at=created_at_str
         )
         
         print(f"📤 [Profile] ProfileResponse создан: full_name={response.full_name}, phone={response.phone}, email={response.email}, city={response.city}")
@@ -204,6 +232,19 @@ async def update_profile(
     except AttributeError:
         email = None
     
+    # Преобразуем datetime в строку для корректной JSON сериализации
+    try:
+        if db_user.created_at is None:
+            created_at_str = ""
+        elif hasattr(db_user.created_at, 'isoformat'):
+            created_at_str = db_user.created_at.isoformat()
+        else:
+            created_at_str = str(db_user.created_at)
+    except Exception as e:
+        print(f"⚠️ [Profile] Ошибка преобразования created_at: {e}")
+        from datetime import datetime
+        created_at_str = datetime.now().isoformat()
+    
     return ProfileResponse(
         id=db_user.id,
         telegram_id=db_user.telegram_id,
@@ -213,7 +254,7 @@ async def update_profile(
         email=email,
         city=db_user.city,
         points=db_user.points,
-        created_at=db_user.created_at
+        created_at=created_at_str
     )
 
 
