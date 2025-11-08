@@ -35,6 +35,34 @@ const ProfilePage = () => {
 
   useEffect(() => {
     loadProfile()
+    
+    // Слушаем изменения dev_telegram_id в localStorage для автоматического обновления
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dev_telegram_id') {
+        console.log('🔄 [ProfilePage] dev_telegram_id изменен, перезагружаем профиль...')
+        loadProfile()
+      }
+    }
+    
+    // Слушаем события storage (из других вкладок)
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Слушаем кастомное событие для обновления в той же вкладке
+    const handleCustomStorageChange = () => {
+      const currentId = localStorage.getItem('dev_telegram_id')
+      console.log('🔄 [ProfilePage] dev_telegram_id изменен (custom event), перезагружаем профиль...', 'текущий ID:', currentId)
+      // Небольшая задержка чтобы убедиться что localStorage обновился
+      setTimeout(() => {
+        loadProfile()
+      }, 200)
+    }
+    
+    window.addEventListener('dev_telegram_id_changed', handleCustomStorageChange)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('dev_telegram_id_changed', handleCustomStorageChange)
+    }
   }, [])
 
   useEffect(() => {
@@ -45,8 +73,11 @@ const ProfilePage = () => {
 
   const loadProfile = async () => {
     try {
+      const currentDevId = localStorage.getItem('dev_telegram_id')
+      console.log('📥 [ProfilePage] Загрузка профиля, текущий dev_telegram_id:', currentDevId)
       const profileResponse = await profileApi.get()
       const rawProfile = profileResponse.data
+      console.log('📥 [ProfilePage] Получен профиль:', rawProfile)
       
       if (rawProfile) {
         // КРИТИЧЕСКИ ВАЖНО: Преобразуем ВСЕ поля в примитивы перед установкой в state
@@ -90,7 +121,6 @@ const ProfilePage = () => {
           username: rawProfile.username && typeof rawProfile.username === 'string' && rawProfile.username.trim() !== '' ? String(rawProfile.username).trim() : undefined,
           full_name: typeof rawProfile.full_name === 'string' && rawProfile.full_name.trim() !== '' ? String(rawProfile.full_name).trim() : 'Пользователь',
           phone: typeof rawProfile.phone === 'string' && rawProfile.phone.trim() !== '' ? String(rawProfile.phone).trim() : 'не указан',
-          email: rawProfile.email && typeof rawProfile.email === 'string' && rawProfile.email.trim() !== '' ? String(rawProfile.email).trim() : undefined,
           city: rawProfile.city && typeof rawProfile.city === 'string' && rawProfile.city.trim() !== '' ? String(rawProfile.city).trim() : undefined,
           points: typeof rawProfile.points === 'number' && !isNaN(rawProfile.points) ? Number(rawProfile.points) : 0,
           created_at: String(created_at_str) // Явно преобразуем в строку

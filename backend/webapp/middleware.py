@@ -151,41 +151,36 @@ def get_telegram_user(request: Request) -> dict:
         # Пробуем получить telegram_id из заголовка X-Telegram-User-ID
         dev_telegram_id = request.headers.get("X-Telegram-User-ID")
         
+        telegram_id_to_use = None
+        
         if dev_telegram_id:
             try:
-                telegram_id = int(dev_telegram_id)
-                print(f"🔧 [DEV MODE] Используется telegram_id из заголовка: {telegram_id}")
-                # Создаем фейкового пользователя для разработки
-                return {
-                    "id": telegram_id,
-                    "first_name": "Dev",
-                    "last_name": "User",
-                    "username": "dev_user",
-                    "language_code": "ru"
-                }
+                telegram_id_to_use = int(dev_telegram_id)
+                print(f"🔧 [DEV MODE] Используется telegram_id из заголовка: {telegram_id_to_use}")
             except ValueError:
                 print(f"⚠️ [DEV MODE] Невалидный X-Telegram-User-ID: {dev_telegram_id}")
         
         # Или используем DEV_TELEGRAM_ID из настроек
-        if settings.DEV_TELEGRAM_ID > 0:
-            print(f"🔧 [DEV MODE] Используется DEV_TELEGRAM_ID из настроек: {settings.DEV_TELEGRAM_ID}")
-            return {
-                "id": settings.DEV_TELEGRAM_ID,
-                "first_name": "Dev",
-                "last_name": "User",
-                "username": "dev_user",
-                "language_code": "ru"
-            }
+        if not telegram_id_to_use and settings.DEV_TELEGRAM_ID > 0:
+            telegram_id_to_use = settings.DEV_TELEGRAM_ID
+            print(f"🔧 [DEV MODE] Используется DEV_TELEGRAM_ID из настроек: {telegram_id_to_use}")
         
         # Если ничего не указано - используем дефолтный ID для разработки
-        default_dev_id = 123456789  # Можно изменить в .env через DEV_TELEGRAM_ID
-        print(f"🔧 [DEV MODE] Используется дефолтный telegram_id для разработки: {default_dev_id}")
-        print(f"💡 [DEV MODE] Чтобы указать свой ID, добавьте заголовок X-Telegram-User-ID или установите DEV_TELEGRAM_ID в .env")
+        if not telegram_id_to_use:
+            telegram_id_to_use = 123456789  # Можно изменить в .env через DEV_TELEGRAM_ID
+            print(f"🔧 [DEV MODE] Используется дефолтный telegram_id для разработки: {telegram_id_to_use}")
+            print(f"💡 [DEV MODE] Чтобы указать свой ID, добавьте заголовок X-Telegram-User-ID или установите DEV_TELEGRAM_ID в .env")
+        
+        # Пытаемся получить реальные данные пользователя из БД
+        # ВАЖНО: В режиме разработки profile.py сам проверит БД и создаст пользователя если нужно
+        # Здесь просто возвращаем telegram_id, а реальные данные будут получены в profile.py
+        # Это упрощает код и избегает проблем с async в синхронной функции
+        print(f"🔧 [DEV MODE] Возвращаем telegram_id для дальнейшей обработки в profile.py")
         return {
-            "id": default_dev_id,
-            "first_name": "Dev",
-            "last_name": "User",
-            "username": "dev_user",
+            "id": telegram_id_to_use,
+            "first_name": "",  # Будет заполнено из БД в profile.py
+            "last_name": "",   # Будет заполнено из БД в profile.py
+            "username": "",    # Будет заполнено из БД в profile.py
             "language_code": "ru"
         }
     
