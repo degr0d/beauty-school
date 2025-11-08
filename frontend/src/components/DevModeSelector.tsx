@@ -7,40 +7,38 @@ import { useState, useEffect } from 'react'
 import { profileApi, DevUser } from '../api/client'
 
 const DevModeSelector = () => {
-  const [isVisible, setIsVisible] = useState(false)
-  const [telegramId, setTelegramId] = useState<string>('')
+  // Проверяем видимость сразу при инициализации
+  const hostname = window.location.hostname
+  const isLocalhost = hostname === 'localhost' || 
+                     hostname === '127.0.0.1' ||
+                     hostname.includes('localhost') ||
+                     hostname === ''
+  
+  const urlParams = new URLSearchParams(window.location.search)
+  const hasDevParam = urlParams.get('dev') === 'true'
+  const notInTelegram = !window.Telegram?.WebApp
+  
+  const shouldShow = isLocalhost || hasDevParam || notInTelegram
+  
+  const [isVisible] = useState(shouldShow)
+  const [telegramId, setTelegramId] = useState<string>(() => {
+    const savedId = localStorage.getItem('dev_telegram_id')
+    return savedId || '123456789'
+  })
   const [isOpen, setIsOpen] = useState(false)
   const [users, setUsers] = useState<DevUser[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
 
   useEffect(() => {
-    // Показываем только на localhost
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname.includes('localhost')
-    
-    // Также проверяем параметр ?dev=true
-    const urlParams = new URLSearchParams(window.location.search)
-    const hasDevParam = urlParams.get('dev') === 'true'
-    
-    const shouldShow = isLocalhost || hasDevParam
-    
-    console.log('🔧 [DevModeSelector] Проверка видимости:', {
-      hostname: window.location.hostname,
+    console.log('🔧 [DevModeSelector] Компонент смонтирован:', {
+      hostname,
       isLocalhost,
       hasDevParam,
-      shouldShow
+      notInTelegram,
+      shouldShow,
+      isVisible,
+      hasTelegram: !!window.Telegram?.WebApp
     })
-    
-    setIsVisible(shouldShow)
-    
-    // Загружаем сохраненный telegram_id
-    const savedId = localStorage.getItem('dev_telegram_id')
-    if (savedId) {
-      setTelegramId(savedId)
-    } else {
-      setTelegramId('123456789')
-    }
   }, [])
 
   useEffect(() => {
