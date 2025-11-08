@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 
 from backend.config import settings
 from backend.bot.bot import setup_bot_handlers
-from backend.database.database import init_db
+from backend.database.database import init_db, create_engine_and_session
 from backend.webapp.app import create_app
 
 # Загружаем .env
@@ -101,9 +101,16 @@ async def main():
     logger.info("=" * 60)
     
     # Инициализация базы данных
+    # Сначала создаем engine и session factory
     logger.info("Инициализация базы данных...")
-    await init_db()
-    logger.info("✅ База данных готова")
+    create_engine_and_session()
+    # Теперь можем инициализировать БД (создать таблицы)
+    try:
+        await init_db()
+        logger.info("✅ База данных готова")
+    except Exception as db_error:
+        logger.warning(f"⚠️ Ошибка инициализации БД: {db_error}")
+        logger.warning("💡 Продолжаем запуск - таблицы могут быть созданы через startup_event")
     
     logger.info("=" * 60)
     logger.info("🚀 Запуск сервисов...")

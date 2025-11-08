@@ -46,7 +46,8 @@ const DevModeSelector = () => {
     if (isOpen && isVisible) {
       loadUsers()
     }
-  }, [isOpen, isVisible])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen])
 
   const loadUsers = async () => {
     setLoadingUsers(true)

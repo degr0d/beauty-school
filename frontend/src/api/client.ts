@@ -20,6 +20,11 @@ const api = axios.create({
 // Добавляем interceptor для автоматической отправки Telegram initData
 api.interceptors.request.use((config) => {
   const webApp = window.Telegram?.WebApp
+  const isLocalhost = window.location.hostname === 'localhost' || 
+                     window.location.hostname === '127.0.0.1' ||
+                     window.location.hostname.includes('localhost')
+  
+  // Если есть initData - используем его
   if (webApp?.initData) {
     config.headers['X-Telegram-Init-Data'] = webApp.initData
     console.log('📤 [API] Отправка запроса с initData:', {
@@ -27,29 +32,23 @@ api.interceptors.request.use((config) => {
       hasInitData: !!webApp.initData,
       telegramId: webApp.initDataUnsafe?.user?.id
     })
-  } else {
-    // РЕЖИМ РАЗРАБОТКИ: Если нет Telegram WebApp, используем заголовок X-Telegram-User-ID
-    const isLocalhost = window.location.hostname === 'localhost' || 
-                       window.location.hostname === '127.0.0.1' ||
-                       window.location.hostname.includes('localhost')
-    
-    if (isLocalhost) {
-      // Пробуем получить telegram_id из localStorage или используем дефолтный
-      let devTelegramId = localStorage.getItem('dev_telegram_id')
-      if (!devTelegramId) {
-        // Используем дефолтный ID для разработки
-        devTelegramId = '123456789'
-        localStorage.setItem('dev_telegram_id', devTelegramId)
-        console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки:', devTelegramId)
-        console.log('💡 [DEV MODE] Чтобы изменить, выполните в консоли: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
-      }
-      
-      config.headers['X-Telegram-User-ID'] = devTelegramId
-      console.log('🔧 [DEV MODE] Отправка запроса с X-Telegram-User-ID:', devTelegramId)
-    } else {
-      console.warn('⚠️ [API] Запрос без initData:', config.url)
-      console.warn('   Это может быть проблемой если открыто не через Telegram бота')
+  } else if (isLocalhost) {
+    // РЕЖИМ РАЗРАБОТКИ: На localhost всегда используем X-Telegram-User-ID
+    // даже если есть Telegram WebApp, но нет initData
+    let devTelegramId = localStorage.getItem('dev_telegram_id')
+    if (!devTelegramId) {
+      // Используем дефолтный ID для разработки
+      devTelegramId = '123456789'
+      localStorage.setItem('dev_telegram_id', devTelegramId)
+      console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки:', devTelegramId)
+      console.log('💡 [DEV MODE] Чтобы изменить, выполните в консоли: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
     }
+    
+    config.headers['X-Telegram-User-ID'] = devTelegramId
+    console.log('🔧 [DEV MODE] Отправка запроса с X-Telegram-User-ID:', devTelegramId)
+  } else {
+    console.warn('⚠️ [API] Запрос без initData:', config.url)
+    console.warn('   Это может быть проблемой если открыто не через Telegram бота')
   }
   return config
 }, (error) => {
