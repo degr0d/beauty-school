@@ -62,6 +62,7 @@ api.interceptors.request.use((config) => {
         telegramId: webApp.initDataUnsafe?.user?.id
       })
     } else {
+      // На НЕ localhost без initData - предупреждаем
       console.warn('⚠️ [API] Запрос без initData:', config.url)
       console.warn('   Это может быть проблемой если открыто не через Telegram бота')
     }
