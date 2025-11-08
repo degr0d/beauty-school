@@ -40,15 +40,21 @@ class Settings(BaseSettings):
     
     @property
     def database_url(self) -> str:
-        """Строка подключения к PostgreSQL (async)"""
+        """Строка подключения к БД (async)"""
         # Если Railway предоставил DATABASE_URL - используем его
-        if self.DATABASE_URL:
+        if self.DATABASE_URL and not self.DATABASE_URL.startswith("${"):
             # Конвертируем postgresql:// в postgresql+asyncpg://
             if self.DATABASE_URL.startswith("postgresql://"):
                 return self.DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
             return self.DATABASE_URL
         
-        # Иначе используем отдельные параметры
+        # Для локальной разработки без PostgreSQL используем SQLite
+        if self.ENVIRONMENT == "development":
+            import os
+            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "local.db")
+            return f"sqlite+aiosqlite:///{db_path}"
+        
+        # Иначе используем отдельные параметры PostgreSQL
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
     
     @property
