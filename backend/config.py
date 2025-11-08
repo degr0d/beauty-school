@@ -87,7 +87,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "change_me_in_production"
     ENVIRONMENT: str = "development"  # development / production
     DEV_MODE: bool = True  # Режим разработки - позволяет работать без Telegram initData
-    DEV_TELEGRAM_ID: int = 0  # Telegram ID для локальной разработки (если 0 - используется из заголовка X-Telegram-User-ID)
+    DEV_TELEGRAM_ID: int = 310836227  # Telegram ID для локальной разработки (админ по умолчанию)
     
     # ========================================
     # File Storage
