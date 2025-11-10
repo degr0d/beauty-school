@@ -10,6 +10,7 @@ from sqlalchemy import select
 from backend.database import async_session, Course
 from backend.config import settings
 from backend.admin_bot.filters import AdminFilter
+from backend.database.seed_data import seed_courses, seed_achievements, seed_communities
 
 router = Router()
 
@@ -148,6 +149,46 @@ async def get_course_info(message: Message):
     await message.answer(course_info, parse_mode="HTML")
 
 
+@router.message(Command("seed_data"))
+async def create_test_data(message: Message):
+    """
+    Создать тестовые данные (курсы, достижения, сообщества)
+    Для тестирования функционала
+    """
+    await message.answer("🌱 Создаю тестовые данные...\n\nЭто может занять несколько секунд...")
+    
+    try:
+        # Создаем курсы
+        await seed_courses()
+        courses_msg = "✅ Курсы созданы"
+    except Exception as e:
+        courses_msg = f"❌ Ошибка создания курсов: {str(e)}"
+    
+    try:
+        # Создаем достижения
+        await seed_achievements()
+        achievements_msg = "✅ Достижения созданы"
+    except Exception as e:
+        achievements_msg = f"❌ Ошибка создания достижений: {str(e)}"
+    
+    try:
+        # Создаем сообщества
+        await seed_communities()
+        communities_msg = "✅ Сообщества созданы"
+    except Exception as e:
+        communities_msg = f"❌ Ошибка создания сообществ: {str(e)}"
+    
+    result = (
+        f"📊 <b>Результат создания тестовых данных:</b>\n\n"
+        f"{courses_msg}\n"
+        f"{achievements_msg}\n"
+        f"{communities_msg}\n\n"
+        f"💡 Теперь можно тестировать функционал!"
+    )
+    
+    await message.answer(result, parse_mode="HTML")
+
+
 # ========================================
 # TODO: Добавить команды для создания/редактирования курсов
 # ========================================
@@ -161,4 +202,5 @@ async def get_course_info(message: Message):
 # Пример команды:
 # ========================================
 # /courses - Список всех курсов
+# /seed_data - Создать тестовые данные
 
