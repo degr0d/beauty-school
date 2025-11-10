@@ -199,21 +199,6 @@ def get_telegram_user(request: Request) -> dict:
             "language_code": "ru"
         }
     
-    # В режиме разработки (когда middleware отключен):
-    # Пробуем получить initData из заголовка и проверить его
-    init_data = request.headers.get("X-Telegram-Init-Data")
-    if init_data:
-        print(f"🔍 [get_telegram_user] initData найден в заголовке, валидирую...")
-        # Валидируем initData напрямую
-        user = validate_init_data_direct(init_data)
-        if user:
-            print(f"✅ [get_telegram_user] Пользователь авторизован: telegram_id={user.get('id')}")
-            return user
-        else:
-            print(f"❌ [get_telegram_user] Валидация initData не прошла")
-    else:
-        print(f"⚠️ [get_telegram_user] initData не найден в заголовке X-Telegram-Init-Data")
-    
     # Если ничего не получилось - возвращаем ошибку
     raise HTTPException(status_code=401, detail="Unauthorized. Please register via Telegram bot.")
 
