@@ -259,12 +259,26 @@ async def cmd_free8(message: Message):
             )
             return
         
-        # Получаем все курсы
+        # Получаем все курсы (включая неактивные)
         result = await session.execute(select(Course))
         all_courses = result.scalars().all()
         
         if not all_courses:
-            await message.answer("❌ В базе нет курсов")
+            # Детальная диагностика
+            result = await session.execute(select(Course).where(Course.is_active == True))
+            active_courses = result.scalars().all()
+            
+            result = await session.execute(select(Course).where(Course.is_active == False))
+            inactive_courses = result.scalars().all()
+            
+            await message.answer(
+                f"❌ В базе нет курсов\n\n"
+                f"🔍 Диагностика:\n"
+                f"   Активных курсов: {len(active_courses)}\n"
+                f"   Неактивных курсов: {len(inactive_courses)}\n"
+                f"   Всего курсов: {len(active_courses) + len(inactive_courses)}\n\n"
+                f"💡 Добавьте курсы через админ-панель или базу данных"
+            )
             return
         
         # Выдаем доступ ко всем курсам
