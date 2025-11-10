@@ -146,7 +146,20 @@ def get_telegram_user(request: Request) -> dict:
     if hasattr(request.state, "telegram_user"):
         return request.state.telegram_user
     
+    # ВАЖНО: Сначала проверяем initData (даже в development)
+    # Если есть реальный initData от Telegram - используем его
+    init_data = request.headers.get("X-Telegram-Init-Data")
+    if init_data and init_data.strip():
+        print(f"🔍 [get_telegram_user] Найден initData, валидирую...")
+        user_data = validate_init_data_direct(init_data)
+        if user_data:
+            print(f"✅ [get_telegram_user] initData валиден, используем данные из Telegram: telegram_id={user_data.get('id')}")
+            return user_data
+        else:
+            print(f"⚠️ [get_telegram_user] initData невалиден, переходим к режиму разработки")
+    
     # РЕЖИМ РАЗРАБОТКИ: Если включен DEV_MODE, позволяем работать без initData
+    # Используется ТОЛЬКО если initData отсутствует или невалиден
     if settings.DEV_MODE and settings.ENVIRONMENT == "development":
         # Пробуем получить telegram_id из заголовка X-Telegram-User-ID
         # ВАЖНО: Заголовок имеет ПРИОРИТЕТ - если он есть, используем его
