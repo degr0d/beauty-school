@@ -149,6 +149,7 @@ def get_telegram_user(request: Request) -> dict:
     # РЕЖИМ РАЗРАБОТКИ: Если включен DEV_MODE, позволяем работать без initData
     if settings.DEV_MODE and settings.ENVIRONMENT == "development":
         # Пробуем получить telegram_id из заголовка X-Telegram-User-ID
+        # ВАЖНО: Заголовок имеет ПРИОРИТЕТ - если он есть, используем его
         dev_telegram_id = request.headers.get("X-Telegram-User-ID")
         
         telegram_id_to_use = None
@@ -156,19 +157,20 @@ def get_telegram_user(request: Request) -> dict:
         if dev_telegram_id:
             try:
                 telegram_id_to_use = int(dev_telegram_id)
-                print(f"🔧 [DEV MODE] Используется telegram_id из заголовка: {telegram_id_to_use}")
+                print(f"🔧 [DEV MODE] Используется telegram_id из заголовка X-Telegram-User-ID: {telegram_id_to_use}")
             except ValueError:
                 print(f"⚠️ [DEV MODE] Невалидный X-Telegram-User-ID: {dev_telegram_id}")
         
-        # Или используем DEV_TELEGRAM_ID из настроек
+        # ТОЛЬКО если заголовок не был передан - используем DEV_TELEGRAM_ID из настроек
         if not telegram_id_to_use and settings.DEV_TELEGRAM_ID > 0:
             telegram_id_to_use = settings.DEV_TELEGRAM_ID
-            print(f"🔧 [DEV MODE] Используется DEV_TELEGRAM_ID из настроек: {telegram_id_to_use}")
+            print(f"🔧 [DEV MODE] Заголовок X-Telegram-User-ID не передан, используем DEV_TELEGRAM_ID из настроек: {telegram_id_to_use}")
         
         # Если ничего не указано - используем дефолтный ID для разработки (админ)
+        # Это fallback только если НИ заголовок, НИ настройка не указаны
         if not telegram_id_to_use:
-            telegram_id_to_use = settings.DEV_TELEGRAM_ID if settings.DEV_TELEGRAM_ID > 0 else 310836227
-            print(f"🔧 [DEV MODE] Используется дефолтный telegram_id для разработки: {telegram_id_to_use}")
+            telegram_id_to_use = 310836227
+            print(f"🔧 [DEV MODE] Используется дефолтный telegram_id для разработки (fallback): {telegram_id_to_use}")
             print(f"💡 [DEV MODE] Чтобы указать другой ID, добавьте заголовок X-Telegram-User-ID или установите DEV_TELEGRAM_ID в .env")
         
         # Пытаемся получить реальные данные пользователя из БД

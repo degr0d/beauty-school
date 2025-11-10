@@ -42,11 +42,11 @@ api.interceptors.request.use((config) => {
       // даже если есть Telegram WebApp, но нет реального initData
       let devTelegramId = localStorage.getItem('dev_telegram_id')
       if (!devTelegramId) {
-        // Используем дефолтный ID для разработки
-        devTelegramId = '123456789'
+        // Используем дефолтный ID для разработки (админ)
+        devTelegramId = '310836227'
         localStorage.setItem('dev_telegram_id', devTelegramId)
-        console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки:', devTelegramId)
-        console.log('💡 [DEV MODE] Чтобы изменить, выполните в консоли: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
+        console.log('🔧 [DEV MODE] Установлен дефолтный telegram_id для разработки (админ):', devTelegramId)
+        console.log('💡 [DEV MODE] Чтобы изменить, используйте DevModeSelector или выполните: localStorage.setItem("dev_telegram_id", "ВАШ_ID")')
       }
       
       config.headers['X-Telegram-User-ID'] = devTelegramId
