@@ -24,11 +24,11 @@ async def seed_courses():
             "duration_hours": 10,
             "cover_image_url": "https://via.placeholder.com/400x200?text=Manicure+Course",
             "lessons": [
-                {"title": "Введение в маникюр", "order": 1, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "is_free": True},
-                {"title": "Подготовка ногтей", "order": 2, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Техника нанесения гель-лака", "order": 3, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Простой дизайн", "order": 4, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Снятие покрытия", "order": 5, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+                {"title": "Введение в маникюр", "order": 1, "description": "Основы маникюра и инструменты", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 600, "is_free": True},
+                {"title": "Подготовка ногтей", "order": 2, "description": "Правильная подготовка ногтевой пластины", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 900},
+                {"title": "Техника нанесения гель-лака", "order": 3, "description": "Пошаговая техника нанесения", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1200},
+                {"title": "Простой дизайн", "order": 4, "description": "Базовые техники дизайна", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1800},
+                {"title": "Снятие покрытия", "order": 5, "description": "Безопасное снятие гель-лака", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 600},
             ]
         },
         {
@@ -87,9 +87,9 @@ async def seed_courses():
             "duration_hours": 6,
             "cover_image_url": "https://via.placeholder.com/400x200?text=Business+Course",
             "lessons": [
-                {"title": "Бизнес-план", "order": 1, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "is_free": True},
-                {"title": "Регистрация ИП", "order": 2, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Первые клиенты", "order": 3, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+                {"title": "Бизнес-план", "order": 1, "description": "Составление бизнес-плана для салона", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1800, "is_free": True},
+                {"title": "Регистрация ИП", "order": 2, "description": "Пошаговая регистрация ИП", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1200},
+                {"title": "Первые клиенты", "order": 3, "description": "Как найти первых клиентов", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1500},
             ]
         },
     ]
