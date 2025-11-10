@@ -18,7 +18,7 @@ async def seed_courses():
             "title": "Основы маникюра для начинающих",
             "description": "Научись делать идеальный маникюр с нуля",
             "full_description": "Этот курс подойдёт для тех, кто хочет освоить маникюр с нуля. Ты узнаешь о правильной подготовке ногтей, технике нанесения покрытия и дизайне.",
-            "category": "manicure",
+            "category": "Маникюр и педикюр",
             "is_top": True,
             "price": 0,
             "duration_hours": 10,
@@ -35,23 +35,23 @@ async def seed_courses():
             "title": "Наращивание ресниц: классика",
             "description": "Освой технику классического наращивания ресниц",
             "full_description": "Полный курс по классическому наращиванию ресниц. Изучи теорию, практику и секреты профессионалов.",
-            "category": "eyelashes",
+            "category": "Ресницы и брови",
             "is_top": True,
             "price": 0,
             "duration_hours": 15,
             "cover_image_url": "https://via.placeholder.com/400x200?text=Eyelashes+Course",
             "lessons": [
-                {"title": "Теория наращивания", "order": 1, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "is_free": True},
-                {"title": "Материалы и инструменты", "order": 2, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Техника поресничного наращивания", "order": 3, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Коррекция и снятие", "order": 4, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+                {"title": "Теория наращивания", "order": 1, "description": "Основы классического наращивания", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 900, "is_free": True},
+                {"title": "Материалы и инструменты", "order": 2, "description": "Выбор материалов для работы", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1200},
+                {"title": "Техника поресничного наращивания", "order": 3, "description": "Практика наращивания", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 2400},
+                {"title": "Коррекция и снятие", "order": 4, "description": "Техника коррекции и безопасного снятия", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1500},
             ]
         },
         {
             "title": "Маркетинг для мастеров",
             "description": "Продвигай свои услуги в Instagram и TikTok",
             "full_description": "Научись продвигать свои услуги в соцсетях, привлекать клиентов и повышать средний чек.",
-            "category": "marketing",
+            "category": "Своё дело",
             "is_top": False,
             "price": 0,
             "duration_hours": 8,
@@ -66,22 +66,22 @@ async def seed_courses():
             "title": "Педикюр: полный курс",
             "description": "От базового ухода до аппаратного педикюра",
             "full_description": "Комплексный курс по педикюру: медицинский, европейский и аппаратный педикюр.",
-            "category": "pedicure",
+            "category": "Маникюр и педикюр",
             "is_top": False,
             "price": 0,
             "duration_hours": 12,
             "cover_image_url": "https://via.placeholder.com/400x200?text=Pedicure+Course",
             "lessons": [
-                {"title": "Анатомия стопы", "order": 1, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "is_free": True},
-                {"title": "Медицинский педикюр", "order": 2, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Аппаратный педикюр", "order": 3, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+                {"title": "Анатомия стопы", "order": 1, "description": "Строение стопы и ногтей", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 900, "is_free": True},
+                {"title": "Медицинский педикюр", "order": 2, "description": "Техника медицинского педикюра", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 2100},
+                {"title": "Аппаратный педикюр", "order": 3, "description": "Работа с аппаратом", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 2400},
             ]
         },
         {
             "title": "Своё дело: с чего начать",
             "description": "Открой свой салон или студию",
             "full_description": "Гайд по открытию своего дела: от бизнес-плана до первых клиентов.",
-            "category": "business",
+            "category": "Своё дело",
             "is_top": False,
             "price": 0,
             "duration_hours": 6,
@@ -103,7 +103,7 @@ async def seed_courses():
             existing_course = result.scalar_one_or_none()
             
             if existing_course:
-                print(f"Skip: Kurs '{course_data['title']}' uzhe suschestvuet")
+                print(f"⏭️  Пропущен: Курс '{course_data['title']}' уже существует")
                 continue
             
             # Извлекаем уроки
@@ -122,7 +122,7 @@ async def seed_courses():
                 )
                 session.add(lesson)
             
-            print(f"OK: Sozdan kurs: {course.title} ({len(lessons_data)} urokov)")
+            print(f"✅ Создан курс: {course.title} ({len(lessons_data)} уроков)")
         
         await session.commit()
 
@@ -166,12 +166,12 @@ async def seed_achievements():
             existing = result.scalar_one_or_none()
             
             if existing:
-                print(f"Skip: Dostizhenie '{ach_data['title']}' uzhe suschestvuet")
+                print(f"⏭️  Пропущено: Достижение '{ach_data['title']}' уже существует")
                 continue
             
             achievement = Achievement(**ach_data)
             session.add(achievement)
-            print(f"OK: Sozdano dostizhenie: {achievement.title}")
+            print(f"✅ Создано достижение: {achievement.title}")
         
         await session.commit()
 
@@ -201,7 +201,7 @@ async def seed_communities():
             "description": "Обсуждаем техники наращивания ресниц и коррекции бровей. Делимся секретами профессионалов.",
             "type": "profession",
             "city": None,
-            "category": "eyelashes",
+            "category": "Ресницы и брови",
             "telegram_link": "https://t.me/+example_eyelashes"
         },
         {
@@ -209,7 +209,7 @@ async def seed_communities():
             "description": "Делимся опытом и советами по маникюру и педикюру. Новые техники и тренды.",
             "type": "profession",
             "city": None,
-            "category": "manicure",
+            "category": "Маникюр и педикюр",
             "telegram_link": "https://t.me/+example_manicure"
         },
         {
@@ -217,7 +217,7 @@ async def seed_communities():
             "description": "Учимся продвигать свои услуги в соцсетях и привлекать клиентов.",
             "type": "profession",
             "city": None,
-            "category": "marketing",
+            "category": "Своё дело",
             "telegram_link": "https://t.me/+example_marketing"
         },
     ]
@@ -231,29 +231,36 @@ async def seed_communities():
             existing = result.scalar_one_or_none()
             
             if existing:
-                print(f"Skip: Soobschestvo '{comm_data['title']}' uzhe suschestvuet")
+                print(f"⏭️  Пропущено: Сообщество '{comm_data['title']}' уже существует")
                 continue
             
             community = Community(**comm_data)
             session.add(community)
-            print(f"OK: Sozdano soobschestvo: {community.title}")
+            print(f"✅ Создано сообщество: {community.title}")
         
         await session.commit()
 
 
 async def main():
     """Главная функция"""
-    print("Nachinaem zapolnenie BD testovymi dannymi...")
+    print("🌱 Начинаем заполнение БД тестовыми данными...")
+    print("=" * 60)
     print()
     
+    print("📚 Создание курсов...")
     await seed_courses()
     print()
+    
+    print("🏆 Создание достижений...")
     await seed_achievements()
     print()
+    
+    print("👥 Создание сообществ...")
     await seed_communities()
     print()
     
-    print("Gotovo! Baza dannyh zapolnena.")
+    print("=" * 60)
+    print("✅ Готово! База данных заполнена тестовыми данными.")
 
 
 if __name__ == "__main__":
