@@ -7,8 +7,9 @@ from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy import select
+from datetime import datetime
 
-from backend.database import async_session, User, Course
+from backend.database import async_session, User, Course, UserCourse
 
 router = Router()
 
@@ -229,4 +230,87 @@ async def cmd_stats(message: Message):
     )
     
     await message.answer(stats_text, parse_mode="HTML")
+
+
+# ========================================
+# ⚠️ ВРЕМЕННАЯ КОМАНДА - УДАЛИТЬ ПОСЛЕ ТЕСТИРОВАНИЯ!
+# ========================================
+@router.message(Command("free8"))
+async def cmd_free8(message: Message):
+    """
+    ⚠️ ВРЕМЕННАЯ СЕКРЕТНАЯ КОМАНДА - УДАЛИТЬ ПОСЛЕ ТЕСТИРОВАНИЯ!
+    
+    Выдает доступ ко всем курсам пользователю, который вызвал команду.
+    Система будет считать, что пользователь купил все курсы.
+    """
+    telegram_id = message.from_user.id
+    
+    async with async_session() as session:
+        # Получаем пользователя
+        result = await session.execute(
+            select(User).where(User.telegram_id == telegram_id)
+        )
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            await message.answer(
+                "❌ Ты ещё не зарегистрирован!\n\n"
+                "Нажми /start чтобы начать 🚀"
+            )
+            return
+        
+        # Получаем все курсы
+        result = await session.execute(select(Course))
+        all_courses = result.scalars().all()
+        
+        if not all_courses:
+            await message.answer("❌ В базе нет курсов")
+            return
+        
+        # Выдаем доступ ко всем курсам
+        granted_count = 0
+        already_had_count = 0
+        
+        for course in all_courses:
+            # Проверяем, есть ли уже доступ
+            result = await session.execute(
+                select(UserCourse).where(
+                    UserCourse.user_id == user.id,
+                    UserCourse.course_id == course.id
+                )
+            )
+            existing = result.scalar_one_or_none()
+            
+            if existing:
+                already_had_count += 1
+                continue
+            
+            # Создаём новую запись
+            user_course = UserCourse(
+                user_id=user.id,
+                course_id=course.id,
+                purchased_at=datetime.now()
+            )
+            session.add(user_course)
+            granted_count += 1
+        
+        await session.commit()
+        
+        # Формируем ответ
+        if granted_count > 0:
+            response = (
+                f"✅ <b>Доступ ко всем курсам выдан!</b>\n\n"
+                f"📚 Выдано курсов: {granted_count}\n"
+                f"📚 Уже было: {already_had_count}\n"
+                f"📚 Всего курсов: {len(all_courses)}\n\n"
+                f"💡 Теперь у тебя есть доступ ко всем материалам платформы!"
+            )
+        else:
+            response = (
+                f"ℹ️ У тебя уже есть доступ ко всем курсам!\n\n"
+                f"📚 Всего курсов: {len(all_courses)}\n"
+                f"📚 У тебя доступ: {already_had_count}"
+            )
+        
+        await message.answer(response, parse_mode="HTML")
 
