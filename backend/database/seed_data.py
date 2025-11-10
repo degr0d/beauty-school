@@ -57,9 +57,9 @@ async def seed_courses():
             "duration_hours": 8,
             "cover_image_url": "https://via.placeholder.com/400x200?text=Marketing+Course",
             "lessons": [
-                {"title": "Создание профиля в Instagram", "order": 1, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "is_free": True},
-                {"title": "Контент-план", "order": 2, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
-                {"title": "Работа с отзывами", "order": 3, "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"},
+                {"title": "Создание профиля в Instagram", "order": 1, "description": "Настройка профиля для мастеров", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1200, "is_free": True},
+                {"title": "Контент-план", "order": 2, "description": "Как составить контент-план", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1800},
+                {"title": "Работа с отзывами", "order": 3, "description": "Сбор и работа с отзывами клиентов", "video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "video_duration": 1500},
             ]
         },
         {
