@@ -263,23 +263,31 @@ async def cmd_free8(message: Message):
         result = await session.execute(select(Course))
         all_courses = result.scalars().all()
         
+        # Если курсов нет - создаем тестовый курс для тестирования
         if not all_courses:
-            # Детальная диагностика
-            result = await session.execute(select(Course).where(Course.is_active == True))
-            active_courses = result.scalars().all()
+            test_course = Course(
+                title="Тестовый курс",
+                description="Временный курс для тестирования функционала",
+                full_description="Этот курс создан автоматически командой /free8 для тестирования. Вы можете удалить его позже.",
+                category="Тестирование",
+                is_top=False,
+                price=0,
+                duration_hours=1,
+                is_active=True
+            )
+            session.add(test_course)
+            await session.commit()
+            await session.refresh(test_course)
             
-            result = await session.execute(select(Course).where(Course.is_active == False))
-            inactive_courses = result.scalars().all()
+            all_courses = [test_course]
             
             await message.answer(
-                f"❌ В базе нет курсов\n\n"
-                f"🔍 Диагностика:\n"
-                f"   Активных курсов: {len(active_courses)}\n"
-                f"   Неактивных курсов: {len(inactive_courses)}\n"
-                f"   Всего курсов: {len(active_courses) + len(inactive_courses)}\n\n"
-                f"💡 Добавьте курсы через админ-панель или базу данных"
+                f"⚠️ <b>В базе не было курсов</b>\n\n"
+                f"✅ Создан тестовый курс для тестирования\n"
+                f"📚 Теперь выдаю доступ к курсу...\n\n"
+                f"💡 <i>Этот курс можно удалить позже через админ-панель</i>",
+                parse_mode="HTML"
             )
-            return
         
         # Выдаем доступ ко всем курсам
         granted_count = 0
