@@ -16,6 +16,8 @@ from backend.database.models import (
     Certificate,
     Favorite,
     Review,
+    Challenge,
+    UserChallenge,
 )
 
 __all__ = [
@@ -35,5 +37,7 @@ __all__ = [
     "Certificate",
     "Favorite",
     "Review",
+    "Challenge",
+    "UserChallenge",
 ]
 

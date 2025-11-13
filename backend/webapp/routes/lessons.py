@@ -227,6 +227,12 @@ async def complete_lesson(
     except Exception as e:
         print(f"⚠️ [Lessons] Ошибка проверки завершения курса: {e}")
     
+    # Проверяем прогресс в челленджах
+    try:
+        await check_all_user_challenges(session, db_user.id)
+    except Exception as e:
+        print(f"⚠️ [Lessons] Ошибка проверки челленджей: {e}")
+    
     # Если курс завершен - генерируем сертификат
     if course_completed:
         try:

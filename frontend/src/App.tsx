@@ -16,6 +16,7 @@ import ProfilePage from './pages/ProfilePage'
 import CommunitiesPage from './pages/CommunitiesPage'
 import PaymentPage from './pages/PaymentPage'
 import LeaderboardPage from './pages/LeaderboardPage'
+import ChallengesPage from './pages/ChallengesPage'
 
 // Components
 import Navigation from './components/Navigation'
@@ -164,6 +165,7 @@ function App() {
               <Route path="/communities" element={<CommunitiesPage />} />
               <Route path="/payment/success" element={<PaymentPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/challenges" element={<ChallengesPage />} />
             </Routes>
           </main>
         </div>
