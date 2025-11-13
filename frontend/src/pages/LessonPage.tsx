@@ -39,6 +39,10 @@ const LessonPage = () => {
 
   useEffect(() => {
     if (id) {
+      // Сбрасываем состояние при переходе на новый урок
+      setCompleted(false)
+      setNextLessonId(null)
+      setCourseCompleted(false)
       loadLesson(parseInt(id))
     }
   }, [id])
@@ -109,16 +113,33 @@ const LessonPage = () => {
         const course = courseResponse.data
         
         if (course && course.lessons && Array.isArray(course.lessons)) {
-          // Находим текущий урок в списке
-          const currentLessonIndex = course.lessons.findIndex((l: any) => l.id === lesson.id)
+          // Сортируем уроки по порядку (order)
+          const sortedLessons = [...course.lessons].sort((a: any, b: any) => {
+            const orderA = typeof a.order === 'number' ? a.order : 0
+            const orderB = typeof b.order === 'number' ? b.order : 0
+            return orderA - orderB
+          })
+          
+          // Находим текущий урок в отсортированном списке
+          const currentLessonIndex = sortedLessons.findIndex((l: any) => l.id === lesson.id)
+          
+          console.log('🔍 Поиск следующего урока:', {
+            currentLessonId: lesson.id,
+            currentLessonIndex,
+            totalLessons: sortedLessons.length,
+            sortedLessons: sortedLessons.map((l: any) => ({ id: l.id, order: l.order, title: l.title }))
+          })
           
           // Ищем следующий урок (после текущего)
-          if (currentLessonIndex >= 0 && currentLessonIndex < course.lessons.length - 1) {
-            const nextLesson = course.lessons[currentLessonIndex + 1]
+          if (currentLessonIndex >= 0 && currentLessonIndex < sortedLessons.length - 1) {
+            const nextLesson = sortedLessons[currentLessonIndex + 1]
             if (nextLesson && nextLesson.id) {
+              console.log('✅ Следующий урок найден:', { id: nextLesson.id, title: nextLesson.title })
               setNextLessonId(nextLesson.id)
               return
             }
+          } else {
+            console.log('ℹ️ Следующий урок не найден (это последний урок в курсе)')
           }
         }
       } catch (error) {
@@ -135,7 +156,14 @@ const LessonPage = () => {
 
   const handleNextLesson = () => {
     if (nextLessonId) {
+      console.log('➡️ Переход к следующему уроку:', nextLessonId)
       navigate(`/lessons/${nextLessonId}`)
+    } else {
+      console.warn('⚠️ nextLessonId не установлен, переход невозможен')
+      // Если nextLessonId не установлен, возвращаемся к курсу
+      if (lesson?.course_id) {
+        navigate(`/courses/${lesson.course_id}`)
+      }
     }
   }
 
