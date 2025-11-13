@@ -24,6 +24,17 @@ const CoursePage = () => {
       checkPurchaseStatus(parseInt(id))
     }
   }, [id])
+
+  // Обновляем прогресс при возврате на страницу (например, после завершения урока)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (id) {
+        loadProgress(parseInt(id))
+      }
+    }
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [id])
   
   const checkPurchaseStatus = async (courseId: number) => {
     try {

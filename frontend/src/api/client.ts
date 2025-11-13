@@ -312,5 +312,32 @@ export const accessApi = {
     api.post<{ message: string; granted: number; total_courses: number }>('/access/grant-dev-access'),
 }
 
+// ========================================
+// Certificates API
+// ========================================
+
+export interface Certificate {
+  id: number
+  course_id: number
+  course_title: string
+  certificate_url: string
+  certificate_number: string
+  issued_at: string
+}
+
+export const certificatesApi = {
+  // Получить все сертификаты пользователя
+  getAll: () =>
+    api.get<Certificate[]>('/certificates'),
+
+  // Получить сертификат по курсу
+  getByCourse: (courseId: number) =>
+    api.get<Certificate>(`/certificates/course/${courseId}`),
+
+  // Скачать сертификат
+  download: (certificateId: number) =>
+    api.get(`/certificates/${certificateId}/download`, { responseType: 'blob' }),
+}
+
 export default api
 
