@@ -199,13 +199,16 @@ const CoursePage = () => {
           </div>
         )}
 
-        {/* Прогресс */}
-        {progress !== null && isPurchased && (
+        {/* Прогресс - показываем если есть прогресс (для админов или купленных курсов) */}
+        {progress !== null && progress.total_lessons > 0 && (
           <div className="course-progress">
             <h3>Твой прогресс</h3>
             <ProgressBar percent={progress.progress_percent} />
             <p className="progress-text">
               Пройдено уроков: {progress.completed_lessons} / {progress.total_lessons}
+              {progress.progress_percent === 100 && (
+                <span style={{ color: '#4caf50', marginLeft: '10px' }}>✅ Курс завершен!</span>
+              )}
             </p>
           </div>
         )}
