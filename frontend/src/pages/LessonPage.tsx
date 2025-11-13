@@ -34,6 +34,8 @@ const LessonPage = () => {
   const [loading, setLoading] = useState(true)
   const [completed, setCompleted] = useState(false)
   const [accessDenied, setAccessDenied] = useState(false)
+  const [nextLessonId, setNextLessonId] = useState<number | null>(null)
+  const [courseCompleted, setCourseCompleted] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -91,16 +93,14 @@ const LessonPage = () => {
       const response = await lessonsApi.complete(lesson.id)
       setCompleted(true)
       
-      // Если курс завершен - показываем уведомление и возвращаемся к курсу
+      // Если курс завершен - показываем уведомление
       if (response.data?.course_completed) {
+        setCourseCompleted(true)
         alert('🎉 Поздравляем! Вы завершили курс!\n\n✅ Начислено 100 баллов за завершение курса\n🏆 Сертификат сгенерирован и доступен в профиле')
-        setTimeout(() => {
-          navigate(`/courses/${lesson.course_id}`)
-        }, 1500)
         return
       }
       
-      // Если курс не завершен - переходим к следующему уроку
+      // Если курс не завершен - ищем следующий урок
       alert('✅ Урок завершен!\n\n+10 баллов за завершение урока')
       
       // Загружаем информацию о курсе, чтобы найти следующий урок
@@ -116,10 +116,7 @@ const LessonPage = () => {
           if (currentLessonIndex >= 0 && currentLessonIndex < course.lessons.length - 1) {
             const nextLesson = course.lessons[currentLessonIndex + 1]
             if (nextLesson && nextLesson.id) {
-              // Переходим к следующему уроку
-              setTimeout(() => {
-                navigate(`/lessons/${nextLesson.id}`)
-              }, 1000)
+              setNextLessonId(nextLesson.id)
               return
             }
           }
@@ -128,13 +125,23 @@ const LessonPage = () => {
         console.error('Ошибка загрузки курса для поиска следующего урока:', error)
       }
       
-      // Если следующий урок не найден - возвращаемся к курсу
-      setTimeout(() => {
-        navigate(`/courses/${lesson.course_id}`)
-      }, 1500)
+      // Если следующий урок не найден - не устанавливаем nextLessonId
+      // Кнопка "Вернуться к курсу" появится автоматически
     } catch (error) {
       console.error('Ошибка отметки урока:', error)
       alert('Ошибка при завершении урока')
+    }
+  }
+
+  const handleNextLesson = () => {
+    if (nextLessonId) {
+      navigate(`/lessons/${nextLessonId}`)
+    }
+  }
+
+  const handleBackToCourse = () => {
+    if (lesson?.course_id) {
+      navigate(`/courses/${lesson.course_id}`)
     }
   }
 
@@ -214,8 +221,23 @@ const LessonPage = () => {
             ✓ Завершить урок
           </button>
         ) : (
-          <div className="completed-message">
-            ✅ Урок завершён! Молодец!
+          <div className="completed-section">
+            <div className="completed-message">
+              ✅ Урок завершён! Молодец!
+            </div>
+            {courseCompleted ? (
+              <button className="next-lesson-btn" onClick={handleBackToCourse}>
+                🎉 Вернуться к курсу
+              </button>
+            ) : nextLessonId ? (
+              <button className="next-lesson-btn" onClick={handleNextLesson}>
+                ➡️ Следующий урок
+              </button>
+            ) : (
+              <button className="next-lesson-btn" onClick={handleBackToCourse}>
+                ← Вернуться к курсу
+              </button>
+            )}
           </div>
         )}
       </div>
