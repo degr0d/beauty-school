@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { profileApi, accessApi, coursesApi, type Profile, type AccessStatus } from '../api/client'
+import { profileApi, accessApi, coursesApi, certificatesApi, type Profile, type AccessStatus, type Certificate } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
 
 type ProfileStatus = 'loading' | 'not_registered' | 'not_paid' | 'paid'
@@ -32,6 +32,8 @@ const ProfilePage = () => {
   const [status, setStatus] = useState<ProfileStatus>('loading')
   const [myCourses, setMyCourses] = useState<CourseWithProgress[]>([])
   const [loadingCourses, setLoadingCourses] = useState(false)
+  const [certificates, setCertificates] = useState<Certificate[]>([])
+  const [loadingCertificates, setLoadingCertificates] = useState(false)
 
   useEffect(() => {
     loadProfile()
@@ -68,6 +70,7 @@ const ProfilePage = () => {
   useEffect(() => {
     if (status === 'paid' && profile) {
       loadMyCourses()
+      loadCertificates()
     }
   }, [status, profile])
 
@@ -177,6 +180,31 @@ const ProfilePage = () => {
       } else {
         setStatus('not_paid')
       }
+    }
+  }
+
+  const loadCertificates = async () => {
+    try {
+      setLoadingCertificates(true)
+      const response = await certificatesApi.getAll()
+      const rawCertificates = Array.isArray(response.data) ? response.data : []
+      
+      // Нормализуем сертификаты
+      const normalizedCertificates = rawCertificates.map((cert: any) => ({
+        id: typeof cert?.id === 'number' && !isNaN(cert.id) ? cert.id : 0,
+        course_id: typeof cert?.course_id === 'number' && !isNaN(cert.course_id) ? cert.course_id : 0,
+        course_title: typeof cert?.course_title === 'string' ? cert.course_title : 'Без названия',
+        certificate_url: typeof cert?.certificate_url === 'string' ? cert.certificate_url : '',
+        certificate_number: typeof cert?.certificate_number === 'string' ? cert.certificate_number : '',
+        issued_at: typeof cert?.issued_at === 'string' ? cert.issued_at : ''
+      }))
+      
+      setCertificates(normalizedCertificates)
+    } catch (error) {
+      console.error('Ошибка загрузки сертификатов:', error)
+      setCertificates([])
+    } finally {
+      setLoadingCertificates(false)
     }
   }
 
@@ -490,6 +518,70 @@ const ProfilePage = () => {
             >
               Выбрать курс
             </button>
+          </div>
+        )}
+      </div>
+
+      {/* Сертификаты */}
+      <div className="profile-certificates">
+        <h3>🏆 Мои сертификаты</h3>
+        {loadingCertificates ? (
+          <div className="loading">Загрузка сертификатов...</div>
+        ) : certificates.length > 0 ? (
+          <div className="certificates-list">
+            {certificates.map((cert) => (
+              <div key={cert.id} className="certificate-item" style={{
+                padding: '15px',
+                marginBottom: '15px',
+                backgroundColor: '#f9f9f9',
+                borderRadius: '8px',
+                border: '1px solid #e0e0e0'
+              }}>
+                <h4 style={{ margin: '0 0 10px 0', color: '#333' }}>{cert.course_title}</h4>
+                <p style={{ margin: '5px 0', fontSize: '12px', color: '#666' }}>
+                  Номер: {cert.certificate_number}
+                </p>
+                {cert.issued_at && (
+                  <p style={{ margin: '5px 0', fontSize: '12px', color: '#999' }}>
+                    Выдан: {(() => {
+                      try {
+                        const date = new Date(cert.issued_at)
+                        if (isNaN(date.getTime())) return 'Не указано'
+                        return date.toLocaleDateString('ru-RU')
+                      } catch (e) {
+                        return 'Не указано'
+                      }
+                    })()}
+                  </p>
+                )}
+                {cert.certificate_url && (
+                  <a
+                    href={cert.certificate_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      marginTop: '10px',
+                      padding: '8px 16px',
+                      backgroundColor: '#e91e63',
+                      color: 'white',
+                      textDecoration: 'none',
+                      borderRadius: '4px',
+                      fontSize: '14px'
+                    }}
+                  >
+                    📥 Скачать сертификат
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <p>У вас пока нет сертификатов</p>
+            <p style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
+              Завершите курс, чтобы получить сертификат
+            </p>
           </div>
         )}
       </div>
