@@ -59,12 +59,11 @@ async def get_certificates(
     for cert, course in certificates_data:
         certificates.append(CertificateResponse(
             id=cert.id,
-            user_id=cert.user_id,
             course_id=cert.course_id,
             course_title=course.title,
             certificate_url=cert.certificate_url,
             certificate_number=cert.certificate_number,
-            issued_at=cert.issued_at
+            issued_at=cert.issued_at.isoformat() if hasattr(cert.issued_at, 'isoformat') else str(cert.issued_at)
         ))
     
     return certificates
@@ -113,12 +112,11 @@ async def get_certificate_by_course(
     
     return CertificateResponse(
         id=cert.id,
-        user_id=cert.user_id,
         course_id=cert.course_id,
         course_title=course.title,
         certificate_url=cert.certificate_url,
         certificate_number=cert.certificate_number,
-        issued_at=cert.issued_at
+        issued_at=cert.issued_at.isoformat() if hasattr(cert.issued_at, 'isoformat') else str(cert.issued_at)
     )
 
 
