@@ -389,11 +389,6 @@ const ProfilePage = () => {
         {loadingCourses ? (
           <div className="loading">Загрузка курсов...</div>
         ) : myCourses.length > 0 ? (
-          <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '8px', fontSize: '14px', color: '#666' }}>
-            Всего курсов: {myCourses.length}
-          </div>
-        ) : null}
-        {myCourses.length > 0 ? (
           <div className="courses-list">
             {myCourses.map((course) => {
               if (!course || typeof course !== 'object' || Array.isArray(course)) {
