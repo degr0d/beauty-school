@@ -367,6 +367,30 @@ const ProfilePage = () => {
           <div className="stat-label">Баллы</div>
           <div className="stat-value">{typeof profile.points === 'number' ? profile.points : 0}</div>
         </div>
+        
+        {/* Кнопка лидборда */}
+        <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+          <button
+            onClick={() => navigate('/leaderboard')}
+            style={{
+              width: '100%',
+              padding: '12px 20px',
+              backgroundColor: '#e91e63',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            🏆 Лидборд
+          </button>
+        </div>
       </div>
 
       {/* Мои курсы */}
