@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.database import get_session, Course, Lesson, UserCourse, User
+from backend.database import get_session, Course, Lesson, UserCourse, User, UserProgress
 from backend.webapp.schemas import CourseResponse, CourseDetailResponse
 from backend.webapp.middleware import get_telegram_user
 
@@ -102,8 +102,12 @@ async def get_my_courses(
     Получить курсы текущего пользователя с прогрессом
     """
     from sqlalchemy import func
+    from backend.config import settings
     
     telegram_id = user["id"]
+    
+    # Проверяем, является ли пользователь админом
+    is_admin = telegram_id in settings.admin_ids_list
     
     # Получаем пользователя
     result = await session.execute(
@@ -114,6 +118,66 @@ async def get_my_courses(
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     
+    # Для админов показываем все курсы, даже если нет записей в UserCourse
+    if is_admin:
+        # Получаем все активные курсы
+        result = await session.execute(
+            select(Course)
+            .where(Course.is_active == True)
+            .order_by(Course.id.desc())
+        )
+        all_courses = result.scalars().all()
+        
+        # Получаем записи UserCourse для админа (если есть)
+        result = await session.execute(
+            select(UserCourse).where(UserCourse.user_id == db_user.id)
+        )
+        user_courses_map = {uc.course_id: uc for uc in result.scalars().all()}
+        
+        # Формируем список курсов с прогрессом
+        courses_with_progress = []
+        for course in all_courses:
+            uc = user_courses_map.get(course.id)
+            
+            # Подсчитываем прогресс по курсу
+            result = await session.execute(
+                select(func.count(Lesson.id)).where(Lesson.course_id == course.id)
+            )
+            total_lessons = result.scalar() or 0
+            
+            result = await session.execute(
+                select(func.count(UserProgress.id))
+                .join(Lesson, UserProgress.lesson_id == Lesson.id)
+                .where(
+                    UserProgress.user_id == db_user.id,
+                    UserProgress.completed == True,
+                    Lesson.course_id == course.id
+                )
+            )
+            completed_lessons = result.scalar() or 0
+            progress_percent = int((completed_lessons / total_lessons * 100)) if total_lessons > 0 else 0
+            
+            courses_with_progress.append({
+                "id": course.id,
+                "title": course.title,
+                "description": course.description,
+                "category": course.category,
+                "cover_image_url": course.cover_image_url,
+                "is_top": course.is_top,
+                "price": float(course.price),
+                "duration_hours": course.duration_hours,
+                "progress": {
+                    "total_lessons": total_lessons,
+                    "completed_lessons": completed_lessons,
+                    "progress_percent": progress_percent,
+                    "purchased_at": uc.purchased_at.isoformat() if uc and uc.purchased_at else None,
+                    "is_completed": uc.is_completed if uc else False
+                }
+            })
+        
+        return courses_with_progress
+    
+    # Для обычных пользователей - только курсы из UserCourse
     # Получаем курсы пользователя
     result = await session.execute(
         select(UserCourse, Course)
