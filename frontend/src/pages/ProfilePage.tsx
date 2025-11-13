@@ -35,18 +35,97 @@ const ProfilePage = () => {
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loadingCertificates, setLoadingCertificates] = useState(false)
 
+  const loadCertificates = useCallback(async () => {
+    try {
+      setLoadingCertificates(true)
+      const response = await certificatesApi.getAll()
+      const rawCertificates = Array.isArray(response.data) ? response.data : []
+      
+      // Нормализуем сертификаты
+      const normalizedCertificates = rawCertificates.map((cert: any) => ({
+        id: typeof cert.id === 'number' && !isNaN(cert.id) ? cert.id : 0,
+        course_id: typeof cert.course_id === 'number' && !isNaN(cert.course_id) ? cert.course_id : 0,
+        course_title: typeof cert.course_title === 'string' ? cert.course_title : '',
+        certificate_url: typeof cert.certificate_url === 'string' ? cert.certificate_url : '',
+        certificate_number: typeof cert.certificate_number === 'string' ? cert.certificate_number : '',
+        issued_at: typeof cert.issued_at === 'string' ? cert.issued_at : new Date().toISOString()
+      }))
+      
+      setCertificates(normalizedCertificates)
+    } catch (error) {
+      console.error('Ошибка загрузки сертификатов:', error)
+      setCertificates([])
+    } finally {
+      setLoadingCertificates(false)
+    }
+  }, [])
+
+  const loadMyCourses = useCallback(async () => {
+    try {
+      setLoadingCourses(true)
+      console.log('📚 [ProfilePage] Загрузка курсов...')
+      const response = await coursesApi.getMy()
+      const courses = Array.isArray(response.data) ? response.data : []
+      console.log('📚 [ProfilePage] Получено курсов:', courses.length, courses)
+      
+      // Нормализуем курсы
+      const safeCourses = courses.map((course: any) => {
+        const normalizedCourse: CourseWithProgress = {
+          id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
+          title: typeof course?.title === 'string' ? course.title : 'Без названия',
+          description: typeof course?.description === 'string' ? course.description : '',
+          category: typeof course?.category === 'string' ? course.category : '',
+          cover_image_url: typeof course?.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined,
+          progress: {
+            total_lessons: typeof course?.progress?.total_lessons === 'number' && !isNaN(course.progress?.total_lessons) ? course.progress.total_lessons : 0,
+            completed_lessons: typeof course?.progress?.completed_lessons === 'number' && !isNaN(course.progress?.completed_lessons) ? course.progress.completed_lessons : 0,
+            progress_percent: typeof course?.progress?.progress_percent === 'number' && !isNaN(course.progress?.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
+            purchased_at: (() => {
+              const purchasedAt = course?.progress?.purchased_at
+              if (!purchasedAt) return null
+              if (typeof purchasedAt === 'string' && purchasedAt.trim() !== '') {
+                return purchasedAt
+              } else if (purchasedAt && typeof purchasedAt === 'object') {
+                try {
+                  const purchasedAtAny: any = purchasedAt
+                  if (purchasedAtAny instanceof Date) {
+                    return purchasedAtAny.toISOString()
+                  } else if (typeof purchasedAtAny.toISOString === 'function') {
+                    return purchasedAtAny.toISOString()
+                  }
+                } catch (e) {
+                  console.warn('Ошибка преобразования purchased_at:', e)
+                }
+              }
+              return null
+            })(),
+            is_completed: course?.progress?.is_completed === true
+          }
+        }
+        return normalizedCourse
+      })
+      setMyCourses(safeCourses)
+    } catch (error: any) {
+      console.error('Ошибка загрузки курсов:', error)
+      setMyCourses([])
+    } finally {
+      setLoadingCourses(false)
+    }
+  }, [])
+
   useEffect(() => {
-    loadProfile()
-    
-    // Слушаем изменения dev_telegram_id в localStorage для автоматического обновления
+    // Слушаем изменения localStorage для обновления профиля
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'dev_telegram_id') {
-        console.log('🔄 [ProfilePage] dev_telegram_id изменен, перезагружаем профиль...')
-        loadProfile()
+        const currentId = localStorage.getItem('dev_telegram_id')
+        console.log('🔄 [ProfilePage] dev_telegram_id изменен (storage event), перезагружаем профиль...', 'текущий ID:', currentId)
+        // Небольшая задержка чтобы убедиться что localStorage обновился
+        setTimeout(() => {
+          loadProfile()
+        }, 200)
       }
     }
     
-    // Слушаем события storage (из других вкладок)
     window.addEventListener('storage', handleStorageChange)
     
     // Слушаем кастомное событие для обновления в той же вкладке
@@ -195,85 +274,6 @@ const ProfilePage = () => {
       }
     }
   }
-
-  const loadCertificates = useCallback(async () => {
-    try {
-      setLoadingCertificates(true)
-      const response = await certificatesApi.getAll()
-      const rawCertificates = Array.isArray(response.data) ? response.data : []
-      
-      // Нормализуем сертификаты
-      const normalizedCertificates = rawCertificates.map((cert: any) => ({
-        id: typeof cert?.id === 'number' && !isNaN(cert.id) ? cert.id : 0,
-        course_id: typeof cert?.course_id === 'number' && !isNaN(cert.course_id) ? cert.course_id : 0,
-        course_title: typeof cert?.course_title === 'string' ? cert.course_title : 'Без названия',
-        certificate_url: typeof cert?.certificate_url === 'string' ? cert.certificate_url : '',
-        certificate_number: typeof cert?.certificate_number === 'string' ? cert.certificate_number : '',
-        issued_at: typeof cert?.issued_at === 'string' ? cert.issued_at : ''
-      }))
-      
-      setCertificates(normalizedCertificates)
-    } catch (error) {
-      console.error('Ошибка загрузки сертификатов:', error)
-      setCertificates([])
-    } finally {
-      setLoadingCertificates(false)
-    }
-  }, [])
-
-  const loadMyCourses = useCallback(async () => {
-    try {
-      setLoadingCourses(true)
-      console.log('📚 [ProfilePage] Загрузка курсов...')
-      const response = await coursesApi.getMy()
-      const courses = Array.isArray(response.data) ? response.data : []
-      console.log('📚 [ProfilePage] Получено курсов:', courses.length, courses)
-      
-      // Нормализуем курсы
-      const safeCourses = courses.map((course: any) => {
-        const normalizedCourse: CourseWithProgress = {
-          id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
-          title: typeof course?.title === 'string' ? course.title : 'Без названия',
-          description: typeof course?.description === 'string' ? course.description : '',
-          category: typeof course?.category === 'string' ? course.category : '',
-          cover_image_url: typeof course?.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined,
-          progress: {
-            total_lessons: typeof course?.progress?.total_lessons === 'number' && !isNaN(course.progress.total_lessons) ? course.progress.total_lessons : 0,
-            completed_lessons: typeof course?.progress?.completed_lessons === 'number' && !isNaN(course.progress.completed_lessons) ? course.progress.completed_lessons : 0,
-            progress_percent: typeof course?.progress?.progress_percent === 'number' && !isNaN(course.progress.progress_percent) ? Math.min(Math.max(course.progress.progress_percent, 0), 100) : 0,
-            purchased_at: (() => {
-              const purchasedAt = course?.progress?.purchased_at
-              if (!purchasedAt) return null
-              // Безопасно преобразуем purchased_at - может быть объектом datetime
-              if (typeof purchasedAt === 'string' && purchasedAt.trim() !== '') {
-                return purchasedAt
-              } else if (purchasedAt && typeof purchasedAt === 'object') {
-                try {
-                  const purchasedAtAny: any = purchasedAt
-                  if (purchasedAtAny instanceof Date) {
-                    return purchasedAtAny.toISOString()
-                  } else if (typeof purchasedAtAny.toISOString === 'function') {
-                    return purchasedAtAny.toISOString()
-                  }
-                } catch (e) {
-                  console.warn('Ошибка преобразования purchased_at:', e)
-                }
-              }
-              return null
-            })(),
-            is_completed: course?.progress?.is_completed === true
-          }
-        }
-        return normalizedCourse
-      })
-      setMyCourses(safeCourses)
-    } catch (error: any) {
-      console.error('Ошибка загрузки курсов:', error)
-      setMyCourses([])
-    } finally {
-      setLoadingCourses(false)
-    }
-  }, [])
 
   if (status === 'loading') {
     return (
