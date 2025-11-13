@@ -112,13 +112,9 @@ const CoursesPage = () => {
 
   const categories = [
     { id: null, label: 'Все' },
-    { id: 'manicure', label: 'Маникюр' },
-    { id: 'pedicure', label: 'Педикюр' },
-    { id: 'eyelashes', label: 'Ресницы' },
-    { id: 'eyebrows', label: 'Брови' },
-    { id: 'podology', label: 'Подология' },
-    { id: 'marketing', label: 'Маркетинг' },
-    { id: 'business', label: 'Своё дело' },
+    { id: 'Маникюр и педикюр', label: 'Маникюр и педикюр' },
+    { id: 'Ресницы и брови', label: 'Ресницы и брови' },
+    { id: 'Своё дело', label: 'Своё дело' },
   ]
 
   if (checkingAccess || loading) {
