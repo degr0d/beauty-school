@@ -14,6 +14,7 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(category)
+  const [searchQuery, setSearchQuery] = useState<string>('')
   const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null)
   const [checkingAccess, setCheckingAccess] = useState(true)
 
@@ -50,6 +51,15 @@ const CoursesPage = () => {
       setLoading(true)
       let rawCourses: any[] = []
       
+      // Формируем параметры запроса
+      const params: { category?: string; search?: string } = {}
+      if (selectedCategory) {
+        params.category = selectedCategory
+      }
+      if (searchQuery.trim()) {
+        params.search = searchQuery.trim()
+      }
+      
       // Если есть доступ - сначала пробуем загрузить купленные курсы
       // Если купленных нет - показываем все курсы (для админов и новых пользователей)
       if (accessStatus?.has_access) {
@@ -61,20 +71,24 @@ const CoursesPage = () => {
           // (это может быть админ или пользователь без курсов)
           if (rawCourses.length === 0) {
             console.log('📚 [CoursesPage] Купленных курсов нет, показываем все курсы')
-            const params = selectedCategory ? { category: selectedCategory } : {}
             const allCoursesResponse = await coursesApi.getAll(params)
             rawCourses = Array.isArray(allCoursesResponse.data) ? allCoursesResponse.data : []
+          } else if (searchQuery.trim()) {
+            // Если есть поисковый запрос - фильтруем купленные курсы
+            const searchLower = searchQuery.toLowerCase()
+            rawCourses = rawCourses.filter((course: any) => 
+              course.title?.toLowerCase().includes(searchLower) ||
+              course.description?.toLowerCase().includes(searchLower)
+            )
           }
         } catch (error) {
           // Если ошибка при загрузке купленных - показываем все курсы
           console.warn('⚠️ [CoursesPage] Ошибка загрузки купленных курсов, показываем все:', error)
-          const params = selectedCategory ? { category: selectedCategory } : {}
           const allCoursesResponse = await coursesApi.getAll(params)
           rawCourses = Array.isArray(allCoursesResponse.data) ? allCoursesResponse.data : []
         }
       } else {
         // Если нет доступа - показываем все курсы для выбора
-        const params = selectedCategory ? { category: selectedCategory } : {}
         const response = await coursesApi.getAll(params)
         rawCourses = Array.isArray(response.data) ? response.data : []
       }
@@ -98,7 +112,7 @@ const CoursesPage = () => {
     } finally {
       setLoading(false)
     }
-  }, [accessStatus?.has_access, selectedCategory])
+  }, [accessStatus?.has_access, selectedCategory, searchQuery])
 
   useEffect(() => {
     checkAccess()
@@ -172,6 +186,24 @@ const CoursesPage = () => {
   return (
     <div className="courses-page">
       <h1>{hasPurchasedCourses ? '📚 Мои курсы' : '📚 Каталог курсов'}</h1>
+      
+      {/* Поиск */}
+      <div style={{ marginBottom: '20px' }}>
+        <input
+          type="text"
+          placeholder="🔍 Поиск курсов..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px 16px',
+            fontSize: '16px',
+            border: '1px solid #e0e0e0',
+            borderRadius: '8px',
+            outline: 'none'
+          }}
+        />
+      </div>
       
       {/* Фильтр по категориям - показываем если нет купленных курсов или если выбрана категория */}
       {(!hasPurchasedCourses || selectedCategory) && (

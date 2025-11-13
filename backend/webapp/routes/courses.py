@@ -4,7 +4,7 @@ API эндпоинты для курсов
 
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.database import get_session, Course, Lesson, UserCourse, User, UserProgress
@@ -19,6 +19,7 @@ router = APIRouter()
 async def get_courses(
     category: Optional[str] = None,
     is_top: Optional[bool] = None,
+    search: Optional[str] = None,
     session: AsyncSession = Depends(get_session)
 ):
     """
@@ -27,6 +28,7 @@ async def get_courses(
     Query параметры:
     - category: Фильтр по категории (manicure, eyelashes и т.д.)
     - is_top: Показать только топовые курсы
+    - search: Поиск по названию и описанию курса
     """
     query = select(Course).where(Course.is_active == True)
     
@@ -35,6 +37,17 @@ async def get_courses(
         query = query.where(Course.category == category)
     if is_top is not None:
         query = query.where(Course.is_top == is_top)
+    
+    # Поиск по названию и описанию
+    if search:
+        search_term = f"%{search.lower()}%"
+        query = query.where(
+            or_(
+                Course.title.ilike(search_term),
+                Course.description.ilike(search_term),
+                Course.full_description.ilike(search_term)
+            )
+        )
     
     result = await session.execute(query)
     courses = result.scalars().all()

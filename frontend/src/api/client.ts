@@ -120,7 +120,7 @@ export interface LessonDetail extends Lesson {
 
 export const coursesApi = {
   // Получить все курсы
-  getAll: (params?: { category?: string; is_top?: boolean }) =>
+  getAll: (params?: { category?: string; is_top?: boolean; search?: string }) =>
     api.get<Course[]>('/courses', { params }),
 
   // Получить курс по ID
@@ -337,6 +337,41 @@ export const certificatesApi = {
   // Скачать сертификат
   download: (certificateId: number) =>
     api.get(`/certificates/${certificateId}/download`, { responseType: 'blob' }),
+}
+
+// ========================================
+// Leaderboard API
+// ========================================
+
+export interface LeaderboardEntry {
+  position: number
+  user_id: number
+  full_name: string
+  points: number
+  completed_courses: number
+  completed_lessons: number
+}
+
+export interface MyPosition {
+  position: number
+  points: number
+  completed_courses: number
+  completed_lessons: number
+  total_users: number
+}
+
+export const leaderboardApi = {
+  // Получить топ пользователей по баллам
+  getTop: (limit?: number) =>
+    api.get<LeaderboardEntry[]>('/leaderboard', { params: limit ? { limit } : {} }),
+
+  // Получить топ пользователей по курсам
+  getTopByCourses: (limit?: number) =>
+    api.get<LeaderboardEntry[]>('/leaderboard/courses', { params: limit ? { limit } : {} }),
+
+  // Получить позицию текущего пользователя
+  getMyPosition: () =>
+    api.get<MyPosition>('/leaderboard/my-position'),
 }
 
 export default api
