@@ -53,22 +53,22 @@ def create_engine_and_session():
         # Важно: statement_cache_size передается через connect_args для asyncpg
         # Это отключает кеширование prepared statements, что решает проблему
         # когда структура таблицы изменилась, но asyncpg использует закешированный statement
-    _engine = create_async_engine(
+        _engine = create_async_engine(
             db_url,
             echo=settings.ENVIRONMENT == "development",
-        future=True,
+            future=True,
             pool_size=10,
             max_overflow=20,
             pool_pre_ping=True,
             pool_recycle=3600,
             pool_reset_on_return='commit',  # Сбрасываем соединения при возврате в пул
-        connect_args={
-            "server_settings": {
-                "application_name": "beauty_school_api"
+            connect_args={
+                "server_settings": {
+                    "application_name": "beauty_school_api"
                 },
                 "statement_cache_size": 0  # Отключаем кеш prepared statements в asyncpg
-        }
-    )
+            }
+        )
     
     _async_session = async_sessionmaker(
         _engine,
