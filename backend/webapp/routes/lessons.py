@@ -24,6 +24,7 @@ from backend.services.notifications import (
     send_lesson_completed_notification,
     send_course_completed_notification
 )
+from backend.services.challenges import check_all_user_challenges
 
 router = APIRouter()
 
