@@ -396,5 +396,54 @@ export const favoritesApi = {
     api.get<{ is_favorite: boolean }>(`/favorites/check/${courseId}`),
 }
 
+// ========================================
+// Reviews API
+// ========================================
+
+export interface Review {
+  id: number
+  user_id: number
+  user_name: string
+  course_id: number
+  rating: number
+  comment?: string
+  created_at: string
+  updated_at?: string
+}
+
+export interface CourseRating {
+  course_id: number
+  average_rating: number
+  total_reviews: number
+  rating_distribution: { [key: number]: number }
+}
+
+export interface ReviewCreate {
+  rating: number
+  comment?: string
+}
+
+export const reviewsApi = {
+  // Получить отзывы по курсу
+  getByCourse: (courseId: number, limit?: number, offset?: number) =>
+    api.get<Review[]>(`/reviews/course/${courseId}`, { params: { limit, offset } }),
+
+  // Получить рейтинг курса
+  getCourseRating: (courseId: number) =>
+    api.get<CourseRating>(`/reviews/course/${courseId}/rating`),
+
+  // Создать отзыв
+  create: (courseId: number, data: ReviewCreate) =>
+    api.post<Review>(`/reviews/course/${courseId}`, data),
+
+  // Удалить отзыв
+  delete: (reviewId: number) =>
+    api.delete<{ message: string }>(`/reviews/${reviewId}`),
+
+  // Получить мои отзывы
+  getMy: () =>
+    api.get<Review[]>('/reviews/my'),
+}
+
 export default api
 

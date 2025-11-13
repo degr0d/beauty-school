@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { coursesApi, progressApi, paymentApi, favoritesApi, type CourseDetail, type CourseProgress } from '../api/client'
 import LessonItem from '../components/LessonItem'
 import ProgressBar from '../components/ProgressBar'
+import ReviewsSection from '../components/ReviewsSection'
 
 const CoursePage = () => {
   const { id } = useParams<{ id: string }>()
@@ -377,6 +378,9 @@ const CoursePage = () => {
           </>
         )}
       </div>
+
+      {/* Секция отзывов */}
+      <ReviewsSection courseId={course.id} />
     </div>
   )
 }

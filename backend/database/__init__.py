@@ -15,6 +15,7 @@ from backend.database.models import (
     Payment,
     Certificate,
     Favorite,
+    Review,
 )
 
 __all__ = [
@@ -33,5 +34,6 @@ __all__ = [
     "Payment",
     "Certificate",
     "Favorite",
+    "Review",
 ]
 
