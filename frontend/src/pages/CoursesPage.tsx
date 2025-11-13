@@ -3,13 +3,12 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { useSearchParams, useNavigate } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import { coursesApi, accessApi, type Course, type AccessStatus } from '../api/client'
 import CourseCard from '../components/CourseCard'
 
 const CoursesPage = () => {
   const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
   const category = searchParams.get('category')
 
   const [courses, setCourses] = useState<Course[]>([])

@@ -3,11 +3,9 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { communitiesApi, type Community } from '../api/client'
 
 const CommunitiesPage = () => {
-  const navigate = useNavigate()
   const [communities, setCommunities] = useState<Community[]>([])
   const [loading, setLoading] = useState(true)
 
