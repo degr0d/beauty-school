@@ -231,6 +231,27 @@ class Payment(Base):
 
 
 # ========================================
+# 10. Certificates - Сертификаты
+# ========================================
+class Certificate(Base):
+    __tablename__ = "certificates"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False, index=True)
+    certificate_number = Column(String(100), unique=True, nullable=False, index=True)  # Уникальный номер сертификата
+    certificate_url = Column(Text, nullable=False)  # Путь к PDF файлу
+    issued_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)  # Дата выдачи
+    
+    # Relationships
+    user = relationship("User", backref="certificates")
+    course = relationship("Course", backref="certificates")
+    
+    def __repr__(self):
+        return f"<Certificate(id={self.id}, user_id={self.user_id}, course_id={self.course_id}, number={self.certificate_number})>"
+
+
+# ========================================
 # Пример использования в коде:
 # ========================================
 # from backend.database import async_session
