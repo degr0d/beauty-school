@@ -119,3 +119,4 @@ if __name__ == "__main__":
         logger.error(f"❌ Критическая ошибка: {e}", exc_info=True)
         raise
 
+

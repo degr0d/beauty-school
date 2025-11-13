@@ -167,9 +167,6 @@ const LessonPage = () => {
     <div className="lesson-page">
       {/* Заголовок */}
       <div className="lesson-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
-          ← Назад
-        </button>
         <h1>{lesson.title}</h1>
         {lesson.description && <p>{lesson.description}</p>}
       </div>
