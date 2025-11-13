@@ -198,6 +198,73 @@ const CoursePage = () => {
             </p>
           </div>
         )}
+
+        {/* Кнопка "Приступить к курсу" / "Продолжить" */}
+        {(isPurchased || course.price === 0) && course.lessons.length > 0 && (() => {
+          // Находим первый непройденный урок
+          const firstUncompletedLesson = course.lessons.find((lesson) => {
+            if (!progress || !progress.lessons || progress.lessons.length === 0) {
+              // Если прогресса нет - возвращаем первый урок
+              return true
+            }
+            const lessonProgress = progress.lessons.find(l => l.id === lesson.id)
+            return !lessonProgress || !lessonProgress.completed
+          })
+
+          // Проверяем, все ли уроки пройдены
+          const allLessonsCompleted = progress && progress.lessons && progress.lessons.length > 0 && 
+            course.lessons.every((lesson) => {
+              const lessonProgress = progress.lessons.find(l => l.id === lesson.id)
+              return lessonProgress && lessonProgress.completed
+            })
+
+          // Определяем текст кнопки и урок для перехода
+          let buttonText = 'Приступить к курсу'
+          let targetLesson = course.lessons[0] // По умолчанию первый урок
+
+          if (progress && progress.completed_lessons > 0) {
+            if (allLessonsCompleted) {
+              buttonText = 'Повторить курс'
+              targetLesson = course.lessons[0] // Начинаем с первого урока
+            } else if (firstUncompletedLesson) {
+              buttonText = 'Продолжить обучение'
+              targetLesson = firstUncompletedLesson
+            }
+          }
+
+          return (
+            <div style={{ marginTop: '20px' }}>
+              <button
+                onClick={() => navigate(`/lessons/${targetLesson.id}`)}
+                style={{
+                  width: '100%',
+                  padding: '15px 20px',
+                  backgroundColor: '#e91e63',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 2px 8px rgba(233, 30, 99, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#c2185b'
+                  e.currentTarget.style.transform = 'translateY(-2px)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(233, 30, 99, 0.4)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e91e63'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(233, 30, 99, 0.3)'
+                }}
+              >
+                {buttonText}
+              </button>
+            </div>
+          )
+        })()}
       </div>
 
       {/* Список уроков */}
