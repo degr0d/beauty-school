@@ -142,6 +142,25 @@ class ProgressResponse(BaseModel):
 
 
 # ========================================
+# Certificates
+# ========================================
+
+class CertificateResponse(BaseModel):
+    """
+    Схема сертификата
+    """
+    id: int
+    course_id: int
+    course_title: str
+    certificate_url: str
+    certificate_number: str
+    issued_at: str
+    
+    class Config:
+        from_attributes = True
+
+
+# ========================================
 # Пример использования в эндпоинтах:
 # ========================================
 # @router.get("/courses", response_model=List[CourseResponse])
