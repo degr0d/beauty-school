@@ -2,14 +2,52 @@
  * Компонент карточки курса
  */
 
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import type { Course } from '../api/client'
+import { favoritesApi, type Course } from '../api/client'
 
 interface CourseCardProps {
   course: Course
 }
 
 const CourseCard = ({ course }: CourseCardProps) => {
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [loadingFavorite, setLoadingFavorite] = useState(false)
+
+  useEffect(() => {
+    checkFavorite()
+  }, [course.id])
+
+  const checkFavorite = async () => {
+    try {
+      const response = await favoritesApi.check(course.id)
+      setIsFavorite(response.data.is_favorite)
+    } catch (error) {
+      // Игнорируем ошибки при проверке избранного
+    }
+  }
+
+  const handleFavoriteClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (loadingFavorite) return
+    
+    try {
+      setLoadingFavorite(true)
+      if (isFavorite) {
+        await favoritesApi.remove(course.id)
+        setIsFavorite(false)
+      } else {
+        await favoritesApi.add(course.id)
+        setIsFavorite(true)
+      }
+    } catch (error) {
+      console.error('Ошибка изменения избранного:', error)
+    } finally {
+      setLoadingFavorite(false)
+    }
+  }
   // Безопасно нормализуем все значения - гарантируем что это примитивы
   const courseId = typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0
   const courseTitle = typeof course?.title === 'string' ? course.title : 'Без названия'
@@ -21,7 +59,32 @@ const CourseCard = ({ course }: CourseCardProps) => {
   const price = typeof course?.price === 'number' && !isNaN(course.price) && course.price > 0 ? course.price : null
   
   return (
-    <Link to={`/courses/${courseId}`} className="course-card">
+    <Link to={`/courses/${courseId}`} className="course-card" style={{ position: 'relative' }}>
+      {/* Кнопка избранного */}
+      <button
+        onClick={handleFavoriteClick}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          zIndex: 10,
+          background: 'rgba(255, 255, 255, 0.9)',
+          border: 'none',
+          borderRadius: '50%',
+          width: '40px',
+          height: '40px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          fontSize: '20px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+        title={isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+      >
+        {isFavorite ? '❤️' : '🤍'}
+      </button>
+
       {/* Обложка курса */}
       {coverImageUrl && (
         <div className="course-cover">

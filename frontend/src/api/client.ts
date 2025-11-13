@@ -374,5 +374,27 @@ export const leaderboardApi = {
     api.get<MyPosition>('/leaderboard/my-position'),
 }
 
+// ========================================
+// Favorites API
+// ========================================
+
+export const favoritesApi = {
+  // Получить избранные курсы
+  getAll: () =>
+    api.get<Course[]>('/favorites'),
+
+  // Добавить курс в избранное
+  add: (courseId: number) =>
+    api.post<{ message: string; is_favorite: boolean }>(`/favorites/${courseId}`),
+
+  // Удалить курс из избранного
+  remove: (courseId: number) =>
+    api.delete<{ message: string; is_favorite: boolean }>(`/favorites/${courseId}`),
+
+  // Проверить, в избранном ли курс
+  check: (courseId: number) =>
+    api.get<{ is_favorite: boolean }>(`/favorites/check/${courseId}`),
+}
+
 export default api
 

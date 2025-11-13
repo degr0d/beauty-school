@@ -252,6 +252,28 @@ class Certificate(Base):
 
 
 # ========================================
+# 11. Favorites - Избранные курсы
+# ========================================
+class Favorite(Base):
+    __tablename__ = "favorites"
+    __table_args__ = (
+        UniqueConstraint("user_id", "course_id", name="uq_user_favorite"),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    
+    # Relationships
+    user = relationship("User", backref="favorites")
+    course = relationship("Course", backref="favorites")
+    
+    def __repr__(self):
+        return f"<Favorite(user_id={self.user_id}, course_id={self.course_id})>"
+
+
+# ========================================
 # Пример использования в коде:
 # ========================================
 # from backend.database import async_session
