@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { lessonsApi, accessApi, type LessonDetail } from '../api/client'
+import { lessonsApi, accessApi, coursesApi, type LessonDetail } from '../api/client'
 
 // Преобразование YouTube URL в embed формат
 function getYouTubeEmbedUrl(url: string): string {
@@ -91,14 +91,44 @@ const LessonPage = () => {
       const response = await lessonsApi.complete(lesson.id)
       setCompleted(true)
       
-      // Если курс завершен - показываем уведомление
+      // Если курс завершен - показываем уведомление и возвращаемся к курсу
       if (response.data?.course_completed) {
         alert('🎉 Поздравляем! Вы завершили курс!\n\n✅ Начислено 100 баллов за завершение курса\n🏆 Сертификат сгенерирован и доступен в профиле')
-      } else {
-        alert('✅ Урок завершен!\n\n+10 баллов за завершение урока')
+        setTimeout(() => {
+          navigate(`/courses/${lesson.course_id}`)
+        }, 1500)
+        return
       }
       
-      // Показываем успех и возвращаемся к курсу
+      // Если курс не завершен - переходим к следующему уроку
+      alert('✅ Урок завершен!\n\n+10 баллов за завершение урока')
+      
+      // Загружаем информацию о курсе, чтобы найти следующий урок
+      try {
+        const courseResponse = await coursesApi.getById(lesson.course_id)
+        const course = courseResponse.data
+        
+        if (course && course.lessons && Array.isArray(course.lessons)) {
+          // Находим текущий урок в списке
+          const currentLessonIndex = course.lessons.findIndex((l: any) => l.id === lesson.id)
+          
+          // Ищем следующий урок (после текущего)
+          if (currentLessonIndex >= 0 && currentLessonIndex < course.lessons.length - 1) {
+            const nextLesson = course.lessons[currentLessonIndex + 1]
+            if (nextLesson && nextLesson.id) {
+              // Переходим к следующему уроку
+              setTimeout(() => {
+                navigate(`/lessons/${nextLesson.id}`)
+              }, 1000)
+              return
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Ошибка загрузки курса для поиска следующего урока:', error)
+      }
+      
+      // Если следующий урок не найден - возвращаемся к курсу
       setTimeout(() => {
         navigate(`/courses/${lesson.course_id}`)
       }, 1500)
