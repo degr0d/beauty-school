@@ -13,6 +13,7 @@ from backend.database.models import (
     UserAchievement,
     Community,
     Payment,
+    Certificate,
 )
 
 __all__ = [
@@ -29,5 +30,6 @@ __all__ = [
     "UserAchievement",
     "Community",
     "Payment",
+    "Certificate",
 ]
 
