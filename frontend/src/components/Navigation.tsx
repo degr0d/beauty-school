@@ -10,6 +10,7 @@ const Navigation = () => {
   const navItems = [
     { path: '/', label: '🏠 Главная', icon: '🏠' },
     { path: '/courses', label: '📚 Курсы', icon: '📚' },
+    { path: '/challenges', label: '🎯 Челленджи', icon: '🎯' },
     { path: '/communities', label: '💬 Сообщества', icon: '💬' },
     { path: '/profile', label: '👤 Профиль', icon: '👤' },
   ]

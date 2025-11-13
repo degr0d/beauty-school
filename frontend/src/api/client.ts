@@ -445,5 +445,43 @@ export const reviewsApi = {
     api.get<Review[]>('/reviews/my'),
 }
 
+// ========================================
+// Challenges API
+// ========================================
+
+export interface Challenge {
+  id: number
+  title: string
+  description: string
+  icon_url?: string
+  points_reward: number
+  condition_type: string
+  condition_value: number
+  start_date?: string
+  end_date?: string
+  is_active: boolean
+  user_progress?: number
+  user_completed: boolean
+  user_joined: boolean
+}
+
+export const challengesApi = {
+  // Получить все активные челленджи
+  getAll: () =>
+    api.get<Challenge[]>('/challenges'),
+
+  // Получить детали челленджа
+  getById: (challengeId: number) =>
+    api.get<Challenge>(`/challenges/${challengeId}`),
+
+  // Присоединиться к челленджу
+  join: (challengeId: number) =>
+    api.post<{ message: string; joined: boolean }>(`/challenges/${challengeId}/join`),
+
+  // Получить мои челленджи
+  getMy: () =>
+    api.get<Challenge[]>('/challenges/my'),
+}
+
 export default api
 

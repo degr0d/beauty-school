@@ -296,6 +296,57 @@ class Review(Base):
 
 
 # ========================================
+# 13. Challenge - Челленджи
+# ========================================
+class Challenge(Base):
+    __tablename__ = "challenges"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=False)
+    icon_url = Column(Text, nullable=True)
+    points_reward = Column(Integer, default=0, nullable=False)  # Баллы за выполнение
+    condition_type = Column(String(50), nullable=False)  # complete_lessons, complete_courses, earn_points и т.д.
+    condition_value = Column(Integer, nullable=False)  # Значение условия
+    start_date = Column(TIMESTAMP, nullable=True)  # Дата начала челленджа
+    end_date = Column(TIMESTAMP, nullable=True)  # Дата окончания челленджа
+    is_active = Column(Boolean, default=True, nullable=False)
+    
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    
+    # Relationships
+    user_challenges = relationship("UserChallenge", back_populates="challenge")
+    
+    def __repr__(self):
+        return f"<Challenge(id={self.id}, title={self.title})>"
+
+
+# ========================================
+# 14. UserChallenge - Участие пользователей в челленджах
+# ========================================
+class UserChallenge(Base):
+    __tablename__ = "user_challenges"
+    __table_args__ = (
+        UniqueConstraint("user_id", "challenge_id", name="uq_user_challenge"),
+    )
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    challenge_id = Column(Integer, ForeignKey("challenges.id", ondelete="CASCADE"), nullable=False)
+    progress = Column(Integer, default=0, nullable=False)  # Текущий прогресс (например, 3 из 5 уроков)
+    is_completed = Column(Boolean, default=False, nullable=False)
+    completed_at = Column(TIMESTAMP, nullable=True)
+    joined_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    
+    # Relationships
+    user = relationship("User", backref="user_challenges")
+    challenge = relationship("Challenge", back_populates="user_challenges")
+    
+    def __repr__(self):
+        return f"<UserChallenge(user_id={self.user_id}, challenge_id={self.challenge_id}, progress={self.progress})>"
+
+
+# ========================================
 # Пример использования в коде:
 # ========================================
 # from backend.database import async_session
