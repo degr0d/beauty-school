@@ -11,6 +11,8 @@ from backend.database.models import (
     Achievement, Course, Lesson
 )
 
+# Импортируем уведомления (циклический импорт, поэтому внутри функции)
+
 
 # ========================================
 # Константы начисления баллов
@@ -206,6 +208,18 @@ async def check_and_award_achievements(
             })
             
             print(f"🏆 [Gamification] Пользователь {user.full_name} получил достижение: {achievement.title}")
+            
+            # Отправляем уведомление о получении достижения
+            try:
+                from backend.services.notifications import send_achievement_notification
+                await send_achievement_notification(
+                    user.telegram_id,
+                    achievement.title,
+                    achievement.description,
+                    achievement.points
+                )
+            except Exception as e:
+                print(f"⚠️ [Gamification] Ошибка отправки уведомления о достижении: {e}")
     
     if new_achievements:
         await session.commit()

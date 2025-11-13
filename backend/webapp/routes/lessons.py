@@ -20,6 +20,10 @@ from backend.services.certificates import (
     save_certificate_to_storage,
     get_certificate_url
 )
+from backend.services.notifications import (
+    send_lesson_completed_notification,
+    send_course_completed_notification
+)
 
 router = APIRouter()
 
@@ -174,9 +178,26 @@ async def complete_lesson(
     await session.commit()
     
     # Начисляем баллы за завершение урока
+    points_earned = 0
     try:
-        await award_points_for_lesson_completion(session, db_user.id, lesson_id)
+        points_earned = await award_points_for_lesson_completion(session, db_user.id, lesson_id)
         print(f"✅ [Lessons] Начислены баллы за урок {lesson_id} пользователю {db_user.full_name}")
+        
+        # Отправляем уведомление о завершении урока
+        try:
+            result = await session.execute(
+                select(Course).where(Course.id == lesson.course_id)
+            )
+            course = result.scalar_one_or_none()
+            if course:
+                await send_lesson_completed_notification(
+                    db_user.telegram_id,
+                    lesson.title,
+                    course.title,
+                    points_earned
+                )
+        except Exception as e:
+            print(f"⚠️ [Lessons] Ошибка отправки уведомления о завершении урока: {e}")
     except Exception as e:
         print(f"⚠️ [Lessons] Ошибка начисления баллов за урок: {e}")
     
@@ -187,6 +208,22 @@ async def complete_lesson(
         course_completed = await check_course_completion(session, db_user.id, lesson.course_id)
         if course_completed:
             print(f"🎉 [Lessons] Курс {lesson.course_id} завершен пользователем {db_user.full_name}")
+            
+            # Отправляем уведомление о завершении курса
+            try:
+                result = await session.execute(
+                    select(Course).where(Course.id == lesson.course_id)
+                )
+                course = result.scalar_one_or_none()
+                if course:
+                    # Баллы за курс = 100 (из константы POINTS_PER_COURSE)
+                    await send_course_completed_notification(
+                        db_user.telegram_id,
+                        course.title,
+                        100  # POINTS_PER_COURSE
+                    )
+            except Exception as e:
+                print(f"⚠️ [Lessons] Ошибка отправки уведомления о завершении курса: {e}")
     except Exception as e:
         print(f"⚠️ [Lessons] Ошибка проверки завершения курса: {e}")
     
