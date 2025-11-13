@@ -61,11 +61,21 @@ const ProfilePage = () => {
     
     window.addEventListener('dev_telegram_id_changed', handleCustomStorageChange)
     
+    // Слушаем событие завершения курса для обновления сертификатов
+    const handleCourseCompleted = () => {
+      console.log('🎉 [ProfilePage] Курс завершен, обновляем сертификаты...')
+      if (profile) {
+        loadCertificates()
+      }
+    }
+    window.addEventListener('course_completed', handleCourseCompleted)
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('dev_telegram_id_changed', handleCustomStorageChange)
+      window.removeEventListener('course_completed', handleCourseCompleted)
     }
-  }, [])
+  }, [profile])
 
   useEffect(() => {
     // Загружаем курсы если:
@@ -76,6 +86,13 @@ const ProfilePage = () => {
       loadCertificates()
     }
   }, [status, profile])
+  
+  // Перезагружаем сертификаты при каждом открытии профиля
+  useEffect(() => {
+    if (profile) {
+      loadCertificates()
+    }
+  }, [profile?.id]) // Перезагружаем при изменении ID профиля
 
   const loadProfile = async () => {
     try {
