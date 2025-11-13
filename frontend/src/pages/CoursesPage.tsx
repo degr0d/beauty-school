@@ -50,12 +50,30 @@ const CoursesPage = () => {
       setLoading(true)
       let rawCourses: any[] = []
       
-      // Если есть доступ - показываем только купленные курсы
-      // Если нет - показываем все курсы для выбора
+      // Если есть доступ - сначала пробуем загрузить купленные курсы
+      // Если купленных нет - показываем все курсы (для админов и новых пользователей)
       if (accessStatus?.has_access) {
-        const response = await coursesApi.getMy()
-        rawCourses = Array.isArray(response.data) ? response.data : []
+        try {
+          const response = await coursesApi.getMy()
+          rawCourses = Array.isArray(response.data) ? response.data : []
+          
+          // Если купленных курсов нет - показываем все курсы
+          // (это может быть админ или пользователь без курсов)
+          if (rawCourses.length === 0) {
+            console.log('📚 [CoursesPage] Купленных курсов нет, показываем все курсы')
+            const params = selectedCategory ? { category: selectedCategory } : {}
+            const allCoursesResponse = await coursesApi.getAll(params)
+            rawCourses = Array.isArray(allCoursesResponse.data) ? allCoursesResponse.data : []
+          }
+        } catch (error) {
+          // Если ошибка при загрузке купленных - показываем все курсы
+          console.warn('⚠️ [CoursesPage] Ошибка загрузки купленных курсов, показываем все:', error)
+          const params = selectedCategory ? { category: selectedCategory } : {}
+          const allCoursesResponse = await coursesApi.getAll(params)
+          rawCourses = Array.isArray(allCoursesResponse.data) ? allCoursesResponse.data : []
+        }
       } else {
+        // Если нет доступа - показываем все курсы для выбора
         const params = selectedCategory ? { category: selectedCategory } : {}
         const response = await coursesApi.getAll(params)
         rawCourses = Array.isArray(response.data) ? response.data : []
@@ -151,10 +169,28 @@ const CoursesPage = () => {
     )
   }
 
-  // Если есть доступ - показываем купленные курсы
+  // Если есть доступ - показываем курсы (купленные или все, если купленных нет)
+  // Если купленных нет, но есть доступ - это админ, показываем все курсы
+  const hasPurchasedCourses = accessStatus?.purchased_courses_count && accessStatus.purchased_courses_count > 0
+  
   return (
     <div className="courses-page">
-      <h1>📚 Мои курсы</h1>
+      <h1>{hasPurchasedCourses ? '📚 Мои курсы' : '📚 Каталог курсов'}</h1>
+      
+      {/* Фильтр по категориям - показываем если нет купленных курсов или если выбрана категория */}
+      {(!hasPurchasedCourses || selectedCategory) && (
+        <div className="categories-filter">
+          {categories.map((cat) => (
+            <button
+              key={cat.id || 'all'}
+              className={`filter-btn ${selectedCategory === cat.id ? 'active' : ''}`}
+              onClick={() => setSelectedCategory(cat.id)}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+      )}
       
       {courses.length > 0 ? (
         <div className="courses-grid">
