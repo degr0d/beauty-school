@@ -68,7 +68,10 @@ const ProfilePage = () => {
   }, [])
 
   useEffect(() => {
-    if (status === 'paid' && profile) {
+    // Загружаем курсы если:
+    // 1. Пользователь имеет доступ (status === 'paid')
+    // 2. Или если есть профиль (для админов и пользователей с прогрессом)
+    if ((status === 'paid' || profile) && profile) {
       loadMyCourses()
       loadCertificates()
     }
@@ -211,8 +214,10 @@ const ProfilePage = () => {
   const loadMyCourses = async () => {
     try {
       setLoadingCourses(true)
+      console.log('📚 [ProfilePage] Загрузка курсов...')
       const response = await coursesApi.getMy()
       const courses = Array.isArray(response.data) ? response.data : []
+      console.log('📚 [ProfilePage] Получено курсов:', courses.length, courses)
       
       // Нормализуем курсы
       const safeCourses = courses.map((course: any) => {
@@ -384,6 +389,11 @@ const ProfilePage = () => {
         {loadingCourses ? (
           <div className="loading">Загрузка курсов...</div>
         ) : myCourses.length > 0 ? (
+          <div style={{ marginBottom: '10px', padding: '10px', backgroundColor: '#f0f0f0', borderRadius: '8px', fontSize: '14px', color: '#666' }}>
+            Всего курсов: {myCourses.length}
+          </div>
+        ) : null}
+        {myCourses.length > 0 ? (
           <div className="courses-list">
             {myCourses.map((course) => {
               if (!course || typeof course !== 'object' || Array.isArray(course)) {
