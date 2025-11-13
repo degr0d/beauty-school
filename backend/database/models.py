@@ -274,6 +274,28 @@ class Favorite(Base):
 
 
 # ========================================
+# 12. Review - Отзывы на курсы
+# ========================================
+class Review(Base):
+    __tablename__ = "reviews"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    course_id = Column(Integer, ForeignKey("courses.id", ondelete="CASCADE"), nullable=False)
+    rating = Column(Integer, nullable=False)  # 1-5
+    comment = Column(Text, nullable=True)  # Текст отзыва
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", backref="reviews")
+    course = relationship("Course", backref="reviews")
+    
+    def __repr__(self):
+        return f"<Review(id={self.id}, user_id={self.user_id}, course_id={self.course_id}, rating={self.rating})>"
+
+
+# ========================================
 # Пример использования в коде:
 # ========================================
 # from backend.database import async_session
