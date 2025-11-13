@@ -3,13 +3,14 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { coursesApi, progressApi, paymentApi, type CourseDetail, type CourseProgress } from '../api/client'
 import LessonItem from '../components/LessonItem'
 import ProgressBar from '../components/ProgressBar'
 
 const CoursePage = () => {
   const { id } = useParams<{ id: string }>()
+  const navigate = useNavigate()
   const [course, setCourse] = useState<CourseDetail | null>(null)
   const [progress, setProgress] = useState<CourseProgress | null>(null)
   const [loading, setLoading] = useState(true)
@@ -122,6 +123,30 @@ const CoursePage = () => {
 
   return (
     <div className="course-page">
+      {/* Кнопка назад */}
+      <div style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 1000 }}>
+        <button 
+          onClick={() => navigate(-1)}
+          style={{
+            background: 'rgba(0, 0, 0, 0.5)',
+            border: 'none',
+            borderRadius: '50%',
+            width: '40px',
+            height: '40px',
+            color: 'white',
+            fontSize: '20px',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(10px)'
+          }}
+          title="Назад"
+        >
+          ←
+        </button>
+      </div>
+
       {/* Обложка */}
       {course.cover_image_url && (
         <div className="course-header-image">
