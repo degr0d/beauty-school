@@ -3,7 +3,7 @@
  * Простое отображение ФИО и номера телефона из бота
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { profileApi, accessApi, coursesApi, certificatesApi, type Profile, type AccessStatus, type Certificate } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
@@ -75,7 +75,7 @@ const ProfilePage = () => {
       window.removeEventListener('dev_telegram_id_changed', handleCustomStorageChange)
       window.removeEventListener('course_completed', handleCourseCompleted)
     }
-  }, [profile])
+  }, [profile, loadCertificates])
 
   useEffect(() => {
     // Загружаем курсы если:
@@ -85,14 +85,7 @@ const ProfilePage = () => {
       loadMyCourses()
       loadCertificates()
     }
-  }, [status, profile])
-  
-  // Перезагружаем сертификаты при каждом открытии профиля
-  useEffect(() => {
-    if (profile) {
-      loadCertificates()
-    }
-  }, [profile?.id]) // Перезагружаем при изменении ID профиля
+  }, [status, profile?.id, loadMyCourses, loadCertificates]) // Добавляем функции в зависимости
 
   const loadProfile = async () => {
     try {
@@ -203,7 +196,7 @@ const ProfilePage = () => {
     }
   }
 
-  const loadCertificates = async () => {
+  const loadCertificates = useCallback(async () => {
     try {
       setLoadingCertificates(true)
       const response = await certificatesApi.getAll()
@@ -226,9 +219,9 @@ const ProfilePage = () => {
     } finally {
       setLoadingCertificates(false)
     }
-  }
+  }, [])
 
-  const loadMyCourses = async () => {
+  const loadMyCourses = useCallback(async () => {
     try {
       setLoadingCourses(true)
       console.log('📚 [ProfilePage] Загрузка курсов...')
@@ -280,7 +273,7 @@ const ProfilePage = () => {
     } finally {
       setLoadingCourses(false)
     }
-  }
+  }, [])
 
   if (status === 'loading') {
     return (
