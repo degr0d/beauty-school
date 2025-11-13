@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import settings
-from backend.webapp.routes import courses, lessons, profile, progress, communities, payment, access, achievements, leaderboard
+from backend.webapp.routes import courses, lessons, profile, progress, communities, payment, access, achievements, leaderboard, favorites
 from backend.webapp.middleware import TelegramAuthMiddleware
 from backend.database.database import create_engine_and_session, get_engine, get_async_session
 
@@ -73,6 +73,7 @@ def create_app() -> FastAPI:
     app.include_router(access.router, prefix="/api/access", tags=["Access"])
     app.include_router(achievements.router, prefix="/api/achievements", tags=["Achievements"])
     app.include_router(leaderboard.router, prefix="/api/leaderboard", tags=["Leaderboard"])
+    app.include_router(favorites.router, prefix="/api/favorites", tags=["Favorites"])
     
     # Логирование зарегистрированных роутов для диагностики
     print("=" * 60)

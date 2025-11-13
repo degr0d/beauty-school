@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { coursesApi, progressApi, paymentApi, type CourseDetail, type CourseProgress } from '../api/client'
+import { coursesApi, progressApi, paymentApi, favoritesApi, type CourseDetail, type CourseProgress } from '../api/client'
 import LessonItem from '../components/LessonItem'
 import ProgressBar from '../components/ProgressBar'
 
@@ -16,14 +16,45 @@ const CoursePage = () => {
   const [loading, setLoading] = useState(true)
   const [isPurchased, setIsPurchased] = useState(false)
   const [purchasing, setPurchasing] = useState(false)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [loadingFavorite, setLoadingFavorite] = useState(false)
 
   useEffect(() => {
     if (id) {
       loadCourse(parseInt(id))
       loadProgress(parseInt(id))
       checkPurchaseStatus(parseInt(id))
+      checkFavoriteStatus(parseInt(id))
     }
   }, [id])
+
+  const checkFavoriteStatus = async (courseId: number) => {
+    try {
+      const response = await favoritesApi.check(courseId)
+      setIsFavorite(response.data.is_favorite)
+    } catch (error) {
+      console.error('Ошибка проверки избранного:', error)
+    }
+  }
+
+  const handleFavoriteClick = async () => {
+    if (!id || loadingFavorite) return
+    
+    try {
+      setLoadingFavorite(true)
+      if (isFavorite) {
+        await favoritesApi.remove(parseInt(id))
+        setIsFavorite(false)
+      } else {
+        await favoritesApi.add(parseInt(id))
+        setIsFavorite(true)
+      }
+    } catch (error) {
+      console.error('Ошибка изменения избранного:', error)
+    } finally {
+      setLoadingFavorite(false)
+    }
+  }
 
   // Обновляем прогресс при возврате на страницу (например, после завершения урока)
   useEffect(() => {
@@ -167,7 +198,30 @@ const CoursePage = () => {
 
       {/* Информация о курсе */}
       <div className="course-header">
-        <h1>{course.title}</h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+          <h1 style={{ flex: 1, margin: 0 }}>{course.title}</h1>
+          <button
+            onClick={handleFavoriteClick}
+            disabled={loadingFavorite}
+            style={{
+              background: 'transparent',
+              border: '2px solid #e91e63',
+              borderRadius: '50%',
+              width: '50px',
+              height: '50px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: loadingFavorite ? 'not-allowed' : 'pointer',
+              fontSize: '24px',
+              opacity: loadingFavorite ? 0.6 : 1,
+              transition: 'all 0.3s ease'
+            }}
+            title={isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+          >
+            {isFavorite ? '❤️' : '🤍'}
+          </button>
+        </div>
         <p className="course-category">{course.category}</p>
         <p className="course-description">{course.description}</p>
 

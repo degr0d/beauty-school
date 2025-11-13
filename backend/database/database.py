@@ -34,7 +34,7 @@ def create_engine_and_session():
     # Очищаем ДО импорта моделей, чтобы они зарегистрировались заново
     Base.metadata.clear()
     # Теперь импортируем модели - они автоматически зарегистрируются в Base.metadata
-    from backend.database.models import User, Course, Lesson, UserCourse, UserProgress, Achievement, UserAchievement, Community, Payment, Certificate
+    from backend.database.models import User, Course, Lesson, UserCourse, UserProgress, Achievement, UserAchievement, Community, Payment, Certificate, Favorite
     
     # Параметры для разных типов БД
     db_url = settings.database_url
