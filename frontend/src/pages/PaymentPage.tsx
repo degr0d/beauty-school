@@ -92,30 +92,6 @@ const PaymentPage = () => {
 
   return (
     <div className="payment-page">
-      {/* Кнопка назад */}
-      <div style={{ position: 'fixed', top: '10px', left: '10px', zIndex: 1000 }}>
-        <button 
-          onClick={() => navigate(-1)}
-          style={{
-            background: 'rgba(0, 0, 0, 0.5)',
-            border: 'none',
-            borderRadius: '50%',
-            width: '40px',
-            height: '40px',
-            color: 'white',
-            fontSize: '20px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            backdropFilter: 'blur(10px)'
-          }}
-          title="Назад"
-        >
-          ←
-        </button>
-      </div>
-      
       <div className="payment-status">
         {status.status === 'succeeded' ? (
           <>
