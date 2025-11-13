@@ -47,7 +47,7 @@ python-multipart==0.0.9  # Для загрузки файлов в FastAPI
 yookassa==3.0.0
 
 # Генерация PDF (для сертификатов в Full версии)
-# reportlab==4.0.5
+reportlab>=4.0.0
 # weasyprint==60.1
 
 # Тестирование (опционально)
