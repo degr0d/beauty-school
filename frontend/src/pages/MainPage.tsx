@@ -89,15 +89,17 @@ const MainPage = () => {
 
   const loadChallenges = async () => {
     try {
+      console.log('🎯 Загрузка челленджей...')
       const response = await challengesApi.getAll()
+      console.log('✅ Ответ API челленджей:', response.data)
       const rawChallenges = Array.isArray(response.data) ? response.data : []
-      // Берем только первые 3 активных челленджа
-      const activeChallenges = rawChallenges
-        .filter((ch: Challenge) => ch.is_active)
-        .slice(0, 3)
+      console.log('📊 Всего челленджей:', rawChallenges.length)
+      // Бэкенд уже фильтрует по is_active, так что просто берем первые 3
+      const activeChallenges = rawChallenges.slice(0, 3)
+      console.log('🎯 Показываем челленджей:', activeChallenges.length)
       setChallenges(activeChallenges)
     } catch (error) {
-      console.error('Ошибка загрузки челленджей:', error)
+      console.error('❌ Ошибка загрузки челленджей:', error)
       setChallenges([])
     }
   }
@@ -199,23 +201,23 @@ const MainPage = () => {
         </section>
       ) : null}
 
-      {/* Челленджи */}
-      {challenges.length > 0 && (
-        <section className="challenges-section" style={{ marginTop: '30px', marginBottom: '30px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2>🎯 Челленджи</h2>
-            <Link
-              to="/challenges"
-              style={{
-                fontSize: '14px',
-                color: '#e91e63',
-                textDecoration: 'none',
-                fontWeight: 'bold'
-              }}
-            >
-              Все челленджи →
-            </Link>
-          </div>
+      {/* Челленджи - показываем секцию всегда, даже если челленджей нет */}
+      <section className="challenges-section" style={{ marginTop: '30px', marginBottom: '30px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+          <h2>🎯 Челленджи</h2>
+          <Link
+            to="/challenges"
+            style={{
+              fontSize: '14px',
+              color: '#e91e63',
+              textDecoration: 'none',
+              fontWeight: 'bold'
+            }}
+          >
+            Все челленджи →
+          </Link>
+        </div>
+        {challenges.length > 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {challenges.map((challenge) => {
               const progressPercent = getProgressPercent(challenge)
@@ -330,8 +332,20 @@ const MainPage = () => {
               )
             })}
           </div>
-        </section>
-      )}
+        ) : (
+          <div style={{
+            padding: '40px 20px',
+            textAlign: 'center',
+            color: '#999',
+            backgroundColor: '#f5f5f5',
+            borderRadius: '12px'
+          }}>
+            <p style={{ margin: 0, fontSize: '14px' }}>
+              Пока нет активных челленджей. Загляните позже!
+            </p>
+          </div>
+        )}
+      </section>
 
       {/* Категории - ВСЕГДА показываем */}
       <section className="categories">
