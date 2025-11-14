@@ -64,6 +64,7 @@ async def get_favorites(
     )
     favorites = result.all()
     
+    # Извлекаем курсы из кортежей (Favorite, Course)
     courses = [course for _, course in favorites]
     return courses
 
@@ -115,15 +116,23 @@ async def add_to_favorites(
         return {"message": "Курс уже в избранном", "is_favorite": True}
     
     # Добавляем в избранное
-    favorite = Favorite(
-        user_id=db_user.id,
-        course_id=course_id
-    )
-    session.add(favorite)
-    await session.commit()
-    await session.refresh(favorite)
-    
-    return {"message": "Курс добавлен в избранное", "is_favorite": True}
+    try:
+        favorite = Favorite(
+            user_id=db_user.id,
+            course_id=course_id
+        )
+        session.add(favorite)
+        await session.commit()
+        await session.refresh(favorite)
+        
+        return {"message": "Курс добавлен в избранное", "is_favorite": True}
+    except Exception as e:
+        await session.rollback()
+        # Если ошибка из-за дубликата - возвращаем успешный ответ
+        if "unique constraint" in str(e).lower() or "duplicate" in str(e).lower():
+            return {"message": "Курс уже в избранном", "is_favorite": True}
+        # Иначе пробрасываем ошибку дальше
+        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении в избранное: {str(e)}")
 
 
 @router.delete("/{course_id}")
