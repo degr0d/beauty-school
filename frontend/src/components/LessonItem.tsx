@@ -11,6 +11,7 @@ interface LessonItemProps {
     order: number
     video_duration?: number
     completed?: boolean
+    is_free?: boolean
   }
   courseId?: number // Пока не используется, но может пригодиться в будущем
 }

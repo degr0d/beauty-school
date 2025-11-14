@@ -386,41 +386,77 @@ const CoursePage = () => {
       {/* Список уроков */}
       <div className="course-lessons">
         <h2>📖 Уроки</h2>
-        {!isPurchased && course.price > 0 ? (
-          <div className="course-locked">
-            <p>🔒 Для доступа ко всем урокам необходимо купить курс</p>
-            <p className="preview-note" style={{ color: '#4CAF50', fontWeight: 'bold', marginTop: '10px' }}>
+        {!isPurchased && course.price > 0 && (
+          <div className="course-locked" style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107' }}>
+            <p style={{ margin: '0 0 10px 0', fontWeight: 'bold' }}>🔒 Для доступа ко всем урокам необходимо купить курс</p>
+            <p className="preview-note" style={{ color: '#4CAF50', fontWeight: 'bold', margin: 0 }}>
               ✨ Первый урок доступен бесплатно для ознакомления!
             </p>
           </div>
+        )}
+        {course.lessons.length > 0 ? (
+          <div className="lessons-list">
+            {course.lessons.map((lesson) => {
+              const lessonProgress = progress?.lessons.find(l => l.id === lesson.id)
+              const isFirstLesson = lesson.order === 1
+              const isAccessible = isPurchased || course.price === 0 || isFirstLesson
+              
+              // Нормализуем урок - НЕ используем spread оператор
+              const normalizedLesson = {
+                id: typeof lesson.id === 'number' && !isNaN(lesson.id) ? lesson.id : 0,
+                title: typeof lesson.title === 'string' ? lesson.title : 'Без названия',
+                order: typeof lesson.order === 'number' && !isNaN(lesson.order) ? lesson.order : 0,
+                video_duration: typeof lesson.video_duration === 'number' && !isNaN(lesson.video_duration) && lesson.video_duration > 0 ? lesson.video_duration : undefined,
+                is_free: lesson.is_free === true || isFirstLesson,
+                completed: lessonProgress?.completed === true
+              }
+              
+              return (
+                <div key={normalizedLesson.id} style={{ position: 'relative' }}>
+                  {!isAccessible && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 10,
+                      pointerEvents: 'none'
+                    }}>
+                      <span style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>🔒</span>
+                    </div>
+                  )}
+                  {isFirstLesson && !isPurchased && course.price > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '5px',
+                      right: '5px',
+                      backgroundColor: '#4CAF50',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      zIndex: 11
+                    }}>
+                      БЕСПЛАТНО
+                    </div>
+                  )}
+                  <LessonItem
+                    lesson={normalizedLesson}
+                    courseId={course.id}
+                  />
+                </div>
+              )
+            })}
+          </div>
         ) : (
-          <>
-            {course.lessons.length > 0 ? (
-              <div className="lessons-list">
-                {course.lessons.map((lesson) => {
-                  const lessonProgress = progress?.lessons.find(l => l.id === lesson.id)
-                  // Нормализуем урок - НЕ используем spread оператор
-                  const normalizedLesson = {
-                    id: typeof lesson.id === 'number' && !isNaN(lesson.id) ? lesson.id : 0,
-                    title: typeof lesson.title === 'string' ? lesson.title : 'Без названия',
-                    order: typeof lesson.order === 'number' && !isNaN(lesson.order) ? lesson.order : 0,
-                    video_duration: typeof lesson.video_duration === 'number' && !isNaN(lesson.video_duration) && lesson.video_duration > 0 ? lesson.video_duration : undefined,
-                    is_free: lesson.is_free === true,
-                    completed: lessonProgress?.completed === true
-                  }
-                  return (
-                    <LessonItem
-                      key={normalizedLesson.id}
-                      lesson={normalizedLesson}
-                      courseId={course.id}
-                    />
-                  )
-                })}
-              </div>
-            ) : (
-              <p>Уроков пока нет</p>
-            )}
-          </>
+          <p>Уроков пока нет</p>
         )}
       </div>
 
