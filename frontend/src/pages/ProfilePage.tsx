@@ -113,59 +113,6 @@ const ProfilePage = () => {
     }
   }, [])
 
-  useEffect(() => {
-    // Слушаем изменения localStorage для обновления профиля
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'dev_telegram_id') {
-        const currentId = localStorage.getItem('dev_telegram_id')
-        console.log('🔄 [ProfilePage] dev_telegram_id изменен (storage event), перезагружаем профиль...', 'текущий ID:', currentId)
-        // Небольшая задержка чтобы убедиться что localStorage обновился
-        setTimeout(() => {
-          loadProfile()
-        }, 200)
-      }
-    }
-    
-    window.addEventListener('storage', handleStorageChange)
-    
-    // Слушаем кастомное событие для обновления в той же вкладке
-    const handleCustomStorageChange = () => {
-      const currentId = localStorage.getItem('dev_telegram_id')
-      console.log('🔄 [ProfilePage] dev_telegram_id изменен (custom event), перезагружаем профиль...', 'текущий ID:', currentId)
-      // Небольшая задержка чтобы убедиться что localStorage обновился
-      setTimeout(() => {
-        loadProfile()
-      }, 200)
-    }
-    
-    window.addEventListener('dev_telegram_id_changed', handleCustomStorageChange)
-    
-    // Слушаем событие завершения курса для обновления сертификатов
-    const handleCourseCompleted = () => {
-      console.log('🎉 [ProfilePage] Курс завершен, обновляем сертификаты...')
-      if (profile) {
-        loadCertificates()
-      }
-    }
-    window.addEventListener('course_completed', handleCourseCompleted)
-    
-    return () => {
-      window.removeEventListener('storage', handleStorageChange)
-      window.removeEventListener('dev_telegram_id_changed', handleCustomStorageChange)
-      window.removeEventListener('course_completed', handleCourseCompleted)
-    }
-  }, [profile, loadCertificates])
-
-  useEffect(() => {
-    // Загружаем курсы если:
-    // 1. Пользователь имеет доступ (status === 'paid')
-    // 2. Или если есть профиль (для админов и пользователей с прогрессом)
-    if ((status === 'paid' || profile) && profile) {
-      loadMyCourses()
-      loadCertificates()
-    }
-  }, [status, profile?.id, loadMyCourses, loadCertificates]) // Добавляем функции в зависимости
-
   const loadProfile = async () => {
     try {
       const currentDevId = localStorage.getItem('dev_telegram_id')
@@ -274,6 +221,58 @@ const ProfilePage = () => {
       }
     }
   }
+
+  useEffect(() => {
+    loadProfile()
+    
+    // Слушаем изменения dev_telegram_id в localStorage для автоматического обновления
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'dev_telegram_id') {
+        console.log('🔄 [ProfilePage] dev_telegram_id изменен, перезагружаем профиль...')
+        loadProfile()
+      }
+    }
+    
+    // Слушаем события storage (из других вкладок)
+    window.addEventListener('storage', handleStorageChange)
+    
+    // Слушаем кастомное событие для обновления в той же вкладке
+    const handleCustomStorageChange = () => {
+      const currentId = localStorage.getItem('dev_telegram_id')
+      console.log('🔄 [ProfilePage] dev_telegram_id изменен (custom event), перезагружаем профиль...', 'текущий ID:', currentId)
+      // Небольшая задержка чтобы убедиться что localStorage обновился
+      setTimeout(() => {
+        loadProfile()
+      }, 200)
+    }
+    
+    window.addEventListener('dev_telegram_id_changed', handleCustomStorageChange)
+    
+    // Слушаем событие завершения курса для обновления сертификатов
+    const handleCourseCompleted = () => {
+      console.log('🎉 [ProfilePage] Курс завершен, обновляем сертификаты...')
+      if (profile) {
+        loadCertificates()
+      }
+    }
+    window.addEventListener('course_completed', handleCourseCompleted)
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('dev_telegram_id_changed', handleCustomStorageChange)
+      window.removeEventListener('course_completed', handleCourseCompleted)
+    }
+  }, [profile, loadCertificates])
+
+  useEffect(() => {
+    // Загружаем курсы если:
+    // 1. Пользователь имеет доступ (status === 'paid')
+    // 2. Или если есть профиль (для админов и пользователей с прогрессом)
+    if ((status === 'paid' || profile) && profile) {
+      loadMyCourses()
+      loadCertificates()
+    }
+  }, [status, profile?.id, loadMyCourses, loadCertificates]) // Добавляем функции в зависимости
 
   if (status === 'loading') {
     return (
