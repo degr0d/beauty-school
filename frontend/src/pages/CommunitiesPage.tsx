@@ -51,7 +51,19 @@ const CommunitiesPage = () => {
   }, [communities])
 
   const categories = useMemo(() => {
-    const categoryMap: Record<string, string> = {
+    // Получаем уникальные категории из сообществ
+    const categorySet = new Set<string>()
+    communities.forEach(c => {
+      if (c.category && c.type === 'profession') {
+        categorySet.add(c.category)
+      }
+    })
+    
+    // Маппинг категорий на красивые названия
+    const categoryLabels: Record<string, string> = {
+      'Маникюр и педикюр': '💅 Маникюр и педикюр',
+      'Ресницы и брови': '👁 Ресницы и брови',
+      'Своё дело': '💼 Своё дело',
       'manicure': '💅 Маникюр',
       'pedicure': '🦶 Педикюр',
       'eyelashes': '👁 Ресницы',
@@ -61,15 +73,17 @@ const CommunitiesPage = () => {
       'business': '💼 Своё дело'
     }
     
-    const categorySet = new Set<string>()
-    communities.forEach(c => {
-      if (c.category && c.type === 'profession') {
-        categorySet.add(c.category)
-      }
-    })
+    // Преобразуем категории в красивые названия
+    const categoryList = Array.from(categorySet).map(cat => {
+      return categoryLabels[cat] || cat
+    }).sort()
     
-    // Добавляем все категории из маппинга, даже если нет сообществ
-    return Object.keys(categoryMap).map(key => categoryMap[key]).sort()
+    // Если нет категорий - добавляем стандартные
+    if (categoryList.length === 0) {
+      return ['💅 Маникюр и педикюр', '👁 Ресницы и брови', '💼 Своё дело']
+    }
+    
+    return categoryList
   }, [communities])
 
   // Ищем сообщество по выбранным параметрам
@@ -80,10 +94,13 @@ const CommunitiesPage = () => {
     }
 
     const selectedCity = cities[selectedCityIndex]
-    const selectedCategory = categories[selectedCategoryIndex]
+    const selectedCategoryLabel = categories[selectedCategoryIndex]
     
-    // Извлекаем ключ категории из названия
-    const categoryKey = Object.entries({
+    // Обратный маппинг: из красивого названия в ключ категории
+    const categoryKeyMap: Record<string, string> = {
+      '💅 Маникюр и педикюр': 'Маникюр и педикюр',
+      '👁 Ресницы и брови': 'Ресницы и брови',
+      '💼 Своё дело': 'Своё дело',
       '💅 Маникюр': 'manicure',
       '🦶 Педикюр': 'pedicure',
       '👁 Ресницы': 'eyelashes',
@@ -91,7 +108,11 @@ const CommunitiesPage = () => {
       '🩺 Подология': 'podology',
       '📢 Маркетинг': 'marketing',
       '💼 Своё дело': 'business'
-    }).find(([label]) => label === selectedCategory)?.[1] || selectedCategory.toLowerCase()
+    }
+    
+    // Получаем ключ категории (убираем эмодзи и пробелы для поиска)
+    const categoryKey = categoryKeyMap[selectedCategoryLabel] || 
+                       selectedCategoryLabel.replace(/^[^\s]+\s/, '').trim()
 
     // Ищем сообщество по городу (приоритет)
     let found = communities.find(c => 
@@ -101,10 +122,18 @@ const CommunitiesPage = () => {
 
     // Если не нашли по городу - ищем по категории
     if (!found) {
-      found = communities.find(c => 
-        c.type === 'profession' && 
-        c.category === categoryKey
-      )
+      found = communities.find(c => {
+        if (c.type !== 'profession' || !c.category) return false
+        
+        // Сравниваем категории (учитываем разные форматы)
+        const cCategory = c.category.toLowerCase().trim()
+        const searchCategory = categoryKey.toLowerCase().trim()
+        
+        return cCategory === searchCategory || 
+               cCategory.includes(searchCategory) || 
+               searchCategory.includes(cCategory) ||
+               c.category === categoryKey
+      })
     }
 
     setSelectedCommunity(found || null)
