@@ -81,6 +81,7 @@ const CoursesPage = () => {
               course.description?.toLowerCase().includes(searchLower)
             )
           }
+          // Если поисковый запрос пустой - показываем все купленные курсы без фильтрации
         } catch (error) {
           // Если ошибка при загрузке купленных - показываем все курсы
           console.warn('⚠️ [CoursesPage] Ошибка загрузки купленных курсов, показываем все:', error)
@@ -120,9 +121,14 @@ const CoursesPage = () => {
 
   useEffect(() => {
     if (!checkingAccess) {
-      loadCourses()
+      // Используем debounce для поиска, чтобы не делать запрос при каждом изменении символа
+      const timeoutId = setTimeout(() => {
+        loadCourses()
+      }, searchQuery ? 300 : 0) // Если поисковый запрос есть - ждем 300мс, иначе загружаем сразу
+      
+      return () => clearTimeout(timeoutId)
     }
-  }, [checkingAccess, loadCourses])
+  }, [checkingAccess, loadCourses, searchQuery])
 
   const categories = [
     { id: null, label: 'Все' },
@@ -193,7 +199,18 @@ const CoursesPage = () => {
           type="text"
           placeholder="🔍 Поиск курсов..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={(e) => {
+            const newValue = e.target.value
+            setSearchQuery(newValue)
+            // Не делаем ничего при изменении - просто обновляем состояние
+            // loadCourses вызовется автоматически через useEffect
+          }}
+          onKeyDown={(e) => {
+            // Предотвращаем случайные редиректы при нажатии Enter
+            if (e.key === 'Enter') {
+              e.preventDefault()
+            }
+          }}
           style={{
             width: '100%',
             padding: '12px 16px',
