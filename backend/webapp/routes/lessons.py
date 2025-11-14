@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 
-from backend.database import get_session, Lesson, UserProgress, User, UserCourse, Course, Certificate
+from backend.database import get_session, Lesson, UserProgress, User, UserCourse, Course, Certificate, Community
 from backend.webapp.schemas import LessonDetailResponse
 from backend.webapp.middleware import get_telegram_user
 from backend.config import settings
@@ -22,7 +22,9 @@ from backend.services.certificates import (
 )
 from backend.services.notifications import (
     send_lesson_completed_notification,
-    send_course_completed_notification
+    send_course_completed_notification,
+    send_next_course_recommendation,
+    send_community_recommendation
 )
 from backend.services.challenges import check_all_user_challenges
 
@@ -212,26 +214,127 @@ async def complete_lesson(
     # Проверяем, завершен ли курс (все уроки пройдены)
     # Это автоматически начислит баллы за курс и проверит достижения
     course_completed = False
+    completed_course = None
     try:
         course_completed = await check_course_completion(session, db_user.id, lesson.course_id)
         if course_completed:
             print(f"🎉 [Lessons] Курс {lesson.course_id} завершен пользователем {db_user.full_name}")
             
-            # Отправляем уведомление о завершении курса
-            try:
-                result = await session.execute(
-                    select(Course).where(Course.id == lesson.course_id)
-                )
-                course = result.scalar_one_or_none()
-                if course:
+            # Получаем информацию о завершенном курсе
+            result = await session.execute(
+                select(Course).where(Course.id == lesson.course_id)
+            )
+            completed_course = result.scalar_one_or_none()
+            
+            if completed_course:
+                # Отправляем уведомление о завершении курса
+                try:
                     # Баллы за курс = 100 (из константы POINTS_PER_COURSE)
                     await send_course_completed_notification(
                         db_user.telegram_id,
-                        course.title,
+                        completed_course.title,
                         100  # POINTS_PER_COURSE
                     )
-            except Exception as e:
-                print(f"⚠️ [Lessons] Ошибка отправки уведомления о завершении курса: {e}")
+                except Exception as e:
+                    print(f"⚠️ [Lessons] Ошибка отправки уведомления о завершении курса: {e}")
+                
+                # Рекомендуем следующий курс
+                try:
+                    # Ищем следующий курс (по той же категории или просто другой активный курс)
+                    # Сначала ищем по категории
+                    result = await session.execute(
+                        select(Course)
+                        .where(
+                            Course.id != completed_course.id,
+                            Course.is_active == True,
+                            Course.category == completed_course.category
+                        )
+                        .where(
+                            ~select(UserCourse.id).where(
+                                UserCourse.user_id == db_user.id,
+                                UserCourse.course_id == Course.id
+                            ).exists()
+                        )
+                        .limit(1)
+                    )
+                    recommended_course = result.scalar_one_or_none()
+                    
+                    # Если не нашли по категории - ищем любой другой активный курс
+                    if not recommended_course:
+                        result = await session.execute(
+                            select(Course)
+                            .where(
+                                Course.id != completed_course.id,
+                                Course.is_active == True
+                            )
+                            .where(
+                                ~select(UserCourse.id).where(
+                                    UserCourse.user_id == db_user.id,
+                                    UserCourse.course_id == Course.id
+                                ).exists()
+                            )
+                            .limit(1)
+                        )
+                        recommended_course = result.scalar_one_or_none()
+                    
+                    if recommended_course:
+                        await send_next_course_recommendation(
+                            db_user.telegram_id,
+                            recommended_course.title,
+                            recommended_course.id
+                        )
+                        print(f"📚 [Lessons] Рекомендован следующий курс: {recommended_course.title}")
+                except Exception as e:
+                    print(f"⚠️ [Lessons] Ошибка рекомендации следующего курса: {e}")
+                
+                # Рекомендуем сообщество (чат)
+                try:
+                    # Ищем сообщество по категории курса
+                    result = await session.execute(
+                        select(Community)
+                        .where(
+                            Community.category == completed_course.category,
+                            Community.type == 'profession'
+                        )
+                        .limit(1)
+                    )
+                    community = result.scalar_one_or_none()
+                    
+                    # Если не нашли по категории - ищем по городу пользователя
+                    if not community and db_user.city:
+                        result = await session.execute(
+                            select(Community)
+                            .where(
+                                Community.city == db_user.city,
+                                Community.type == 'city'
+                            )
+                            .limit(1)
+                        )
+                        community = result.scalar_one_or_none()
+                    
+                    # Если все еще не нашли - берем любое активное сообщество
+                    if not community:
+                        result = await session.execute(
+                            select(Community).limit(1)
+                        )
+                        community = result.scalar_one_or_none()
+                    
+                    if community:
+                        reason = ""
+                        if community.category == completed_course.category:
+                            reason = "По вашей специальности"
+                        elif community.city == db_user.city:
+                            reason = "В вашем городе"
+                        
+                        await send_community_recommendation(
+                            db_user.telegram_id,
+                            community.title,
+                            community.telegram_link,
+                            reason
+                        )
+                        print(f"💬 [Lessons] Рекомендовано сообщество: {community.title}")
+                except Exception as e:
+                    print(f"⚠️ [Lessons] Ошибка рекомендации сообщества: {e}")
     except Exception as e:
         print(f"⚠️ [Lessons] Ошибка проверки завершения курса: {e}")
     

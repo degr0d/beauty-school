@@ -133,6 +133,63 @@ async def send_course_completed_notification(
     return await send_notification(telegram_id, message)
 
 
+async def send_next_course_recommendation(
+    telegram_id: int,
+    recommended_course_title: str,
+    course_id: int
+) -> bool:
+    """
+    Отправить уведомление с рекомендацией следующего курса
+    
+    Args:
+        telegram_id: Telegram ID пользователя
+        recommended_course_title: Название рекомендуемого курса
+        course_id: ID рекомендуемого курса
+    
+    Returns:
+        True если уведомление отправлено успешно
+    """
+    message = (
+        f"📚 <b>Рекомендуем следующий курс!</b>\n\n"
+        f"<b>{recommended_course_title}</b>\n\n"
+        f"Продолжайте обучение и развивайте свои навыки! 💪"
+    )
+    
+    return await send_notification(telegram_id, message)
+
+
+async def send_community_recommendation(
+    telegram_id: int,
+    community_title: str,
+    community_link: str,
+    reason: str = ""
+) -> bool:
+    """
+    Отправить уведомление с рекомендацией сообщества (чата)
+    
+    Args:
+        telegram_id: Telegram ID пользователя
+        community_title: Название сообщества
+        community_link: Ссылка на Telegram-чат
+        reason: Причина рекомендации (опционально)
+    
+    Returns:
+        True если уведомление отправлено успешно
+    """
+    reason_text = f"\n{reason}\n" if reason else "\n"
+    message = (
+        f"💬 <b>Присоединяйтесь к сообществу!</b>\n\n"
+        f"<b>{community_title}</b>{reason_text}"
+        f"Общайтесь с единомышленниками и делитесь опытом! 👥"
+    )
+    
+    # Если есть ссылка, добавляем её в сообщение
+    if community_link:
+        message += f"\n\n🔗 {community_link}"
+    
+    return await send_notification(telegram_id, message)
+
+
 async def send_lesson_completed_notification(
     telegram_id: int,
     lesson_title: str,
