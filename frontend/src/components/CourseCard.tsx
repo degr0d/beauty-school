@@ -21,10 +21,13 @@ const CourseCard = ({ course }: CourseCardProps) => {
   const checkFavorite = async () => {
     try {
       const response = await favoritesApi.check(course.id)
-      console.log('🔍 [CourseCard] Проверка избранного для курса:', course.id, 'результат:', response.data.is_favorite)
-      setIsFavorite(response.data.is_favorite)
+      const isFavoriteValue = response.data?.is_favorite === true
+      console.log('🔍 [CourseCard] Проверка избранного для курса:', course.id, 'результат:', isFavoriteValue)
+      setIsFavorite(isFavoriteValue)
     } catch (error: any) {
       console.warn('⚠️ [CourseCard] Ошибка проверки избранного:', error)
+      console.warn('   Статус:', error.response?.status)
+      console.warn('   Данные:', error.response?.data)
       // Если ошибка - считаем что курс не в избранном
       setIsFavorite(false)
     }

@@ -115,6 +115,7 @@ async def add_to_favorites(
     
     if existing:
         # Курс уже в избранном - возвращаем успешный ответ
+        print(f"ℹ️ [Favorites] Курс {course_id} уже в избранном для пользователя {db_user.id}")
         return {"message": "Курс уже в избранном", "is_favorite": True}
     
     # Добавляем в избранное
@@ -127,6 +128,7 @@ async def add_to_favorites(
         await session.commit()
         await session.refresh(favorite)
         
+        print(f"✅ [Favorites] Курс {course_id} добавлен в избранное для пользователя {db_user.id}")
         return {"message": "Курс добавлен в избранное", "is_favorite": True}
     except IntegrityError as e:
         await session.rollback()
@@ -192,12 +194,14 @@ async def remove_from_favorites(
     favorite = result.scalar_one_or_none()
     
     if not favorite:
+        print(f"ℹ️ [Favorites] Курс {course_id} не в избранном для пользователя {db_user.id}")
         return {"message": "Курс не в избранном", "is_favorite": False}
     
     # Удаляем из избранного
     await session.delete(favorite)
     await session.commit()
     
+    print(f"✅ [Favorites] Курс {course_id} удален из избранного для пользователя {db_user.id}")
     return {"message": "Курс удален из избранного", "is_favorite": False}
 
 
