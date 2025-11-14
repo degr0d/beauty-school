@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react'
-import { supportApi, type SupportTicket, type SupportMessage } from '../api/client'
+import { supportApi, type SupportTicket } from '../api/client'
 
 interface SupportChatProps {
   onClose: () => void

@@ -18,7 +18,6 @@ const MainPage = () => {
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [accessError, setAccessError] = useState(false)
   const [challenges, setChallenges] = useState<Challenge[]>([])
-  const [loadingChallenges, setLoadingChallenges] = useState(false)
 
   useEffect(() => {
     checkAccess()
@@ -90,7 +89,6 @@ const MainPage = () => {
 
   const loadChallenges = async () => {
     try {
-      setLoadingChallenges(true)
       const response = await challengesApi.getAll()
       const rawChallenges = Array.isArray(response.data) ? response.data : []
       // Берем только первые 3 активных челленджа
@@ -101,8 +99,6 @@ const MainPage = () => {
     } catch (error) {
       console.error('Ошибка загрузки челленджей:', error)
       setChallenges([])
-    } finally {
-      setLoadingChallenges(false)
     }
   }
 
