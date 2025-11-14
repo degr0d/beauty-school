@@ -38,8 +38,10 @@ const ProfilePage = () => {
   const loadCertificates = useCallback(async () => {
     try {
       setLoadingCertificates(true)
+      console.log('📜 [ProfilePage] Загрузка сертификатов...')
       const response = await certificatesApi.getAll()
       const rawCertificates = Array.isArray(response.data) ? response.data : []
+      console.log('📜 [ProfilePage] Получено сертификатов:', rawCertificates.length, rawCertificates)
       
       // Нормализуем сертификаты
       const normalizedCertificates = rawCertificates.map((cert: any) => ({
@@ -51,9 +53,11 @@ const ProfilePage = () => {
         issued_at: typeof cert.issued_at === 'string' ? cert.issued_at : new Date().toISOString()
       }))
       
+      console.log('📜 [ProfilePage] Нормализованные сертификаты:', normalizedCertificates)
       setCertificates(normalizedCertificates)
-    } catch (error) {
-      console.error('Ошибка загрузки сертификатов:', error)
+    } catch (error: any) {
+      console.error('❌ [ProfilePage] Ошибка загрузки сертификатов:', error)
+      console.error('   Детали:', error.response?.status, error.response?.data)
       setCertificates([])
     } finally {
       setLoadingCertificates(false)
