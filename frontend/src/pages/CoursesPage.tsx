@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { coursesApi, accessApi, type Course, type AccessStatus } from '../api/client'
 import CourseCard from '../components/CourseCard'
+import SkeletonLoader from '../components/SkeletonLoader'
 
 const CoursesPage = () => {
   const [searchParams] = useSearchParams()
@@ -138,7 +139,13 @@ const CoursesPage = () => {
   ]
 
   if (checkingAccess || loading) {
-    return <div className="loading">Загрузка...</div>
+    return (
+      <div className="courses-page">
+        <div className="skeleton skeleton-title" style={{ marginBottom: '20px', height: '32px' }}></div>
+        <div className="skeleton" style={{ height: '50px', marginBottom: '20px', borderRadius: '8px' }}></div>
+        <SkeletonLoader type="card" count={6} />
+      </div>
+    )
   }
 
   // Если нет доступа - показываем все курсы с призывом к оплате

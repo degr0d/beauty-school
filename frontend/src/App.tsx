@@ -3,7 +3,7 @@
  * Настройка роутинга и инициализация Telegram WebApp
  */
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useTelegram } from './hooks/useTelegram'
 
@@ -17,15 +17,29 @@ import CommunitiesPage from './pages/CommunitiesPage'
 import PaymentPage from './pages/PaymentPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import ChallengesPage from './pages/ChallengesPage'
+import AnalyticsPage from './pages/AnalyticsPage'
 
 // Components
 import Navigation from './components/Navigation'
 import DevToolsButton from './components/DevToolsButton'
 import DevModeSelector from './components/DevModeSelector'
+import Onboarding from './components/Onboarding'
 
 function App() {
   console.log('🎯 [App] Компонент App рендерится')
   const { webApp } = useTelegram()
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
+  useEffect(() => {
+    // Проверяем, проходил ли пользователь онбординг
+    const onboardingCompleted = localStorage.getItem('onboarding_completed')
+    if (!onboardingCompleted) {
+      // Небольшая задержка перед показом онбординга
+      setTimeout(() => {
+        setShowOnboarding(true)
+      }, 1000)
+    }
+  }, [])
 
   useEffect(() => {
     console.log('🚀 [App] Инициализация приложения...')
@@ -145,6 +159,11 @@ function App() {
     return (
       <BrowserRouter>
         <div className="app">
+          {/* Онбординг для новых пользователей */}
+          {showOnboarding && (
+            <Onboarding onComplete={() => setShowOnboarding(false)} />
+          )}
+          
           {/* Навигация */}
           <Navigation />
           
@@ -166,6 +185,7 @@ function App() {
               <Route path="/payment/success" element={<PaymentPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/challenges" element={<ChallengesPage />} />
+              <Route path="/analytics" element={<AnalyticsPage />} />
             </Routes>
           </main>
         </div>

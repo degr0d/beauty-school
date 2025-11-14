@@ -7,6 +7,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { profileApi, accessApi, coursesApi, certificatesApi, favoritesApi, type Profile, type AccessStatus, type Certificate, type Course } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
+import SkeletonLoader from '../components/SkeletonLoader'
 
 type ProfileStatus = 'loading' | 'not_registered' | 'not_paid' | 'paid'
 
@@ -28,7 +29,7 @@ type CourseWithProgress = {
 const ProfilePage = () => {
   const navigate = useNavigate()
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [, setAccessStatus] = useState<AccessStatus | null>(null)
+  const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null)
   const [status, setStatus] = useState<ProfileStatus>('loading')
   const [myCourses, setMyCourses] = useState<CourseWithProgress[]>([])
   const [loadingCourses, setLoadingCourses] = useState(false)
@@ -154,9 +155,27 @@ const ProfilePage = () => {
     try {
       const currentDevId = localStorage.getItem('dev_telegram_id')
       console.log('📥 [ProfilePage] Загрузка профиля, текущий dev_telegram_id:', currentDevId)
-      const profileResponse = await profileApi.get()
+      
+      // Загружаем профиль и статус доступа параллельно
+      const [profileResponse, accessResponse] = await Promise.all([
+        profileApi.get(),
+        accessApi.checkAccess().catch(() => ({ data: { has_access: false, purchased_courses_count: 0, total_payments: 0 } }))
+      ])
+      
       const rawProfile = profileResponse.data
+      const rawAccess = accessResponse.data
       console.log('📥 [ProfilePage] Получен профиль:', rawProfile)
+      console.log('📥 [ProfilePage] Получен статус доступа:', rawAccess)
+      
+      // Устанавливаем статус доступа
+      if (rawAccess) {
+        const normalizedAccess: AccessStatus = {
+          has_access: rawAccess.has_access === true,
+          purchased_courses_count: typeof rawAccess.purchased_courses_count === 'number' && !isNaN(rawAccess.purchased_courses_count) ? rawAccess.purchased_courses_count : 0,
+          total_payments: typeof rawAccess.total_payments === 'number' && !isNaN(rawAccess.total_payments) ? rawAccess.total_payments : 0
+        }
+        setAccessStatus(normalizedAccess)
+      }
       
       if (rawProfile) {
         // КРИТИЧЕСКИ ВАЖНО: Преобразуем ВСЕ поля в примитивы перед установкой в state
@@ -325,7 +344,9 @@ const ProfilePage = () => {
   if (status === 'loading') {
     return (
       <div className="profile-page">
-        <div className="loading">Загрузка...</div>
+        <div className="skeleton skeleton-title" style={{ marginBottom: '20px', height: '32px' }}></div>
+        <div className="skeleton" style={{ height: '100px', marginBottom: '20px', borderRadius: '12px' }}></div>
+        <SkeletonLoader type="card" count={3} />
       </div>
     )
   }
@@ -366,6 +387,34 @@ const ProfilePage = () => {
           >
             Выбрать курс
           </button>
+          
+          {/* Кнопка аналитики для админов */}
+          {(() => {
+            // Проверяем, является ли пользователь админом
+            // Админы имеют доступ ко всем курсам даже без покупки
+            const isAdmin = accessStatus?.has_access && accessStatus.purchased_courses_count >= 999
+            if (isAdmin) {
+              return (
+                <button 
+                  onClick={() => navigate('/analytics')}
+                  style={{ 
+                    marginTop: '10px', 
+                    padding: '10px 20px', 
+                    backgroundColor: '#9c27b0', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer',
+                    display: 'block',
+                    width: '100%'
+                  }}
+                >
+                  📊 Аналитика
+                </button>
+              )
+            }
+            return null
+          })()}
         </div>
       </div>
     )

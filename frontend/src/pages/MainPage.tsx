@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { coursesApi, accessApi, type Course, type AccessStatus } from '../api/client'
 import CourseCard from '../components/CourseCard'
 import AccessBlocked from '../components/AccessBlocked'
+import SkeletonLoader from '../components/SkeletonLoader'
 
 const MainPage = () => {
   const navigate = useNavigate()
@@ -138,7 +139,9 @@ const MainPage = () => {
       ) : loading ? (
         <section className="top-courses">
           <h2>🔥 Топ курсов месяца</h2>
-          <div className="loading">Загрузка курсов...</div>
+          <div className="courses-grid">
+            <SkeletonLoader type="card" count={3} />
+          </div>
         </section>
       ) : null}
 
