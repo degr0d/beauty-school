@@ -177,3 +177,57 @@ async def download_certificate(
         filename=f"certificate_{cert.certificate_number}.pdf"
     )
 
+
+@router.get("/file/{filename}")
+async def get_certificate_file(
+    filename: str,
+    user: dict = Depends(get_telegram_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Получить файл сертификата по имени файла
+    """
+    # Гарантируем, что telegram_id - это int
+    telegram_id_raw = user["id"]
+    telegram_id = int(telegram_id_raw) if telegram_id_raw else None
+    
+    if not telegram_id:
+        raise HTTPException(status_code=400, detail="Invalid telegram_id in user data")
+    
+    # Получаем пользователя
+    result = await session.execute(
+        select(User).where(User.telegram_id == telegram_id)
+    )
+    db_user = result.scalar_one_or_none()
+    
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Извлекаем номер сертификата из имени файла (CERT-{user_id}-{course_id}-{date}.pdf)
+    cert_number = filename.replace('.pdf', '')
+    
+    # Получаем сертификат по номеру
+    result = await session.execute(
+        select(Certificate).where(
+            Certificate.certificate_number == cert_number,
+            Certificate.user_id == db_user.id
+        )
+    )
+    cert = result.scalar_one_or_none()
+    
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    
+    # Путь к файлу
+    storage_path = getattr(settings, 'LOCAL_STORAGE_PATH', './certificates')
+    filepath = os.path.join(storage_path, filename)
+    
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="Certificate file not found on server")
+    
+    return FileResponse(
+        filepath,
+        media_type="application/pdf",
+        filename=filename
+    )
+

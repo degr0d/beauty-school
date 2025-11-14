@@ -570,7 +570,7 @@ const ProfilePage = () => {
                 )}
                 {cert.certificate_url && (
                   <a
-                    href={cert.certificate_url}
+                    href={cert.certificate_url.startsWith('http') ? cert.certificate_url : `${import.meta.env.VITE_API_URL || '/api'}${cert.certificate_url}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     style={{

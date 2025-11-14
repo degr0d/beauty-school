@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { lessonsApi, accessApi, coursesApi, type LessonDetail } from '../api/client'
+import { lessonsApi, accessApi, coursesApi, certificatesApi, type LessonDetail, type Certificate } from '../api/client'
 
 // Преобразование YouTube URL в embed формат
 function getYouTubeEmbedUrl(url: string): string {
@@ -36,6 +36,7 @@ const LessonPage = () => {
   const [accessDenied, setAccessDenied] = useState(false)
   const [nextLessonId, setNextLessonId] = useState<number | null>(null)
   const [courseCompleted, setCourseCompleted] = useState(false)
+  const [certificate, setCertificate] = useState<Certificate | null>(null)
 
   useEffect(() => {
     if (id) {
@@ -43,6 +44,7 @@ const LessonPage = () => {
       setCompleted(false)
       setNextLessonId(null)
       setCourseCompleted(false)
+      setCertificate(null)
       loadLesson(parseInt(id))
     }
   }, [id])
@@ -97,10 +99,35 @@ const LessonPage = () => {
       const response = await lessonsApi.complete(lesson.id)
       setCompleted(true)
       
-      // Если курс завершен - показываем уведомление
+      // Если курс завершен - показываем уведомление и сертификат
       if (response.data?.course_completed) {
         setCourseCompleted(true)
-        alert('🎉 Поздравляем! Вы завершили курс!\n\n✅ Начислено 100 баллов за завершение курса')
+        
+        // Если сертификат пришел в ответе - сохраняем его
+        if (response.data?.certificate) {
+          const certData = response.data.certificate
+          const normalizedCert: Certificate = {
+            id: typeof certData.id === 'number' ? certData.id : 0,
+            course_id: typeof certData.course_id === 'number' ? certData.course_id : 0,
+            course_title: typeof certData.course_title === 'string' ? certData.course_title : '',
+            certificate_url: typeof certData.certificate_url === 'string' ? certData.certificate_url : '',
+            certificate_number: typeof certData.certificate_number === 'string' ? certData.certificate_number : '',
+            issued_at: typeof certData.issued_at === 'string' ? certData.issued_at : new Date().toISOString()
+          }
+          setCertificate(normalizedCert)
+        } else {
+          // Если сертификат не пришел в ответе - загружаем его отдельно
+          try {
+            const certResponse = await certificatesApi.getByCourse(lesson.course_id)
+            if (certResponse.data) {
+              setCertificate(certResponse.data)
+            }
+          } catch (error) {
+            console.error('Ошибка загрузки сертификата:', error)
+          }
+        }
+        
+        alert('🎉 Поздравляем! Вы завершили курс!\n\n✅ Начислено 100 баллов за завершение курса\n\n🏆 Сертификат доступен ниже!')
         // Отправляем событие для обновления сертификатов в профиле
         window.dispatchEvent(new CustomEvent('course_completed'))
         return
@@ -241,6 +268,55 @@ const LessonPage = () => {
           >
             Скачать PDF
           </a>
+        </div>
+      )}
+
+      {/* Сертификат (если курс завершен) */}
+      {certificate && courseCompleted && (
+        <div className="certificate-section" style={{
+          marginTop: '30px',
+          padding: '20px',
+          backgroundColor: '#f0f8ff',
+          borderRadius: '12px',
+          border: '2px solid #4CAF50'
+        }}>
+          <h2 style={{ marginTop: '0', color: '#4CAF50', textAlign: 'center' }}>
+            🏆 Поздравляем! Вы получили сертификат!
+          </h2>
+          <div style={{ textAlign: 'center', marginBottom: '15px' }}>
+            <p style={{ fontSize: '16px', fontWeight: 'bold', margin: '10px 0' }}>
+              Курс: {certificate.course_title}
+            </p>
+            <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
+              Номер сертификата: {certificate.certificate_number}
+            </p>
+            {certificate.issued_at && (
+              <p style={{ fontSize: '14px', color: '#666', margin: '5px 0' }}>
+                Дата выдачи: {new Date(certificate.issued_at).toLocaleDateString('ru-RU')}
+              </p>
+            )}
+          </div>
+          {certificate.certificate_url && (
+            <div style={{ textAlign: 'center' }}>
+              <a
+                href={certificate.certificate_url.startsWith('http') ? certificate.certificate_url : `${import.meta.env.VITE_API_URL || '/api'}${certificate.certificate_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  textDecoration: 'none',
+                  borderRadius: '8px',
+                  fontWeight: 'bold',
+                  fontSize: '16px'
+                }}
+              >
+                📥 Скачать сертификат (PDF)
+              </a>
+            </div>
+          )}
         </div>
       )}
 
