@@ -5,7 +5,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { profileApi, accessApi, coursesApi, certificatesApi, type Profile, type AccessStatus, type Certificate } from '../api/client'
+import { profileApi, accessApi, coursesApi, certificatesApi, favoritesApi, type Profile, type AccessStatus, type Certificate, type Course } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
 
 type ProfileStatus = 'loading' | 'not_registered' | 'not_paid' | 'paid'
@@ -34,6 +34,39 @@ const ProfilePage = () => {
   const [loadingCourses, setLoadingCourses] = useState(false)
   const [certificates, setCertificates] = useState<Certificate[]>([])
   const [loadingCertificates, setLoadingCertificates] = useState(false)
+  const [favoriteCourses, setFavoriteCourses] = useState<Course[]>([])
+  const [loadingFavorites, setLoadingFavorites] = useState(false)
+
+  const loadFavorites = useCallback(async () => {
+    try {
+      setLoadingFavorites(true)
+      console.log('❤️ [ProfilePage] Загрузка избранных курсов...')
+      const response = await favoritesApi.getAll()
+      const rawFavorites = Array.isArray(response.data) ? response.data : []
+      console.log('❤️ [ProfilePage] Получено избранных курсов:', rawFavorites.length, rawFavorites)
+      
+      // Нормализуем курсы
+      const normalizedFavorites = rawFavorites.map((course: any) => ({
+        id: typeof course?.id === 'number' && !isNaN(course.id) ? course.id : 0,
+        title: typeof course?.title === 'string' ? course.title : 'Без названия',
+        description: typeof course?.description === 'string' ? course.description : '',
+        category: typeof course?.category === 'string' ? course.category : '',
+        cover_image_url: typeof course?.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined,
+        is_top: course?.is_top === true,
+        price: typeof course?.price === 'number' && !isNaN(course.price) ? course.price : 0,
+        duration_hours: typeof course?.duration_hours === 'number' && !isNaN(course.duration_hours) && course.duration_hours > 0 ? course.duration_hours : undefined
+      }))
+      
+      console.log('❤️ [ProfilePage] Нормализованные избранные курсы:', normalizedFavorites)
+      setFavoriteCourses(normalizedFavorites)
+    } catch (error: any) {
+      console.error('❌ [ProfilePage] Ошибка загрузки избранных курсов:', error)
+      console.error('   Детали:', error.response?.status, error.response?.data)
+      setFavoriteCourses([])
+    } finally {
+      setLoadingFavorites(false)
+    }
+  }, [])
 
   const loadCertificates = useCallback(async () => {
     try {
@@ -261,12 +294,22 @@ const ProfilePage = () => {
     }
     window.addEventListener('course_completed', handleCourseCompleted)
     
+    // Слушаем изменения избранного для обновления списка
+    const handleFavoriteChanged = () => {
+      console.log('❤️ [ProfilePage] Избранное изменено, обновляем список...')
+      if (profile) {
+        loadFavorites()
+      }
+    }
+    window.addEventListener('favorite_changed', handleFavoriteChanged)
+    
     return () => {
       window.removeEventListener('storage', handleStorageChange)
       window.removeEventListener('dev_telegram_id_changed', handleCustomStorageChange)
       window.removeEventListener('course_completed', handleCourseCompleted)
+      window.removeEventListener('favorite_changed', handleFavoriteChanged)
     }
-  }, [profile, loadCertificates])
+  }, [profile, loadCertificates, loadFavorites])
 
   useEffect(() => {
     // Загружаем курсы если:
@@ -275,8 +318,9 @@ const ProfilePage = () => {
     if ((status === 'paid' || profile) && profile) {
       loadMyCourses()
       loadCertificates()
+      loadFavorites()
     }
-  }, [status, profile?.id, loadMyCourses, loadCertificates]) // Добавляем функции в зависимости
+  }, [status, profile?.id, loadMyCourses, loadCertificates, loadFavorites]) // Добавляем функции в зависимости
 
   if (status === 'loading') {
     return (
@@ -535,6 +579,94 @@ const ProfilePage = () => {
               }}
             >
               Выбрать курс
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Избранные курсы */}
+      <div className="profile-favorites">
+        <h3>❤️ Избранные курсы</h3>
+        {loadingFavorites ? (
+          <div className="loading">Загрузка избранных курсов...</div>
+        ) : favoriteCourses.length > 0 ? (
+          <div className="courses-list">
+            {favoriteCourses.map((course) => {
+              const courseId = typeof course.id === 'number' && !isNaN(course.id) ? course.id : 0
+              const courseTitle = typeof course.title === 'string' ? course.title : 'Без названия'
+              const courseDescription = typeof course.description === 'string' ? course.description : ''
+              const coverImageUrl = typeof course.cover_image_url === 'string' && course.cover_image_url.trim() !== '' ? course.cover_image_url : undefined
+              
+              return (
+                <div 
+                  key={courseId} 
+                  className="course-item"
+                  onClick={() => navigate(`/courses/${courseId}`)}
+                  style={{
+                    padding: '15px',
+                    marginBottom: '15px',
+                    backgroundColor: '#f9f9f9',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    border: '1px solid #e0e0e0',
+                    display: 'flex',
+                    gap: '15px'
+                  }}
+                >
+                  {coverImageUrl && (
+                    <img 
+                      src={coverImageUrl} 
+                      alt={courseTitle}
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        objectFit: 'cover',
+                        borderRadius: '8px',
+                        flexShrink: 0
+                      }}
+                    />
+                  )}
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 5px 0', fontSize: '16px', fontWeight: 'bold' }}>
+                      {courseTitle}
+                    </h4>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                      {courseDescription}
+                    </p>
+                    {course.duration_hours && (
+                      <p style={{ margin: '5px 0 0 0', fontSize: '12px', color: '#999' }}>
+                        ⏱ {course.duration_hours} ч
+                      </p>
+                    )}
+                    {course.price > 0 && (
+                      <p style={{ margin: '5px 0 0 0', fontSize: '14px', fontWeight: 'bold', color: '#e91e63' }}>
+                        {course.price} ₽
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <p>У вас пока нет избранных курсов</p>
+            <p style={{ fontSize: '12px', color: '#999', marginTop: '5px' }}>
+              Добавьте курсы в избранное, нажав на сердечко ❤️
+            </p>
+            <button 
+              onClick={() => navigate('/courses')}
+              style={{
+                marginTop: '10px',
+                padding: '10px 20px',
+                backgroundColor: '#e91e63',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Перейти к каталогу
             </button>
           </div>
         )}
