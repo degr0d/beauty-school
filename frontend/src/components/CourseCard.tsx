@@ -21,9 +21,12 @@ const CourseCard = ({ course }: CourseCardProps) => {
   const checkFavorite = async () => {
     try {
       const response = await favoritesApi.check(course.id)
+      console.log('🔍 [CourseCard] Проверка избранного для курса:', course.id, 'результат:', response.data.is_favorite)
       setIsFavorite(response.data.is_favorite)
-    } catch (error) {
-      // Игнорируем ошибки при проверке избранного
+    } catch (error: any) {
+      console.warn('⚠️ [CourseCard] Ошибка проверки избранного:', error)
+      // Если ошибка - считаем что курс не в избранном
+      setIsFavorite(false)
     }
   }
 
@@ -35,15 +38,36 @@ const CourseCard = ({ course }: CourseCardProps) => {
     
     try {
       setLoadingFavorite(true)
+      console.log('❤️ [CourseCard] Изменение избранного для курса:', course.id, 'текущее состояние:', isFavorite)
+      
       if (isFavorite) {
-        await favoritesApi.remove(course.id)
+        const response = await favoritesApi.remove(course.id)
+        console.log('✅ [CourseCard] Курс удален из избранного:', response.data)
         setIsFavorite(false)
+        // Показываем уведомление (опционально)
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert('Курс удален из избранного')
+        }
       } else {
-        await favoritesApi.add(course.id)
+        const response = await favoritesApi.add(course.id)
+        console.log('✅ [CourseCard] Курс добавлен в избранное:', response.data)
         setIsFavorite(true)
+        // Показываем уведомление (опционально)
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert('Курс добавлен в избранное')
+        }
       }
-    } catch (error) {
-      console.error('Ошибка изменения избранного:', error)
+    } catch (error: any) {
+      console.error('❌ [CourseCard] Ошибка изменения избранного:', error)
+      console.error('   Детали:', error.response?.status, error.response?.data)
+      
+      // Показываем ошибку пользователю
+      const errorMessage = error.response?.data?.detail || 'Ошибка при изменении избранного'
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+      } else {
+        alert(`Ошибка: ${errorMessage}`)
+      }
     } finally {
       setLoadingFavorite(false)
     }
@@ -81,8 +105,9 @@ const CourseCard = ({ course }: CourseCardProps) => {
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}
         title={isFavorite ? 'Удалить из избранного' : 'Добавить в избранное'}
+        disabled={loadingFavorite}
       >
-        {isFavorite ? '❤️' : '🤍'}
+        {loadingFavorite ? '⏳' : (isFavorite ? '❤️' : '🤍')}
       </button>
 
       {/* Обложка курса */}
