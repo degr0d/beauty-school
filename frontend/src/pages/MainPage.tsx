@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { coursesApi, accessApi, type Course, type AccessStatus } from '../api/client'
+import { coursesApi, accessApi, challengesApi, type Course, type AccessStatus, type Challenge } from '../api/client'
 import CourseCard from '../components/CourseCard'
 import AccessBlocked from '../components/AccessBlocked'
 import SkeletonLoader from '../components/SkeletonLoader'
@@ -17,10 +17,13 @@ const MainPage = () => {
   const [accessStatus, setAccessStatus] = useState<AccessStatus | null>(null)
   const [checkingAccess, setCheckingAccess] = useState(true)
   const [accessError, setAccessError] = useState(false)
+  const [challenges, setChallenges] = useState<Challenge[]>([])
+  const [loadingChallenges, setLoadingChallenges] = useState(false)
 
   useEffect(() => {
     checkAccess()
     loadTopCourses()
+    loadChallenges()
   }, [])
 
   const checkAccess = async () => {
@@ -85,6 +88,61 @@ const MainPage = () => {
     navigate('/courses')
   }
 
+  const loadChallenges = async () => {
+    try {
+      setLoadingChallenges(true)
+      const response = await challengesApi.getAll()
+      const rawChallenges = Array.isArray(response.data) ? response.data : []
+      // Берем только первые 3 активных челленджа
+      const activeChallenges = rawChallenges
+        .filter((ch: Challenge) => ch.is_active)
+        .slice(0, 3)
+      setChallenges(activeChallenges)
+    } catch (error) {
+      console.error('Ошибка загрузки челленджей:', error)
+      setChallenges([])
+    } finally {
+      setLoadingChallenges(false)
+    }
+  }
+
+  const handleJoinChallenge = async (challengeId: number) => {
+    try {
+      await challengesApi.join(challengeId)
+      // Перезагружаем челленджи
+      await loadChallenges()
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert('Вы присоединились к челленджу!')
+      }
+    } catch (error: any) {
+      console.error('Ошибка присоединения к челленджу:', error)
+      const errorMessage = error.response?.data?.detail || 'Не удалось присоединиться к челленджу'
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+      } else {
+        alert(`Ошибка: ${errorMessage}`)
+      }
+    }
+  }
+
+  const getConditionText = (challenge: Challenge) => {
+    switch (challenge.condition_type) {
+      case 'complete_lessons':
+        return `Пройдите ${challenge.condition_value} уроков`
+      case 'complete_courses':
+        return `Завершите ${challenge.condition_value} курсов`
+      case 'earn_points':
+        return `Заработайте ${challenge.condition_value} баллов`
+      default:
+        return `Выполните условие: ${challenge.condition_type}`
+    }
+  }
+
+  const getProgressPercent = (challenge: Challenge) => {
+    if (!challenge.user_progress) return 0
+    return Math.min((challenge.user_progress / challenge.condition_value) * 100, 100)
+  }
+
   const categories = [
     { id: 'manicure', label: '💅 Маникюр', emoji: '💅' },
     { id: 'pedicure', label: '🦶 Педикюр', emoji: '🦶' },
@@ -144,6 +202,140 @@ const MainPage = () => {
           </div>
         </section>
       ) : null}
+
+      {/* Челленджи */}
+      {challenges.length > 0 && (
+        <section className="challenges-section" style={{ marginTop: '30px', marginBottom: '30px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2>🎯 Челленджи</h2>
+            <Link
+              to="/challenges"
+              style={{
+                fontSize: '14px',
+                color: '#e91e63',
+                textDecoration: 'none',
+                fontWeight: 'bold'
+              }}
+            >
+              Все челленджи →
+            </Link>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            {challenges.map((challenge) => {
+              const progressPercent = getProgressPercent(challenge)
+              const isExpired = challenge.end_date && new Date(challenge.end_date) < new Date()
+              
+              return (
+                <div
+                  key={challenge.id}
+                  style={{
+                    padding: '15px',
+                    backgroundColor: challenge.user_completed ? '#e8f5e9' : '#f9f9f9',
+                    borderRadius: '12px',
+                    border: challenge.user_completed ? '2px solid #4caf50' : '1px solid #e0e0e0'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', marginBottom: '10px' }}>
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '8px',
+                      backgroundColor: '#e91e63',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      flexShrink: 0
+                    }}>
+                      🎯
+                    </div>
+                    
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '5px' }}>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 'bold', lineHeight: '1.3' }}>
+                          {challenge.title}
+                        </h3>
+                        {challenge.user_completed && (
+                          <span style={{
+                            padding: '2px 8px',
+                            backgroundColor: '#4caf50',
+                            color: 'white',
+                            borderRadius: '8px',
+                            fontSize: '10px',
+                            fontWeight: 'bold',
+                            whiteSpace: 'nowrap',
+                            marginLeft: '8px'
+                          }}>
+                            ✅
+                          </span>
+                        )}
+                      </div>
+                      
+                      <p style={{ margin: '0 0 8px 0', color: '#666', fontSize: '12px', lineHeight: '1.4' }}>
+                        {challenge.description}
+                      </p>
+                      
+                      <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
+                        <div>🎯 {getConditionText(challenge)}</div>
+                        <div>💎 Награда: {challenge.points_reward} баллов</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Прогресс */}
+                  {challenge.user_joined && (
+                    <div style={{ marginTop: '10px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '12px' }}>
+                        <span>Прогресс:</span>
+                        <span style={{ fontWeight: 'bold' }}>
+                          {challenge.user_progress || 0} / {challenge.condition_value}
+                        </span>
+                      </div>
+                      <div style={{
+                        width: '100%',
+                        height: '6px',
+                        backgroundColor: '#e0e0e0',
+                        borderRadius: '3px',
+                        overflow: 'hidden'
+                      }}>
+                        <div
+                          style={{
+                            width: `${progressPercent}%`,
+                            height: '100%',
+                            backgroundColor: challenge.user_completed ? '#4caf50' : '#e91e63',
+                            transition: 'width 0.3s ease'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Кнопка присоединения */}
+                  {!challenge.user_joined && !isExpired && challenge.is_active && (
+                    <button
+                      onClick={() => handleJoinChallenge(challenge.id)}
+                      style={{
+                        marginTop: '10px',
+                        width: '100%',
+                        padding: '10px 16px',
+                        backgroundColor: '#e91e63',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Присоединиться
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Категории - ВСЕГДА показываем */}
       <section className="categories">
