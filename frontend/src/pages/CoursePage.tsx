@@ -44,18 +44,53 @@ const CoursePage = () => {
     try {
       setLoadingFavorite(true)
       if (isFavorite) {
-        await favoritesApi.remove(parseInt(id))
-        setIsFavorite(false)
-        // Отправляем событие для обновления списка избранного в профиле
-        window.dispatchEvent(new CustomEvent('favorite_changed'))
+        try {
+          await favoritesApi.remove(parseInt(id))
+          setIsFavorite(false)
+          // Отправляем событие для обновления списка избранного в профиле
+          window.dispatchEvent(new CustomEvent('favorite_changed'))
+        } catch (removeError: any) {
+          // Если курс уже не в избранном - просто обновляем состояние
+          if (removeError.response?.status === 404 || removeError.response?.data?.message?.includes('не в избранном')) {
+            setIsFavorite(false)
+            return
+          }
+          throw removeError
+        }
       } else {
-        await favoritesApi.add(parseInt(id))
-        setIsFavorite(true)
-        // Отправляем событие для обновления списка избранного в профиле
-        window.dispatchEvent(new CustomEvent('favorite_changed'))
+        try {
+          const response = await favoritesApi.add(parseInt(id))
+          setIsFavorite(true)
+          // Отправляем событие для обновления списка избранного в профиле
+          window.dispatchEvent(new CustomEvent('favorite_changed'))
+          // Если курс уже был в избранном - показываем сообщение
+          if (response.data?.message?.includes('уже в избранном')) {
+            if (window.Telegram?.WebApp) {
+              window.Telegram.WebApp.showAlert('Курс уже в избранном')
+            }
+          }
+        } catch (addError: any) {
+          // Если курс уже в избранном - просто обновляем состояние
+          if (addError.response?.data?.message?.includes('уже в избранном') || 
+              addError.response?.data?.is_favorite === true) {
+            setIsFavorite(true)
+            if (window.Telegram?.WebApp) {
+              window.Telegram.WebApp.showAlert('Курс уже в избранном')
+            }
+            return
+          }
+          throw addError
+        }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Ошибка изменения избранного:', error)
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Ошибка при изменении избранного'
+      // Не показываем ошибку, если это просто дубликат
+      if (!errorMessage.includes('уже') && !errorMessage.includes('не в избранном')) {
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+        }
+      }
     } finally {
       setLoadingFavorite(false)
     }

@@ -41,36 +41,73 @@ const CourseCard = ({ course }: CourseCardProps) => {
       console.log('❤️ [CourseCard] Изменение избранного для курса:', course.id, 'текущее состояние:', isFavorite)
       
       if (isFavorite) {
-        const response = await favoritesApi.remove(course.id)
-        console.log('✅ [CourseCard] Курс удален из избранного:', response.data)
-        setIsFavorite(false)
-        // Отправляем событие для обновления списка избранного в профиле
-        window.dispatchEvent(new CustomEvent('favorite_changed'))
-        // Показываем уведомление (опционально)
-        if (window.Telegram?.WebApp) {
-          window.Telegram.WebApp.showAlert('Курс удален из избранного')
+        try {
+          const response = await favoritesApi.remove(course.id)
+          console.log('✅ [CourseCard] Курс удален из избранного:', response.data)
+          setIsFavorite(false)
+          // Отправляем событие для обновления списка избранного в профиле
+          window.dispatchEvent(new CustomEvent('favorite_changed'))
+          // Показываем уведомление (опционально)
+          if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.showAlert('Курс удален из избранного')
+          }
+        } catch (removeError: any) {
+          console.error('❌ [CourseCard] Ошибка удаления из избранного:', removeError)
+          // Если курс уже не в избранном - просто обновляем состояние
+          if (removeError.response?.status === 404 || removeError.response?.data?.message?.includes('не в избранном')) {
+            setIsFavorite(false)
+            return
+          }
+          throw removeError
         }
       } else {
-        const response = await favoritesApi.add(course.id)
-        console.log('✅ [CourseCard] Курс добавлен в избранное:', response.data)
-        setIsFavorite(true)
-        // Отправляем событие для обновления списка избранного в профиле
-        window.dispatchEvent(new CustomEvent('favorite_changed'))
-        // Показываем уведомление (опционально)
-        if (window.Telegram?.WebApp) {
-          window.Telegram.WebApp.showAlert('Курс добавлен в избранное')
+        try {
+          const response = await favoritesApi.add(course.id)
+          console.log('✅ [CourseCard] Курс добавлен в избранное:', response.data)
+          setIsFavorite(true)
+          // Отправляем событие для обновления списка избранного в профиле
+          window.dispatchEvent(new CustomEvent('favorite_changed'))
+          // Показываем уведомление (опционально)
+          if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.showAlert('Курс добавлен в избранное')
+          }
+        } catch (addError: any) {
+          console.error('❌ [CourseCard] Ошибка добавления в избранное:', addError)
+          // Если курс уже в избранном - просто обновляем состояние
+          if (addError.response?.data?.message?.includes('уже в избранном') || 
+              addError.response?.data?.is_favorite === true) {
+            setIsFavorite(true)
+            if (window.Telegram?.WebApp) {
+              window.Telegram.WebApp.showAlert('Курс уже в избранном')
+            }
+            return
+          }
+          throw addError
         }
       }
     } catch (error: any) {
-      console.error('❌ [CourseCard] Ошибка изменения избранного:', error)
-      console.error('   Детали:', error.response?.status, error.response?.data)
+      console.error('❌ [CourseCard] Критическая ошибка изменения избранного:', error)
+      console.error('   Статус:', error.response?.status)
+      console.error('   Данные:', error.response?.data)
       
-      // Показываем ошибку пользователю
-      const errorMessage = error.response?.data?.detail || 'Ошибка при изменении избранного'
-      if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
-      } else {
-        alert(`Ошибка: ${errorMessage}`)
+      // Показываем более понятное сообщение об ошибке
+      let errorMessage = 'Ошибка при изменении избранного'
+      
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
+      // Не показываем ошибку, если это просто дубликат
+      if (!errorMessage.includes('уже') && !errorMessage.includes('не в избранном')) {
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+        } else {
+          alert(`Ошибка: ${errorMessage}`)
+        }
       }
     } finally {
       setLoadingFavorite(false)

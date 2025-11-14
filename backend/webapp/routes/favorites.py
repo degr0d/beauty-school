@@ -114,6 +114,7 @@ async def add_to_favorites(
     existing = result.scalar_one_or_none()
     
     if existing:
+        # Курс уже в избранном - возвращаем успешный ответ
         return {"message": "Курс уже в избранном", "is_favorite": True}
     
     # Добавляем в избранное
@@ -129,9 +130,24 @@ async def add_to_favorites(
         return {"message": "Курс добавлен в избранное", "is_favorite": True}
     except IntegrityError as e:
         await session.rollback()
-        # Ошибка unique constraint - курс уже в избранном
-        print(f"⚠️ [Favorites] IntegrityError при добавлении в избранное: {e}")
-        return {"message": "Курс уже в избранном", "is_favorite": True}
+        # Ошибка unique constraint - курс уже в избранном (race condition)
+        # Проверяем еще раз
+        result = await session.execute(
+            select(Favorite).where(
+                Favorite.user_id == db_user.id,
+                Favorite.course_id == course_id
+            )
+        )
+        existing = result.scalar_one_or_none()
+        if existing:
+            print(f"⚠️ [Favorites] IntegrityError - курс уже в избранном (race condition)")
+            return {"message": "Курс уже в избранном", "is_favorite": True}
+        else:
+            # Неожиданная ошибка IntegrityError
+            print(f"⚠️ [Favorites] Неожиданная IntegrityError: {e}")
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail="Ошибка при добавлении в избранное")
     except Exception as e:
         await session.rollback()
         print(f"❌ [Favorites] Ошибка при добавлении в избранное: {e}")
