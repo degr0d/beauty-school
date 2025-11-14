@@ -46,7 +46,10 @@ const SupportChat = ({ onClose }: SupportChatProps) => {
 
     try {
       setSending(true)
+      console.log('💬 [SupportChat] Отправка сообщения:', message.trim())
+      
       const response = await supportApi.sendMessage({ message: message.trim() })
+      console.log('✅ [SupportChat] Сообщение отправлено:', response.data)
       
       // Обновляем тикет
       if (ticket) {
@@ -55,12 +58,28 @@ const SupportChat = ({ onClose }: SupportChatProps) => {
           messages: [...ticket.messages, response.data],
           updated_at: new Date().toISOString()
         })
+      } else {
+        // Если тикета не было - перезагружаем его
+        await loadTicket()
       }
       
       setMessage('')
     } catch (error: any) {
-      console.error('Ошибка отправки сообщения:', error)
-      const errorMessage = error.response?.data?.detail || 'Ошибка при отправке сообщения'
+      console.error('❌ [SupportChat] Ошибка отправки сообщения:', error)
+      console.error('   Статус:', error.response?.status)
+      console.error('   Данные:', error.response?.data)
+      console.error('   Сообщение:', error.message)
+      
+      let errorMessage = 'Ошибка при отправке сообщения'
+      
+      if (error.response?.data?.detail) {
+        errorMessage = error.response.data.detail
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message
+      } else if (error.message) {
+        errorMessage = error.message
+      }
+      
       if (window.Telegram?.WebApp) {
         window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
       } else {

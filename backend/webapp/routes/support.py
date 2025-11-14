@@ -166,8 +166,12 @@ async def create_ticket(
         session.add(message)
         await session.commit()
         
-        # Отправляем уведомление админам
-        await notify_admins_new_ticket(db_user, ticket, request.message)
+        # Отправляем уведомление админам (не блокируем ответ, если уведомление не отправилось)
+        try:
+            await notify_admins_new_ticket(db_user, ticket, request.message)
+        except Exception as e:
+            print(f"⚠️ [Support] Ошибка отправки уведомления админам о новом тикете (не критично): {e}")
+            # Не пробрасываем ошибку - тикет уже создан
     
     return SupportTicketResponse(
         id=ticket.id,
@@ -237,8 +241,12 @@ async def send_message(
     await session.commit()
     await session.refresh(message)
     
-    # Отправляем уведомление админам
-    await notify_admins_new_message(db_user, ticket, request.message)
+    # Отправляем уведомление админам (не блокируем ответ, если уведомление не отправилось)
+    try:
+        await notify_admins_new_message(db_user, ticket, request.message)
+    except Exception as e:
+        print(f"⚠️ [Support] Ошибка отправки уведомления админам (не критично): {e}")
+        # Не пробрасываем ошибку - сообщение уже сохранено
     
     return SupportMessageResponse(
         id=message.id,
@@ -254,18 +262,29 @@ async def notify_admins_new_ticket(user: User, ticket: SupportTicket, first_mess
     Уведомить админов о новом тикете
     """
     try:
+        if not settings.admin_ids_list:
+            print("⚠️ [Support] Список админов пуст, уведомления не отправляются")
+            return
+        
         for admin_id in settings.admin_ids_list:
-            message_text = (
-                f"🆕 <b>Новый тикет поддержки</b>\n\n"
-                f"👤 Пользователь: {user.full_name}\n"
-                f"🆔 Telegram ID: <code>{user.telegram_id}</code>\n"
-                f"📋 Тикет: #{ticket.id}\n\n"
-                f"💬 Сообщение:\n{first_message}\n\n"
-                f"💡 Ответьте пользователю через админ-бота"
-            )
-            await send_notification(admin_id, message_text)
+            try:
+                message_text = (
+                    f"🆕 <b>Новый тикет поддержки</b>\n\n"
+                    f"👤 Пользователь: {user.full_name}\n"
+                    f"🆔 Telegram ID: <code>{user.telegram_id}</code>\n"
+                    f"📋 Тикет: #{ticket.id}\n\n"
+                    f"💬 Сообщение:\n{first_message}\n\n"
+                    f"💡 Ответьте пользователю через админ-бота"
+                )
+                await send_notification(admin_id, message_text)
+            except Exception as e:
+                print(f"⚠️ [Support] Ошибка отправки уведомления админу {admin_id}: {e}")
+                # Продолжаем отправку другим админам
+                continue
     except Exception as e:
-        print(f"⚠️ Ошибка отправки уведомления админам о новом тикете: {e}")
+        print(f"⚠️ [Support] Критическая ошибка отправки уведомления админам: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 async def notify_admins_new_message(user: User, ticket: SupportTicket, message_text: str):
@@ -273,15 +292,26 @@ async def notify_admins_new_message(user: User, ticket: SupportTicket, message_t
     Уведомить админов о новом сообщении в тикете
     """
     try:
+        if not settings.admin_ids_list:
+            print("⚠️ [Support] Список админов пуст, уведомления не отправляются")
+            return
+        
         for admin_id in settings.admin_ids_list:
-            notification = (
-                f"💬 <b>Новое сообщение в тикете #{ticket.id}</b>\n\n"
-                f"👤 Пользователь: {user.full_name}\n"
-                f"🆔 Telegram ID: <code>{user.telegram_id}</code>\n\n"
-                f"💬 Сообщение:\n{message_text}\n\n"
-                f"💡 Ответьте пользователю через админ-бота"
-            )
-            await send_notification(admin_id, notification)
+            try:
+                notification = (
+                    f"💬 <b>Новое сообщение в тикете #{ticket.id}</b>\n\n"
+                    f"👤 Пользователь: {user.full_name}\n"
+                    f"🆔 Telegram ID: <code>{user.telegram_id}</code>\n\n"
+                    f"💬 Сообщение:\n{message_text}\n\n"
+                    f"💡 Ответьте пользователю через админ-бота"
+                )
+                await send_notification(admin_id, notification)
+            except Exception as e:
+                print(f"⚠️ [Support] Ошибка отправки уведомления админу {admin_id}: {e}")
+                # Продолжаем отправку другим админам
+                continue
     except Exception as e:
-        print(f"⚠️ Ошибка отправки уведомления админам о новом сообщении: {e}")
+        print(f"⚠️ [Support] Критическая ошибка отправки уведомления админам: {e}")
+        import traceback
+        traceback.print_exc()
 
