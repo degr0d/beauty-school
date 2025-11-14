@@ -161,15 +161,40 @@ async def download_certificate(
     if not cert.certificate_url:
         raise HTTPException(status_code=404, detail="Certificate file not found")
     
-    # Путь к файлу (может быть относительным или абсолютным)
-    filepath = cert.certificate_url
-    if not os.path.isabs(filepath):
-        # Если относительный путь - добавляем базовый путь
-        storage_path = getattr(settings, 'LOCAL_STORAGE_PATH', './certificates')
-        filepath = os.path.join(storage_path, os.path.basename(filepath))
+    # Путь к файлу - извлекаем имя файла из URL
+    # certificate_url может быть в формате "/api/certificates/file/{filename}"
+    filename = os.path.basename(cert.certificate_url)
+    if filename.startswith('/'):
+        filename = filename.lstrip('/')
+    # Убираем путь API если есть
+    if '/file/' in filename:
+        filename = filename.split('/file/')[-1]
     
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Certificate file not found on server")
+    # Проверяем несколько возможных мест
+    storage_paths = [
+        getattr(settings, 'LOCAL_STORAGE_PATH', None),
+        './certificates',
+        'certificates',
+        os.path.join(os.getcwd(), 'certificates'),
+    ]
+    
+    filepath = None
+    for storage_path in storage_paths:
+        if storage_path:
+            potential_path = os.path.join(storage_path, filename)
+            if os.path.exists(potential_path):
+                filepath = potential_path
+                break
+    
+    if not filepath:
+        # Если файл не найден - пытаемся найти по имени файла
+        filepath = os.path.join('certificates', filename)
+        if not os.path.exists(filepath):
+            filepath = filename
+            if not os.path.exists(filepath):
+                print(f"⚠️ [Certificates] Файл сертификата не найден: {filename}")
+                print(f"   certificate_url из БД: {cert.certificate_url}")
+                raise HTTPException(status_code=404, detail=f"Certificate file not found on server: {filename}")
     
     return FileResponse(
         filepath,
@@ -218,12 +243,33 @@ async def get_certificate_file(
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")
     
-    # Путь к файлу
-    storage_path = getattr(settings, 'LOCAL_STORAGE_PATH', './certificates')
-    filepath = os.path.join(storage_path, filename)
+    # Путь к файлу - проверяем несколько возможных мест
+    storage_paths = [
+        getattr(settings, 'LOCAL_STORAGE_PATH', None),
+        './certificates',
+        'certificates',
+        os.path.join(os.getcwd(), 'certificates'),
+    ]
     
-    if not os.path.exists(filepath):
-        raise HTTPException(status_code=404, detail="Certificate file not found on server")
+    filepath = None
+    for storage_path in storage_paths:
+        if storage_path:
+            potential_path = os.path.join(storage_path, filename)
+            if os.path.exists(potential_path):
+                filepath = potential_path
+                break
+    
+    if not filepath:
+        # Если файл не найден - пытаемся найти по абсолютному пути из БД
+        # или формируем путь относительно текущей директории
+        filepath = os.path.join('certificates', filename)
+        if not os.path.exists(filepath):
+            # Последняя попытка - ищем в текущей директории
+            filepath = filename
+            if not os.path.exists(filepath):
+                print(f"⚠️ [Certificates] Файл сертификата не найден: {filename}")
+                print(f"   Проверенные пути: {storage_paths}")
+                raise HTTPException(status_code=404, detail=f"Certificate file not found on server: {filename}")
     
     return FileResponse(
         filepath,
