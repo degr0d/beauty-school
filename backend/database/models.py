@@ -347,6 +347,49 @@ class UserChallenge(Base):
 
 
 # ========================================
+# 15. SupportTicket - Тикеты поддержки
+# ========================================
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    subject = Column(String(255), nullable=True)  # Тема (опционально)
+    status = Column(String(50), default="open", nullable=False)  # open, closed, pending
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", backref="support_tickets")
+    messages = relationship("SupportMessage", back_populates="ticket", cascade="all, delete-orphan", order_by="SupportMessage.created_at")
+    
+    def __repr__(self):
+        return f"<SupportTicket(id={self.id}, user_id={self.user_id}, status={self.status})>"
+
+
+# ========================================
+# 16. SupportMessage - Сообщения в тикетах поддержки
+# ========================================
+class SupportMessage(Base):
+    __tablename__ = "support_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    ticket_id = Column(Integer, ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    message = Column(Text, nullable=False)
+    is_from_admin = Column(Boolean, default=False, nullable=False)  # True если сообщение от админа
+    created_at = Column(TIMESTAMP, server_default=func.now(), nullable=False)
+    read_at = Column(TIMESTAMP, nullable=True)  # Когда админ прочитал сообщение
+    
+    # Relationships
+    ticket = relationship("SupportTicket", back_populates="messages")
+    user = relationship("User", backref="support_messages")
+    
+    def __repr__(self):
+        return f"<SupportMessage(id={self.id}, ticket_id={self.ticket_id}, is_from_admin={self.is_from_admin})>"
+
+
+# ========================================
 # Пример использования в коде:
 # ========================================
 # from backend.database import async_session

@@ -483,5 +483,40 @@ export const challengesApi = {
     api.get<Challenge[]>('/challenges/my'),
 }
 
+// ========================================
+// Support API
+// ========================================
+
+export interface SupportMessage {
+  id: number
+  ticket_id: number
+  message: string
+  is_from_admin: boolean
+  created_at: string
+}
+
+export interface SupportTicket {
+  id: number
+  subject?: string
+  status: string
+  created_at: string
+  updated_at: string
+  messages: SupportMessage[]
+}
+
+export const supportApi = {
+  // Получить мой тикет (или создать новый)
+  getMyTicket: () =>
+    api.get<SupportTicket>('/support/ticket'),
+
+  // Создать новый тикет
+  createTicket: (data: { subject?: string; message: string }) =>
+    api.post<SupportTicket>('/support/ticket', data),
+
+  // Отправить сообщение в тикет
+  sendMessage: (data: { message: string }) =>
+    api.post<SupportMessage>('/support/ticket/message', data),
+}
+
 export default api
 

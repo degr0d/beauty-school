@@ -3,7 +3,7 @@
 """
 
 from aiogram import Dispatcher
-from backend.admin_bot.handlers import analytics, users_mgmt, courses_mgmt
+from backend.admin_bot.handlers import analytics, users_mgmt, courses_mgmt, support
 
 
 def setup_admin_bot_handlers(dp: Dispatcher):
@@ -23,6 +23,9 @@ def setup_admin_bot_handlers(dp: Dispatcher):
     
     # 3. Управление курсами
     dp.include_router(courses_mgmt.router)
+    
+    # 4. Поддержка
+    dp.include_router(support.router)
 
 
 # ========================================

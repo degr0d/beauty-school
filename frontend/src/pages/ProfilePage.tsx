@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import { profileApi, accessApi, coursesApi, certificatesApi, favoritesApi, type Profile, type AccessStatus, type Certificate, type Course } from '../api/client'
 import ProgressBar from '../components/ProgressBar'
 import SkeletonLoader from '../components/SkeletonLoader'
+import SupportChat from '../components/SupportChat'
 
 type ProfileStatus = 'loading' | 'not_registered' | 'not_paid' | 'paid'
 
@@ -44,6 +45,7 @@ const ProfilePage = () => {
     city: ''
   })
   const [saving, setSaving] = useState(false)
+  const [showSupportChat, setShowSupportChat] = useState(false)
 
   const handleEditClick = () => {
     if (profile) {
@@ -676,8 +678,32 @@ const ProfilePage = () => {
           <div className="stat-value">{typeof profile.points === 'number' ? profile.points : 0}</div>
         </div>
         
+        {/* Кнопка поддержки */}
+        <div style={{ marginTop: '20px', marginBottom: '10px' }}>
+          <button
+            onClick={() => setShowSupportChat(true)}
+            style={{
+              width: '100%',
+              padding: '12px 20px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px'
+            }}
+          >
+            💬 Поддержка
+          </button>
+        </div>
+        
         {/* Кнопка лидборда */}
-        <div style={{ marginTop: '20px', marginBottom: '20px' }}>
+        <div style={{ marginTop: '10px', marginBottom: '20px' }}>
           <button
             onClick={() => navigate('/leaderboard')}
             style={{
@@ -700,6 +726,11 @@ const ProfilePage = () => {
           </button>
         </div>
       </div>
+
+      {/* Чат поддержки */}
+      {showSupportChat && (
+        <SupportChat onClose={() => setShowSupportChat(false)} />
+      )}
 
       {/* Мои курсы */}
       <div className="profile-courses">
