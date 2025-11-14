@@ -6,6 +6,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 
 from backend.database import get_session, Favorite, Course, User
@@ -126,12 +127,17 @@ async def add_to_favorites(
         await session.refresh(favorite)
         
         return {"message": "Курс добавлен в избранное", "is_favorite": True}
+    except IntegrityError as e:
+        await session.rollback()
+        # Ошибка unique constraint - курс уже в избранном
+        print(f"⚠️ [Favorites] IntegrityError при добавлении в избранное: {e}")
+        return {"message": "Курс уже в избранном", "is_favorite": True}
     except Exception as e:
         await session.rollback()
-        # Если ошибка из-за дубликата - возвращаем успешный ответ
-        if "unique constraint" in str(e).lower() or "duplicate" in str(e).lower():
-            return {"message": "Курс уже в избранном", "is_favorite": True}
-        # Иначе пробрасываем ошибку дальше
+        print(f"❌ [Favorites] Ошибка при добавлении в избранное: {e}")
+        import traceback
+        traceback.print_exc()
+        # Пробрасываем ошибку дальше с понятным сообщением
         raise HTTPException(status_code=500, detail=f"Ошибка при добавлении в избранное: {str(e)}")
 
 
