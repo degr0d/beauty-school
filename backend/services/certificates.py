@@ -198,16 +198,16 @@ def get_certificate_url(filepath: str, base_url: Optional[str] = None) -> str:
     
     Args:
         filepath: Путь к файлу
-        base_url: Базовый URL (если None - возвращается относительный путь)
+        base_url: Базовый URL (если None - возвращается относительный путь к API)
     
     Returns:
         URL сертификата
     """
+    filename = os.path.basename(filepath)
     if base_url:
         # Если есть базовый URL - формируем полный URL
-        filename = os.path.basename(filepath)
-        return f"{base_url}/certificates/{filename}"
+        return f"{base_url}/api/certificates/file/{filename}"
     else:
-        # Возвращаем относительный путь
-        return f"/certificates/{os.path.basename(filepath)}"
+        # Возвращаем относительный путь к API endpoint
+        return f"/api/certificates/file/{filename}"
 

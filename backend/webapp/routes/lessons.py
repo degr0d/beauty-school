@@ -235,6 +235,7 @@ async def complete_lesson(
         print(f"⚠️ [Lessons] Ошибка проверки челленджей: {e}")
     
     # Если курс завершен - генерируем сертификат
+    certificate_data = None
     if course_completed:
         try:
             # Проверяем, нет ли уже сертификата
@@ -270,8 +271,36 @@ async def complete_lesson(
                     session.add(certificate)
                     await session.commit()
                     
+                    # Обновляем объект certificate чтобы получить id
+                    await session.refresh(certificate)
+                    
+                    # Формируем данные сертификата для ответа
+                    certificate_data = {
+                        "id": certificate.id,
+                        "course_id": certificate.course_id,
+                        "course_title": course.title,
+                        "certificate_url": certificate.certificate_url,
+                        "certificate_number": certificate.certificate_number,
+                        "issued_at": certificate.issued_at.isoformat() if hasattr(certificate.issued_at, 'isoformat') else str(certificate.issued_at)
+                    }
+                    
                     print(f"🏆 [Lessons] Сертификат создан для пользователя {db_user.full_name}, курс: {course.title}")
             else:
+                # Если сертификат уже существует - возвращаем его данные
+                result = await session.execute(
+                    select(Course).where(Course.id == lesson.course_id)
+                )
+                course = result.scalar_one_or_none()
+                
+                if course:
+                    certificate_data = {
+                        "id": existing_cert.id,
+                        "course_id": existing_cert.course_id,
+                        "course_title": course.title,
+                        "certificate_url": existing_cert.certificate_url,
+                        "certificate_number": existing_cert.certificate_number,
+                        "issued_at": existing_cert.issued_at.isoformat() if hasattr(existing_cert.issued_at, 'isoformat') else str(existing_cert.issued_at)
+                    }
                 print(f"ℹ️ [Lessons] Сертификат для курса {lesson.course_id} уже существует")
         except Exception as e:
             print(f"⚠️ [Lessons] Ошибка генерации сертификата: {e}")
@@ -279,7 +308,8 @@ async def complete_lesson(
     return {
         "status": "success", 
         "message": "Lesson marked as completed",
-        "course_completed": course_completed
+        "course_completed": course_completed,
+        "certificate": certificate_data
     }
 
 
