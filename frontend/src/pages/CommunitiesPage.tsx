@@ -131,29 +131,12 @@ const CommunitiesPage = () => {
     const normalizeCategory = (cat: string) => cat.toLowerCase().trim()
     const searchCategory = normalizeCategory(categoryKey)
 
-    // Приоритет 1: Ищем сообщество по городу И категории (точное совпадение)
-    let found = communities.find(c => {
-      if (c.type === 'city' && c.city === selectedCity) {
-        return true
-      }
-      if (c.type === 'profession' && c.category) {
-        const cCategory = normalizeCategory(c.category)
-        return cCategory === searchCategory || 
-               cCategory.includes(searchCategory) || 
-               searchCategory.includes(cCategory) ||
-               c.category === categoryKey
-      }
-      return false
-    })
+    // Приоритет 1: Ищем городское сообщество для выбранного города
+    let found = communities.find(c => 
+      c.type === 'city' && c.city === selectedCity
+    )
 
-    // Приоритет 2: Ищем по городу (если есть городские сообщества)
-    if (!found) {
-      found = communities.find(c => 
-        c.type === 'city' && c.city === selectedCity
-      )
-    }
-
-    // Приоритет 3: Ищем по категории (если есть профессиональные сообщества)
+    // Приоритет 2: Если не нашли по городу, ищем профессиональное сообщество по категории
     if (!found) {
       found = communities.find(c => {
         if (c.type !== 'profession' || !c.category) return false
