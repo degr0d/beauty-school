@@ -187,7 +187,17 @@ def save_certificate_to_storage(
     filepath = os.path.join(storage_path, filename)
     
     # Генерируем PDF
-    generate_certificate_pdf(user, course, filepath, certificate_number)
+    try:
+        generate_certificate_pdf(user, course, filepath, certificate_number)
+        print(f"✅ [Certificates] PDF сертификат создан: {filepath}")
+        # Проверяем что файл действительно создан
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"Файл сертификата не был создан: {filepath}")
+    except Exception as e:
+        print(f"❌ [Certificates] Ошибка генерации PDF: {e}")
+        import traceback
+        print(f"   Traceback: {traceback.format_exc()}")
+        raise
     
     return filepath
 

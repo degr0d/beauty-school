@@ -303,7 +303,9 @@ async def complete_lesson(
                     }
                 print(f"ℹ️ [Lessons] Сертификат для курса {lesson.course_id} уже существует")
         except Exception as e:
+            import traceback
             print(f"⚠️ [Lessons] Ошибка генерации сертификата: {e}")
+            print(f"   Traceback: {traceback.format_exc()}")
     
     return {
         "status": "success", 
