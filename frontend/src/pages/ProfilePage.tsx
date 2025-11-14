@@ -37,6 +37,93 @@ const ProfilePage = () => {
   const [loadingCertificates, setLoadingCertificates] = useState(false)
   const [favoriteCourses, setFavoriteCourses] = useState<Course[]>([])
   const [loadingFavorites, setLoadingFavorites] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editingProfile, setEditingProfile] = useState<{ full_name: string; phone: string; city: string }>({
+    full_name: '',
+    phone: '',
+    city: ''
+  })
+  const [saving, setSaving] = useState(false)
+
+  const handleEditClick = () => {
+    if (profile) {
+      setEditingProfile({
+        full_name: String(profile.full_name || ''),
+        phone: String(profile.phone || ''),
+        city: String(profile.city || '')
+      })
+      setIsEditing(true)
+    }
+  }
+
+  const handleCancelEdit = () => {
+    setIsEditing(false)
+    setEditingProfile({
+      full_name: '',
+      phone: '',
+      city: ''
+    })
+  }
+
+  const handleSaveProfile = async () => {
+    if (!profile || saving) return
+
+    setSaving(true)
+    try {
+      const updateData: { full_name?: string; phone?: string; city?: string } = {}
+      
+      if (editingProfile.full_name.trim() !== (profile.full_name || '')) {
+        updateData.full_name = editingProfile.full_name.trim()
+      }
+      if (editingProfile.phone.trim() !== (profile.phone || '')) {
+        updateData.phone = editingProfile.phone.trim()
+      }
+      if (editingProfile.city.trim() !== (profile.city || '')) {
+        updateData.city = editingProfile.city.trim() || undefined
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        setIsEditing(false)
+        setSaving(false)
+        return
+      }
+
+      const response = await profileApi.update(updateData)
+      if (response.data) {
+        // Обновляем профиль в состоянии
+        const updatedProfile = response.data
+        const normalizedProfile: Profile = {
+          id: typeof updatedProfile.id === 'number' ? updatedProfile.id : profile.id,
+          telegram_id: typeof updatedProfile.telegram_id === 'number' ? updatedProfile.telegram_id : profile.telegram_id,
+          username: updatedProfile.username || profile.username,
+          full_name: String(updatedProfile.full_name || profile.full_name),
+          phone: String(updatedProfile.phone || profile.phone),
+          city: updatedProfile.city || profile.city,
+          points: typeof updatedProfile.points === 'number' ? updatedProfile.points : profile.points,
+          created_at: updatedProfile.created_at || profile.created_at
+        }
+        setProfile(normalizedProfile)
+        setIsEditing(false)
+        
+        // Показываем уведомление
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert('Профиль успешно обновлен!')
+        } else {
+          alert('Профиль успешно обновлен!')
+        }
+      }
+    } catch (error: any) {
+      console.error('Ошибка обновления профиля:', error)
+      const errorMessage = error.response?.data?.detail || 'Ошибка при обновлении профиля'
+      if (window.Telegram?.WebApp) {
+        window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+      } else {
+        alert(`Ошибка: ${errorMessage}`)
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const loadFavorites = useCallback(async () => {
     try {
@@ -434,7 +521,7 @@ const ProfilePage = () => {
         <div className="profile-avatar">
           {(() => {
             try {
-              const name = profile.full_name
+              const name = isEditing ? editingProfile.full_name : profile.full_name
               if (name && typeof name === 'string' && name.length > 0) {
                 const firstChar = name.charAt(0).toUpperCase()
                 return firstChar
@@ -446,15 +533,140 @@ const ProfilePage = () => {
           })()}
         </div>
 
-        <div className="profile-info">
-          <h2>{String(profile.full_name || 'Пользователь')}</h2>
-          
-          {profile.username && typeof profile.username === 'string' && profile.username.trim() !== '' && (
-            <p className="username">@{String(profile.username)}</p>
-          )}
-          
-          <p className="phone">📞 {String(profile.phone || 'не указан')}</p>
-        </div>
+        {!isEditing ? (
+          <div className="profile-info">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' }}>
+              <div style={{ flex: 1 }}>
+                <h2>{String(profile.full_name || 'Пользователь')}</h2>
+                
+                {profile.username && typeof profile.username === 'string' && profile.username.trim() !== '' && (
+                  <p className="username">@{String(profile.username)}</p>
+                )}
+                
+                <p className="phone">📞 {String(profile.phone || 'не указан')}</p>
+                
+                {profile.city && typeof profile.city === 'string' && profile.city.trim() !== '' && (
+                  <p className="city" style={{ marginTop: '5px', color: '#666' }}>📍 {String(profile.city)}</p>
+                )}
+              </div>
+              <button
+                onClick={handleEditClick}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#e91e63',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                ✏️ Редактировать
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="profile-info" style={{ width: '100%' }}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Имя:
+              </label>
+              <input
+                type="text"
+                value={editingProfile.full_name}
+                onChange={(e) => setEditingProfile({ ...editingProfile, full_name: e.target.value })}
+                placeholder="Введите ваше имя"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Телефон:
+              </label>
+              <input
+                type="tel"
+                value={editingProfile.phone}
+                onChange={(e) => setEditingProfile({ ...editingProfile, phone: e.target.value })}
+                placeholder="+7 (999) 123-45-67"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '14px' }}>
+                Город:
+              </label>
+              <input
+                type="text"
+                value={editingProfile.city}
+                onChange={(e) => setEditingProfile({ ...editingProfile, city: e.target.value })}
+                placeholder="Введите ваш город (необязательно)"
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  border: '1px solid #ddd',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button
+                onClick={handleSaveProfile}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  backgroundColor: saving ? '#ccc' : '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: saving ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {saving ? '⏳ Сохранение...' : '✅ Сохранить'}
+              </button>
+              <button
+                onClick={handleCancelEdit}
+                disabled={saving}
+                style={{
+                  flex: 1,
+                  padding: '12px 20px',
+                  backgroundColor: saving ? '#ccc' : '#f44336',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  cursor: saving ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Баллы */}
