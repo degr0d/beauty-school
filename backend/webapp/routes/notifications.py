@@ -11,6 +11,7 @@ from backend.database import get_session
 from backend.webapp.middleware import get_telegram_user
 from backend.config import settings
 from backend.services.notifications import broadcast_notification
+from backend.services.scheduled_notifications import send_inactive_course_reminders
 
 router = APIRouter()
 
@@ -53,6 +54,32 @@ async def send_broadcast(
     return {
         "status": "success",
         "message": "Broadcast sent",
+        "result": result
+    }
+
+
+@router.post("/send-reminders")
+async def send_reminders(
+    user: dict = Depends(get_telegram_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """
+    Отправить напоминания о незавершенных курсах
+    Только для админов
+    """
+    # Проверяем, что пользователь админ
+    telegram_id = user["id"]
+    is_admin = telegram_id in settings.admin_ids_list
+    
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Only admins can send reminders")
+    
+    # Отправляем напоминания
+    result = await send_inactive_course_reminders(session)
+    
+    return {
+        "status": "success",
+        "message": "Reminders sent",
         "result": result
     }
 

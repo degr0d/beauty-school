@@ -10,6 +10,10 @@ from backend.config import settings
 from backend.webapp.routes import courses, lessons, profile, progress, communities, payment, access, achievements, leaderboard, favorites, reviews, notifications, challenges, certificates, analytics
 from backend.webapp.middleware import TelegramAuthMiddleware
 from backend.database.database import create_engine_and_session, get_engine, get_async_session
+import asyncio
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def create_app() -> FastAPI:
@@ -104,14 +108,58 @@ def create_app() -> FastAPI:
         Инициализация при запуске приложения
         Создаем engine и session в правильном event loop
         """
+        logger.info("🚀 Application startup event")
+        
         # КРИТИЧНО: создаем engine и session в startup_event
         # Это гарантирует правильный event loop
-        create_engine_and_session()
+        try:
+            create_engine_and_session()
+            logger.info("✅ Database engine initialized")
+        except Exception as e:
+            logger.warning(f"⚠️ Database initialization warning: {e}")
         
         # Сохраняем в app.state для доступа из других мест (опционально)
         app.state.engine = get_engine()
         app.state.async_session = get_async_session()
-        print("✅ Database engine and session initialized in startup_event")
+        
+        # Запускаем фоновую задачу для напоминаний
+        asyncio.create_task(run_periodic_reminders())
+        logger.info("✅ Background task for reminders started")
+    
+    async def run_periodic_reminders():
+        """
+        Фоновая задача: отправка напоминаний каждые 24 часа
+        Автоматически запускается при старте API
+        """
+        from backend.services.scheduled_notifications import send_inactive_course_reminders
+        from backend.database.database import get_async_session
+        
+        # Ждем 1 минуту после старта, чтобы БД точно была готова
+        await asyncio.sleep(60)
+        
+        while True:
+            try:
+                logger.info("📱 Запуск отправки напоминаний о незавершенных курсах...")
+                
+                # Используем существующую фабрику сессий
+                session_factory = get_async_session()
+                async with session_factory() as session:
+                    try:
+                        result = await send_inactive_course_reminders(session)
+                        logger.info(f"✅ Напоминания отправлены: {result}")
+                    except Exception as e:
+                        logger.error(f"❌ Ошибка отправки напоминаний: {e}")
+                
+                # Ждем 24 часа до следующего запуска
+                await asyncio.sleep(24 * 60 * 60)  # 24 часа в секундах
+                
+            except asyncio.CancelledError:
+                logger.info("⛔ Background task cancelled")
+                break
+            except Exception as e:
+                logger.error(f"❌ Ошибка в фоновой задаче напоминаний: {e}")
+                # При ошибке ждем 1 час перед повтором
+                await asyncio.sleep(60 * 60)
     
     @app.on_event("shutdown")
     async def shutdown_event():
