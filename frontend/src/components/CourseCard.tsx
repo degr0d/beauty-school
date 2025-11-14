@@ -44,6 +44,8 @@ const CourseCard = ({ course }: CourseCardProps) => {
         const response = await favoritesApi.remove(course.id)
         console.log('✅ [CourseCard] Курс удален из избранного:', response.data)
         setIsFavorite(false)
+        // Отправляем событие для обновления списка избранного в профиле
+        window.dispatchEvent(new CustomEvent('favorite_changed'))
         // Показываем уведомление (опционально)
         if (window.Telegram?.WebApp) {
           window.Telegram.WebApp.showAlert('Курс удален из избранного')
@@ -52,6 +54,8 @@ const CourseCard = ({ course }: CourseCardProps) => {
         const response = await favoritesApi.add(course.id)
         console.log('✅ [CourseCard] Курс добавлен в избранное:', response.data)
         setIsFavorite(true)
+        // Отправляем событие для обновления списка избранного в профиле
+        window.dispatchEvent(new CustomEvent('favorite_changed'))
         // Показываем уведомление (опционально)
         if (window.Telegram?.WebApp) {
           window.Telegram.WebApp.showAlert('Курс добавлен в избранное')

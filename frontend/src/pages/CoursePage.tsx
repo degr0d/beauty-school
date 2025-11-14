@@ -46,9 +46,13 @@ const CoursePage = () => {
       if (isFavorite) {
         await favoritesApi.remove(parseInt(id))
         setIsFavorite(false)
+        // Отправляем событие для обновления списка избранного в профиле
+        window.dispatchEvent(new CustomEvent('favorite_changed'))
       } else {
         await favoritesApi.add(parseInt(id))
         setIsFavorite(true)
+        // Отправляем событие для обновления списка избранного в профиле
+        window.dispatchEvent(new CustomEvent('favorite_changed'))
       }
     } catch (error) {
       console.error('Ошибка изменения избранного:', error)
