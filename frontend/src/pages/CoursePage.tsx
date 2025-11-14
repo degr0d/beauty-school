@@ -272,8 +272,51 @@ const CoursePage = () => {
           </div>
         )}
 
-        {/* Кнопка "Приступить к курсу" / "Продолжить" */}
-        {(isPurchased || course.price === 0) && course.lessons.length > 0 && (() => {
+        {/* Кнопка "Приступить к курсу" / "Продолжить" / "Попробовать бесплатно" */}
+        {course.lessons.length > 0 && (() => {
+          // Если курс не куплен, но есть первый урок - показываем кнопку "Попробовать бесплатно"
+          if (!isPurchased && course.price > 0) {
+            const firstLesson = course.lessons[0]
+            if (firstLesson) {
+              return (
+                <div style={{ marginTop: '20px' }}>
+                  <button
+                    onClick={() => navigate(`/lessons/${firstLesson.id}`)}
+                    style={{
+                      width: '100%',
+                      padding: '15px 20px',
+                      backgroundColor: '#4CAF50',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '12px',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#45a049'
+                      e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.4)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#4CAF50'
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(76, 175, 80, 0.3)'
+                    }}
+                  >
+                    🎁 Попробовать бесплатно (первый урок)
+                  </button>
+                </div>
+              )
+            }
+          }
+          
+          // Для купленных курсов или бесплатных курсов
+          if (!(isPurchased || course.price === 0)) {
+            return null
+          }
           // Находим первый непройденный урок
           const firstUncompletedLesson = course.lessons.find((lesson) => {
             if (!progress || !progress.lessons || progress.lessons.length === 0) {
@@ -345,11 +388,9 @@ const CoursePage = () => {
         <h2>📖 Уроки</h2>
         {!isPurchased && course.price > 0 ? (
           <div className="course-locked">
-            <p>🔒 Для доступа к урокам необходимо купить курс</p>
-            <p className="preview-note">
-              {course.lessons.filter(l => l.is_free).length > 0 && (
-                <span>Доступно {course.lessons.filter(l => l.is_free).length} бесплатных уроков для просмотра</span>
-              )}
+            <p>🔒 Для доступа ко всем урокам необходимо купить курс</p>
+            <p className="preview-note" style={{ color: '#4CAF50', fontWeight: 'bold', marginTop: '10px' }}>
+              ✨ Первый урок доступен бесплатно для ознакомления!
             </p>
           </div>
         ) : (

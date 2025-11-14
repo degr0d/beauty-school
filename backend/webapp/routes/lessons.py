@@ -62,8 +62,12 @@ async def get_lesson(
     if not lesson:
         raise HTTPException(status_code=404, detail="Lesson not found")
     
-    # Если урок бесплатный или пользователь админ - разрешаем доступ
-    if lesson.is_free or is_admin:
+    # Проверяем, является ли это первым уроком курса (order = 1)
+    # Первый урок всегда бесплатный для превью
+    is_first_lesson = lesson.order == 1
+    
+    # Если урок бесплатный, первый урок, или пользователь админ - разрешаем доступ
+    if lesson.is_free or is_first_lesson or is_admin:
         return LessonDetailResponse(
             id=lesson.id,
             course_id=lesson.course_id,
@@ -73,7 +77,7 @@ async def get_lesson(
             video_url=lesson.video_url,
             video_duration=lesson.video_duration,
             pdf_url=lesson.pdf_url,
-            is_free=lesson.is_free
+            is_free=lesson.is_free or is_first_lesson  # Первый урок помечаем как бесплатный
         )
     
     # Для платных уроков проверяем доступ к курсу
@@ -138,7 +142,10 @@ async def complete_lesson(
         raise HTTPException(status_code=404, detail="Lesson not found")
     
     # Проверяем доступ к курсу (если урок платный и не админ)
-    if not lesson.is_free and not is_admin:
+    # Первый урок (order=1) всегда доступен для завершения (превью)
+    is_first_lesson = lesson.order == 1
+    
+    if not lesson.is_free and not is_first_lesson and not is_admin:
         result = await session.execute(
             select(UserCourse).where(
                 UserCourse.user_id == db_user.id,

@@ -385,7 +385,7 @@ const ProfilePage = () => {
             onClick={() => navigate('/courses')}
             style={{ marginTop: '20px', padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
           >
-            Выбрать курс
+            📚 Перейти к каталогу курсов
           </button>
           
           {/* Кнопка аналитики для админов */}
@@ -627,7 +627,7 @@ const ProfilePage = () => {
                 cursor: 'pointer'
               }}
             >
-              Выбрать курс
+              📚 Перейти к каталогу курсов
             </button>
           </div>
         )}

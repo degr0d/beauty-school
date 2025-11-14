@@ -25,11 +25,11 @@ const AccessBlocked = ({ onViewCourses }: AccessBlockedProps) => {
         <div className="access-actions">
           {onViewCourses ? (
             <button onClick={onViewCourses} className="btn-primary">
-              📚 Выбрать курс
+              📚 Перейти к каталогу курсов
             </button>
           ) : (
             <Link to="/courses" className="btn-primary">
-              📚 Выбрать курс
+              📚 Перейти к каталогу курсов
             </Link>
           )}
         </div>
