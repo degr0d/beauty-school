@@ -36,3 +36,4 @@ def downgrade() -> None:
     op.drop_index(op.f('ix_favorites_id'), table_name='favorites')
     op.drop_table('favorites')
 
+

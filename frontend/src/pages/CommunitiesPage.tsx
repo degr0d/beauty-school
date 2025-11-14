@@ -86,15 +86,29 @@ const CommunitiesPage = () => {
     return categoryList
   }, [communities])
 
+  // Валидация индексов при изменении списков
+  useEffect(() => {
+    if (cities.length > 0 && selectedCityIndex >= cities.length) {
+      setSelectedCityIndex(0)
+    }
+    if (categories.length > 0 && selectedCategoryIndex >= categories.length) {
+      setSelectedCategoryIndex(0)
+    }
+  }, [cities.length, categories.length, selectedCityIndex, selectedCategoryIndex])
+
   // Ищем сообщество по выбранным параметрам
   useEffect(() => {
-    if (cities.length === 0 || categories.length === 0) {
+    if (cities.length === 0 || categories.length === 0 || communities.length === 0) {
       setSelectedCommunity(null)
       return
     }
 
-    const selectedCity = cities[selectedCityIndex]
-    const selectedCategoryLabel = categories[selectedCategoryIndex]
+    // Валидируем индексы
+    const validCityIndex = Math.max(0, Math.min(selectedCityIndex, cities.length - 1))
+    const validCategoryIndex = Math.max(0, Math.min(selectedCategoryIndex, categories.length - 1))
+    
+    const selectedCity = cities[validCityIndex]
+    const selectedCategoryLabel = categories[validCategoryIndex]
     
     // Обратный маппинг: из красивого названия в ключ категории
     const categoryKeyMap: Record<string, string> = {
@@ -109,25 +123,41 @@ const CommunitiesPage = () => {
       '📢 Маркетинг': 'marketing'
     }
     
-    // Получаем ключ категории (убираем эмодзи и пробелы для поиска)
+    // Получаем ключ категории
     const categoryKey = categoryKeyMap[selectedCategoryLabel] || 
                        selectedCategoryLabel.replace(/^[^\s]+\s/, '').trim()
 
-    // Ищем сообщество по городу (приоритет)
-    let found = communities.find(c => 
-      c.type === 'city' && 
-      c.city === selectedCity
-    )
+    // Нормализуем для поиска
+    const normalizeCategory = (cat: string) => cat.toLowerCase().trim()
+    const searchCategory = normalizeCategory(categoryKey)
 
-    // Если не нашли по городу - ищем по категории
+    // Приоритет 1: Ищем сообщество по городу И категории (точное совпадение)
+    let found = communities.find(c => {
+      if (c.type === 'city' && c.city === selectedCity) {
+        return true
+      }
+      if (c.type === 'profession' && c.category) {
+        const cCategory = normalizeCategory(c.category)
+        return cCategory === searchCategory || 
+               cCategory.includes(searchCategory) || 
+               searchCategory.includes(cCategory) ||
+               c.category === categoryKey
+      }
+      return false
+    })
+
+    // Приоритет 2: Ищем по городу (если есть городские сообщества)
+    if (!found) {
+      found = communities.find(c => 
+        c.type === 'city' && c.city === selectedCity
+      )
+    }
+
+    // Приоритет 3: Ищем по категории (если есть профессиональные сообщества)
     if (!found) {
       found = communities.find(c => {
         if (c.type !== 'profession' || !c.category) return false
-        
-        // Сравниваем категории (учитываем разные форматы)
-        const cCategory = c.category.toLowerCase().trim()
-        const searchCategory = categoryKey.toLowerCase().trim()
-        
+        const cCategory = normalizeCategory(c.category)
         return cCategory === searchCategory || 
                cCategory.includes(searchCategory) || 
                searchCategory.includes(cCategory) ||

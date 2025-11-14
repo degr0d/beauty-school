@@ -54,3 +54,4 @@ def downgrade():
     op.drop_index(op.f('ix_support_tickets_id'), table_name='support_tickets')
     op.drop_table('support_tickets')
 
+

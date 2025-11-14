@@ -168,3 +168,4 @@ if __name__ == "__main__":
     # Для запуска вручную
     asyncio.run(run_scheduled_notifications())
 
+

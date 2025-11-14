@@ -332,3 +332,4 @@ const ReviewsSection = ({ courseId }: ReviewsSectionProps) => {
 
 export default ReviewsSection
 
+

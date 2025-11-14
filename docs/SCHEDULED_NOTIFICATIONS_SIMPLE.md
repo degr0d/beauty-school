@@ -72,3 +72,4 @@ python scripts/send_scheduled_notifications.py
 - Изменить интервал (не 7 дней, а например 3 дня)
 - Добавить другие типы напоминаний
 
+

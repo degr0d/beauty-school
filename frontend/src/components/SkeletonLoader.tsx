@@ -69,3 +69,4 @@ const SkeletonLoader = ({ type = 'card', count = 1, className = '' }: SkeletonLo
 
 export default SkeletonLoader
 
+
