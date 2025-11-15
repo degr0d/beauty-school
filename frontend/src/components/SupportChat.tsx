@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react'
-import { supportApi, type SupportTicket } from '../api/client'
+import { supportApi, type SupportTicket, type SupportMessage } from '../api/client'
 
 interface SupportChatProps {
   onClose: () => void
@@ -29,61 +29,150 @@ const SupportChat = ({ onClose }: SupportChatProps) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
 
-  const loadTicket = async () => {
+  const loadTicket = async (retryCount = 0) => {
     try {
       setLoading(true)
+      console.log('💬 [SupportChat] Загрузка тикета...', retryCount > 0 ? `(попытка ${retryCount + 1})` : '')
       const response = await supportApi.getMyTicket()
+      console.log('✅ [SupportChat] Тикет загружен:', response.data)
       setTicket(response.data)
-    } catch (error) {
-      console.error('Ошибка загрузки тикета:', error)
+    } catch (error: any) {
+      console.error('❌ [SupportChat] Ошибка загрузки тикета:', error)
+      console.error('   Тип ошибки:', error.constructor?.name || typeof error)
+      console.error('   Сообщение:', error.message)
+      console.error('   Статус:', error.response?.status)
+      console.error('   Данные:', error.response?.data)
+      
+      // Если это Network Error и еще не было 2 попыток - пробуем еще раз
+      if ((!error.response && (error.message?.includes('Network') || error.code === 'ERR_NETWORK')) && retryCount < 2) {
+        console.warn(`⚠️ [SupportChat] Network Error, пробуем еще раз через ${(retryCount + 1) * 500}мс...`)
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 500))
+        return loadTicket(retryCount + 1)
+      }
+      
+      // Если это не критичная ошибка (например, тикет просто не найден) - продолжаем работу
+      if (error.response?.status === 404) {
+        console.log('ℹ️ [SupportChat] Тикет не найден, будет создан при отправке первого сообщения')
+        setTicket(null)
+        return
+      }
+      
+      // Показываем ошибку только если это не Network Error (он уже обработан)
+      if (error.response || (!error.message?.includes('Network') && error.code !== 'ERR_NETWORK')) {
+        const errorMessage = error.response?.data?.detail || 
+                            error.response?.data?.message || 
+                            error.message || 
+                            'Ошибка при загрузке чата поддержки'
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+        } else {
+          alert(`Ошибка: ${errorMessage}`)
+        }
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSendMessage = async () => {
+  const handleSendMessage = async (retryCount = 0) => {
     if (!message.trim() || sending) return
 
+    const messageText = message.trim()
+    
+    // Оптимистичное обновление UI - сразу показываем сообщение
+    const tempMessage: SupportMessage = {
+      id: Date.now(), // Временный ID
+      ticket_id: ticket?.id || 0,
+      message: messageText,
+      is_from_admin: false,
+      created_at: new Date().toISOString()
+    }
+    
+    // Добавляем сообщение в UI сразу
+    if (ticket) {
+      setTicket({
+        ...ticket,
+        messages: [...ticket.messages, tempMessage],
+        updated_at: new Date().toISOString()
+      })
+    } else {
+      // Если тикета нет - создаем временный
+      setTicket({
+        id: 0,
+        status: 'open',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        messages: [tempMessage]
+      })
+    }
+    
+    const previousMessage = message
+    setMessage('') // Очищаем поле ввода сразу
+    setSending(true)
+
     try {
-      setSending(true)
-      console.log('💬 [SupportChat] Отправка сообщения:', message.trim())
+      console.log('💬 [SupportChat] Отправка сообщения:', messageText, retryCount > 0 ? `(попытка ${retryCount + 1})` : '')
       
-      const response = await supportApi.sendMessage({ message: message.trim() })
+      const response = await supportApi.sendMessage({ message: messageText })
       console.log('✅ [SupportChat] Сообщение отправлено:', response.data)
       
-      // Обновляем тикет
+      // Обновляем тикет с реальными данными с сервера
       if (ticket) {
+        // Заменяем временное сообщение на реальное
+        const updatedMessages = ticket.messages.map(msg => 
+          msg.id === tempMessage.id ? response.data : msg
+        )
         setTicket({
           ...ticket,
-          messages: [...ticket.messages, response.data],
+          messages: updatedMessages,
           updated_at: new Date().toISOString()
         })
       } else {
         // Если тикета не было - перезагружаем его
         await loadTicket()
       }
-      
-      setMessage('')
     } catch (error: any) {
       console.error('❌ [SupportChat] Ошибка отправки сообщения:', error)
+      console.error('   Тип ошибки:', error.constructor?.name || typeof error)
+      console.error('   Сообщение:', error.message)
       console.error('   Статус:', error.response?.status)
       console.error('   Данные:', error.response?.data)
-      console.error('   Сообщение:', error.message)
+      console.error('   URL запроса:', error.config?.url)
       
-      let errorMessage = 'Ошибка при отправке сообщения'
-      
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
-      } else if (error.message) {
-        errorMessage = error.message
+      // Откатываем оптимистичное обновление
+      if (ticket) {
+        const updatedMessages = ticket.messages.filter(msg => msg.id !== tempMessage.id)
+        setTicket({
+          ...ticket,
+          messages: updatedMessages,
+          updated_at: new Date().toISOString()
+        })
+      } else {
+        setTicket(null)
       }
       
-      if (window.Telegram?.WebApp) {
-        window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
-      } else {
-        alert(`Ошибка: ${errorMessage}`)
+      // Возвращаем текст сообщения в поле ввода
+      setMessage(previousMessage)
+      
+      // Если это Network Error и еще не было 2 попыток - пробуем еще раз
+      if ((!error.response && (error.message?.includes('Network') || error.code === 'ERR_NETWORK')) && retryCount < 2) {
+        console.warn(`⚠️ [SupportChat] Network Error, пробуем еще раз через ${(retryCount + 1) * 500}мс...`)
+        await new Promise(resolve => setTimeout(resolve, (retryCount + 1) * 500))
+        return handleSendMessage(retryCount + 1)
+      }
+      
+      // Показываем ошибку только если это не Network Error (он уже обработан)
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Ошибка при отправке сообщения'
+      
+      if (error.response || (!error.message?.includes('Network') && error.code !== 'ERR_NETWORK')) {
+        if (window.Telegram?.WebApp) {
+          window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
+        } else {
+          alert(`Ошибка: ${errorMessage}`)
+        }
       }
     } finally {
       setSending(false)
@@ -256,7 +345,7 @@ const SupportChat = ({ onClose }: SupportChatProps) => {
             }}
           />
           <button
-            onClick={handleSendMessage}
+            onClick={() => handleSendMessage(0)}
             disabled={!message.trim() || sending}
             style={{
               padding: '12px 24px',
