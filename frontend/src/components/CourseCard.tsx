@@ -37,39 +37,51 @@ const CourseCard = ({ course }: CourseCardProps) => {
     e.preventDefault()
     e.stopPropagation()
     
-    if (loadingFavorite) return
+    if (loadingFavorite) {
+      console.log('⏳ [CourseCard] Уже идет загрузка, игнорируем клик')
+      return
+    }
+    
+    // Оптимистичное обновление UI - сразу меняем состояние
+    const previousState = isFavorite
+    const newState = !isFavorite
+    setIsFavorite(newState)
+    setLoadingFavorite(true)
+    
+    console.log('❤️ [CourseCard] Изменение избранного для курса:', course.id)
+    console.log('   Текущее состояние:', previousState, '→ Новое состояние:', newState)
+    console.log('   Оптимистичное обновление UI применено')
     
     try {
-      setLoadingFavorite(true)
-      console.log('❤️ [CourseCard] Изменение избранного для курса:', course.id, 'текущее состояние:', isFavorite)
-      console.log('📤 [CourseCard] Отправка запроса...')
-      
-      if (isFavorite) {
+      if (previousState) {
+        // Удаляем из избранного
+        console.log('📤 [CourseCard] Отправка запроса на удаление...')
         try {
           const response = await favoritesApi.remove(course.id)
           console.log('✅ [CourseCard] Курс удален из избранного:', response.data)
-          setIsFavorite(false)
           window.dispatchEvent(new CustomEvent('favorite_changed'))
         } catch (removeError: any) {
           console.error('❌ [CourseCard] Ошибка удаления из избранного:', removeError)
-          console.error('   Тип ошибки:', removeError.constructor.name)
+          console.error('   Тип ошибки:', removeError.constructor?.name || typeof removeError)
           console.error('   Сообщение:', removeError.message)
           console.error('   Статус:', removeError.response?.status)
           console.error('   Данные ответа:', removeError.response?.data)
-          console.error('   Запрос:', removeError.config?.url, removeError.config?.method)
+          console.error('   URL запроса:', removeError.config?.url)
           
-          // Если курс уже не в избранном - просто обновляем состояние
+          // Откатываем оптимистичное обновление
+          setIsFavorite(previousState)
+          
+          // Если курс уже не в избранном - это нормально
           if (removeError.response?.status === 404 || 
               removeError.response?.data?.message?.includes('не в избранном') ||
               removeError.response?.data?.detail?.includes('не в избранном')) {
-            console.log('ℹ️ [CourseCard] Курс уже не в избранном, обновляем состояние')
-            setIsFavorite(false)
+            console.log('ℹ️ [CourseCard] Курс уже не в избранном - состояние корректно')
             return
           }
           
-          // Если это Network Error - пробуем еще раз через небольшую задержку
-          if (!removeError.response && removeError.message?.includes('Network')) {
-            console.warn('⚠️ [CourseCard] Network Error, пробуем еще раз...')
+          // Если это Network Error - пробуем еще раз
+          if (!removeError.response && (removeError.message?.includes('Network') || removeError.code === 'ERR_NETWORK')) {
+            console.warn('⚠️ [CourseCard] Network Error, пробуем еще раз через 500мс...')
             await new Promise(resolve => setTimeout(resolve, 500))
             try {
               const retryResponse = await favoritesApi.remove(course.id)
@@ -79,26 +91,31 @@ const CourseCard = ({ course }: CourseCardProps) => {
               return
             } catch (retryError: any) {
               console.error('❌ [CourseCard] Повторная попытка тоже не удалась:', retryError)
+              setIsFavorite(previousState)
             }
           }
           
           throw removeError
         }
       } else {
+        // Добавляем в избранное
+        console.log('📤 [CourseCard] Отправка запроса на добавление...')
         try {
           const response = await favoritesApi.add(course.id)
           console.log('✅ [CourseCard] Курс добавлен в избранное:', response.data)
-          setIsFavorite(true)
           window.dispatchEvent(new CustomEvent('favorite_changed'))
         } catch (addError: any) {
           console.error('❌ [CourseCard] Ошибка добавления в избранное:', addError)
-          console.error('   Тип ошибки:', addError.constructor.name)
+          console.error('   Тип ошибки:', addError.constructor?.name || typeof addError)
           console.error('   Сообщение:', addError.message)
           console.error('   Статус:', addError.response?.status)
           console.error('   Данные ответа:', addError.response?.data)
-          console.error('   Запрос:', addError.config?.url, addError.config?.method)
+          console.error('   URL запроса:', addError.config?.url)
           
-          // Если курс уже в избранном - просто обновляем состояние
+          // Откатываем оптимистичное обновление
+          setIsFavorite(previousState)
+          
+          // Если курс уже в избранном - обновляем состояние
           if (addError.response?.data?.message?.includes('уже в избранном') || 
               addError.response?.data?.is_favorite === true ||
               addError.response?.data?.detail?.includes('уже в избранном')) {
@@ -107,9 +124,9 @@ const CourseCard = ({ course }: CourseCardProps) => {
             return
           }
           
-          // Если это Network Error - пробуем еще раз через небольшую задержку
-          if (!addError.response && addError.message?.includes('Network')) {
-            console.warn('⚠️ [CourseCard] Network Error, пробуем еще раз...')
+          // Если это Network Error - пробуем еще раз
+          if (!addError.response && (addError.message?.includes('Network') || addError.code === 'ERR_NETWORK')) {
+            console.warn('⚠️ [CourseCard] Network Error, пробуем еще раз через 500мс...')
             await new Promise(resolve => setTimeout(resolve, 500))
             try {
               const retryResponse = await favoritesApi.add(course.id)
@@ -119,6 +136,7 @@ const CourseCard = ({ course }: CourseCardProps) => {
               return
             } catch (retryError: any) {
               console.error('❌ [CourseCard] Повторная попытка тоже не удалась:', retryError)
+              setIsFavorite(previousState)
             }
           }
           
@@ -127,38 +145,17 @@ const CourseCard = ({ course }: CourseCardProps) => {
       }
     } catch (error: any) {
       console.error('❌ [CourseCard] Критическая ошибка изменения избранного:', error)
-      console.error('   Полная информация об ошибке:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-        response: error.response ? {
-          status: error.response.status,
-          statusText: error.response.statusText,
-          data: error.response.data,
-          headers: error.response.headers
-        } : null,
-        request: error.config ? {
-          url: error.config.url,
-          method: error.config.method,
-          headers: error.config.headers
-        } : null
-      })
       
-      // Показываем более понятное сообщение об ошибке
-      let errorMessage = 'Ошибка при изменении избранного'
+      // Показываем ошибку только если это не дубликат и не Network Error
+      const errorMessage = error.response?.data?.detail || 
+                          error.response?.data?.message || 
+                          error.message || 
+                          'Ошибка при изменении избранного'
       
-      if (error.response?.data?.detail) {
-        errorMessage = error.response.data.detail
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message
-      } else if (error.message) {
-        errorMessage = error.message
-      }
-      
-      // Не показываем ошибку, если это просто дубликат или Network Error (уже обработан)
       if (!errorMessage.includes('уже') && 
           !errorMessage.includes('не в избранном') &&
-          !error.message?.includes('Network')) {
+          !error.message?.includes('Network') &&
+          error.code !== 'ERR_NETWORK') {
         if (window.Telegram?.WebApp) {
           window.Telegram.WebApp.showAlert(`Ошибка: ${errorMessage}`)
         } else {
@@ -167,6 +164,7 @@ const CourseCard = ({ course }: CourseCardProps) => {
       }
     } finally {
       setLoadingFavorite(false)
+      console.log('🏁 [CourseCard] Завершена обработка клика, loadingFavorite:', false)
     }
   }
   // Безопасно нормализуем все значения - гарантируем что это примитивы
