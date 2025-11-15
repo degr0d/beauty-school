@@ -12,6 +12,8 @@ from backend.webapp.middleware import TelegramAuthMiddleware
 from backend.database.database import create_engine_and_session, get_engine, get_async_session
 import asyncio
 import logging
+import subprocess
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -123,9 +125,58 @@ def create_app() -> FastAPI:
         app.state.engine = get_engine()
         app.state.async_session = get_async_session()
         
+        # Применяем миграции базы данных
+        try:
+            await apply_migrations()
+            logger.info("✅ Database migrations applied")
+        except Exception as e:
+            logger.error(f"❌ Error applying migrations: {e}")
+            import traceback
+            traceback.print_exc()
+        
         # Запускаем фоновую задачу для напоминаний
         asyncio.create_task(run_periodic_reminders())
         logger.info("✅ Background task for reminders started")
+    
+    async def apply_migrations():
+        """
+        Применяет миграции Alembic к базе данных
+        Выполняется через subprocess, так как alembic требует синхронного выполнения
+        """
+        try:
+            logger.info("🔄 Checking database migrations...")
+            
+            # Запускаем alembic upgrade head в отдельном процессе
+            # Это гарантирует правильное применение всех миграций
+            result = subprocess.run(
+                ["alembic", "upgrade", "head"],
+                cwd=os.getcwd(),
+                capture_output=True,
+                text=True,
+                timeout=60  # Таймаут 60 секунд
+            )
+            
+            if result.returncode == 0:
+                logger.info("✅ Database migrations applied successfully")
+                if result.stdout:
+                    logger.info(f"Migration output: {result.stdout}")
+            else:
+                logger.error(f"❌ Migration failed with return code {result.returncode}")
+                logger.error(f"Error output: {result.stderr}")
+                # Не прерываем запуск приложения, но логируем ошибку
+                logger.warning("⚠️ Continuing startup despite migration errors")
+                
+        except subprocess.TimeoutExpired:
+            logger.error("❌ Migration timeout - migrations took too long")
+        except FileNotFoundError:
+            logger.warning("⚠️ Alembic not found in PATH - skipping automatic migrations")
+            logger.warning("💡 Please run 'alembic upgrade head' manually")
+        except Exception as e:
+            logger.error(f"❌ Error applying migrations: {e}")
+            import traceback
+            traceback.print_exc()
+            # Не прерываем запуск приложения
+            logger.warning("⚠️ Continuing startup despite migration errors")
     
     async def run_periodic_reminders():
         """
